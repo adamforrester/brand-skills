@@ -148,12 +148,40 @@ export async function initCommand(opts) {
   console.log(chalk.green('✓ design.md (design.md spec)'));
   results.created.push('design.md');
 
+  // 5. assets/ directory with a brief README so practitioners know where to drop files
+  const assetsDir = join(projectDir, 'assets');
+  if (!existsSync(assetsDir)) {
+    mkdirSync(assetsDir, { recursive: true });
+    writeFileSync(
+      join(assetsDir, 'README.md'),
+      [
+        '# Brand assets',
+        '',
+        'Drop client brand assets here — `/brand-context:extract` (in Claude Code) will discover and use them automatically.',
+        '',
+        '**Supported:**',
+        '- `.pdf` — brand guides, style guides, voice docs',
+        '- `.png` / `.jpg` / `.jpeg` / `.webp` / `.gif` — reference screenshots',
+        '- `.svg` — logos, hero assets',
+        '',
+        '**Not directly readable** (export to PDF first):',
+        '- `.docx` / `.pptx` / `.key` / `.numbers`',
+        '',
+        'You don\'t need to edit `.brandrc.yaml` by hand — the skill scans this directory, classifies what it finds, and asks you to confirm before extracting.',
+        '',
+      ].join('\n'),
+      'utf-8'
+    );
+    console.log(chalk.green('✓ assets/ (drop brand files here)'));
+    results.created.push('assets/');
+  }
+
   console.log('');
   console.log(chalk.bold('  Next steps'));
   console.log('');
-  console.log('  1. Add brand sources to .brandrc.yaml (website, Figma file, brand-guide PDF)');
-  console.log(`  2. In Claude Code, run ${chalk.cyan('/brand-context:extract')} to populate .brand/ from those sources`);
-  console.log(`  3. Or ${chalk.cyan('brand-cli refresh-design')} / ${chalk.cyan('brand-cli refresh-context')} to regenerate root artifacts after editing .brand/`);
+  console.log(`  1. Drop brand assets (PDFs, screenshots, logos) into ${chalk.cyan('./assets/')}`);
+  console.log(`  2. In Claude Code, run ${chalk.cyan('/brand-context:extract')} — the skill scans assets, asks for any URLs (website, Figma, social), and runs the pipeline`);
+  console.log(`  3. After editing ${chalk.cyan('.brand/')} files manually, re-run ${chalk.cyan('brand-cli refresh-design')} / ${chalk.cyan('brand-cli refresh-context')} to regenerate root artifacts`);
   console.log('');
 
   if (opts.json) {

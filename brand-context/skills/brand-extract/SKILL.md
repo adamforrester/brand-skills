@@ -21,20 +21,75 @@ The full design reference lives at `https://github.com/adamforrester/brand-skill
 
 ---
 
-## 0. Pre-flight checks
+## 0. Pre-flight + source discovery
 
-Before doing anything else:
+Discover sources by reading `.brandrc.yaml`, scanning the project for asset files dropped into a folder, and asking the practitioner conversationally for the rest. **Practitioners should never have to hand-edit `.brandrc.yaml`** — the skill walks them through everything and writes the file at the end.
 
-1. **Confirm `.brandrc.yaml` exists** at the project root. If not, tell the user: "I need a `.brandrc.yaml` first. Run `brand-cli init` to scaffold one." Stop.
-2. **Read `.brandrc.yaml`.** Note `client`, `tier`, `mode`, `sources.website`, `sources.figma`, `sources.figma_variable_collections`, `sources.brand_guide`, `sources.screenshots`, `sources.design_system_repo`.
-3. **If `sources.website` is missing**, ask the user: "What's the live website URL? (Skip if there's no website.)" Save the answer back to `.brandrc.yaml`. If the user has no website at all, the skill can still run on uploaded brand-guide PDFs and screenshots only — proceed.
-4. **Detect available tools** (warn-don't-block — degrade gracefully when something is missing):
-   - Run `claude mcp list`. Note whether `playwright` and `figma-console` are listed and connected.
-   - **No MCPs detected at all.** That's fine — Stages 4, 5, 6, 7, 8 all run native. Stage 2 (web token extraction) will be skipped, Stage 3 (voice extraction) falls back to the native `WebFetch` tool. Surface this in the scope-confirmation message so the practitioner knows what they're getting.
-   - **Playwright missing.** Stage 2 skipped, Stage 3 degrades to WebFetch (text content only — no accessibility tree, no semantic role classification, no screenshots). Suggest `brand-cli setup` (offers a one-command install, no signup) or `claude mcp add playwright -s user -- npx -y @playwright/mcp@latest` directly.
-   - **Figma Console missing AND `sources.figma` is set.** Stage 1 skipped. Surface a note. Continue with Stage 2.
+### 0a. Read existing config
 
-Continue regardless of what's missing — the only stop condition is no useful inputs at all (no website, no PDF, no screenshots, no Figma).
+1. Confirm `.brandrc.yaml` exists at the project root. If not, run `brand-cli init` via `Bash` to scaffold it (it'll prompt for client name and tier). If `brand-cli` is not available, write a minimal `.brandrc.yaml` inline using the YAML library or just `Write` with the right shape: `client`, `tier: standard`, `mode: standard`, empty `sources:`.
+2. Read the file. Note `client`, `tier`, `mode`, and any `sources.*` already populated. Existing values are kept unless the practitioner explicitly says otherwise.
+
+### 0b. Scan the project for asset files
+
+Look for assets the practitioner may have dropped into the project. Check these directories in order; use whichever exists:
+- `./assets/`
+- `./brand-assets/`
+- `./.brand-assets/`
+- `./inputs/`
+- `./sources/`
+- Project root (loose files only — be selective; ignore obvious code/config/dotfiles)
+
+For each file found, classify by extension:
+- **`.pdf`** → brand guide candidate. Read the **first page** with the `Read` tool (`pages: "1"`) to confirm. Brand-guide covers usually have the brand name + "Brand Guidelines" / "Brand Identity" / "Style Guide". A pitch deck or other PDF will look obviously different — categorize accordingly. Multiple PDFs are fine; pick the one that reads as a brand guide; treat the rest as supporting context (campaign decks, voice docs).
+- **`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`** → reference screenshot. Cap at 10 — if more are present, pick the most descriptive filenames (e.g., `hero-desktop.png` > `IMG_2438.JPG`) or ask the practitioner which to prioritize.
+- **`.svg`** → reference asset (often a logo or hero asset). Treat the same as a screenshot for Stage 4 input.
+- **`.docx`, `.doc`, `.pptx`, `.ppt`, `.key`, `.numbers`** → noted but **not directly readable**. Surface to the practitioner: "Found `{filename}`. Word/PowerPoint/Keynote/Numbers files aren't natively readable. Either export to PDF and re-run, or paste the key sections into the chat." Do not block on these — proceed with everything else.
+- **`.fig`** → unusual on disk; likely a Figma export. Ignore unless the practitioner mentions it.
+- **`.txt`, `.md`** in an asset folder → may be a hand-written voice doc or notes. Read it; surface contents to the practitioner.
+
+### 0c. Surface findings and confirm
+
+Show the practitioner what was discovered, in a short summary:
+
+> Looking through your project, I found:
+> - `assets/{filename}.pdf` — brand guide (cover reads "{brand} Brand Guidelines, 2024")
+> - `assets/{filename}.pdf` — campaign deck, will use as supporting context
+> - 3 reference screenshots in `assets/`: `homepage.png`, `hero.png`, `landing-mobile.png`
+> - `assets/voice-rules.docx` — Word doc, not directly readable. Export to PDF if you want me to use it.
+>
+> I'll use these for Stage 4 (overview synthesis). Sound good, or should I skip any?
+
+If nothing was found in any of the asset directories, say so plainly: "No asset files found in `./assets/`, `./brand-assets/`, etc. We'll work from URLs only." Don't error.
+
+### 0d. Ask for non-file sources
+
+These can't be discovered on disk. Ask conversationally — one question at a time, accept "skip" or empty as valid answers:
+
+1. **Live website URL** — required for Stages 2 and 3 (token sampling, voice extraction). Skip is OK if the brand has no public web presence; the skill will run on PDF/screenshot inputs only.
+2. **Figma file URL** — optional. Paste a URL like `https://figma.com/design/<fileKey>/...` and the skill extracts the file key. Skip if no Figma access.
+3. **Social profiles** — optional. Twitter/X, Instagram, LinkedIn, Facebook, TikTok. Accept any combination. Skip if none.
+4. **App store listings** — optional. iOS App Store and/or Google Play URLs. Skip if no app.
+5. **Design-system repo** — only ask if `tier == comprehensive`. Local path or remote git URL.
+
+For each one, validate the answer minimally (URL looks like a URL; local path exists if given). Don't over-validate — bad URLs will surface as Stage failures with clear errors.
+
+### 0e. Write the populated config
+
+Update `.brandrc.yaml` with everything gathered. Use `Edit` (not `Write`) so any fields the practitioner had set manually are preserved — only add or update what we discovered.
+
+After writing, show the final `sources:` block to the practitioner so they can confirm. If anything looks wrong, accept corrections inline and re-write the file.
+
+### 0f. Detect available tools
+
+Now check MCP availability — warn, don't block:
+
+- Run `claude mcp list`. Note whether `playwright` and `figma-console` are listed and connected.
+- **No MCPs detected at all.** Fine — Stages 4, 5, 6, 7, 8 run native. Stage 2 (web tokens) will be skipped, Stage 3 (voice) falls back to native `WebFetch`. Surface this in the scope-confirmation message.
+- **Playwright missing.** Stage 2 skipped, Stage 3 degrades to WebFetch. Suggest `brand-cli setup` (one-command install, no signup) or `claude mcp add playwright -s user -- npx -y @playwright/mcp@latest`.
+- **Figma Console missing AND `sources.figma` is set.** Stage 1 skipped. Surface a note. Continue with Stage 2.
+
+Stop only when no useful input is available at all (no website, no PDFs, no screenshots, no Figma) — and even then, surface a clear "I have nothing to extract from. Drop assets into `./assets/` or paste a URL, then re-run" message rather than crashing.
 
 ## 1. Confirm scope with the practitioner
 

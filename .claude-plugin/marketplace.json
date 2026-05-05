@@ -8,14 +8,14 @@
   },
   "metadata": {
     "description": "AI-agent skills for extracting structured brand packages from client assets — Figma variables, live website CSS, social copy, brand-guide PDFs, and reference screenshots — into a .brand/ directory plus a spec-compliant design.md and project-root brand.md.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "brand-context",
       "source": "./brand-context",
       "description": "Generate complete brand context for AI agents from a client's existing assets. Pipeline: Figma tokens, web tokens, voice extraction, multimodal overview, conflict detection, design-system repo scan. Writes a structured .brand/ directory plus design.md and brand.md at the project root. Slash commands: /brand-context:extract and /brand-context:check. Playwright MCP recommended; falls back to native WebFetch when absent.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "adamforrester"
       },
