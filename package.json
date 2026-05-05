@@ -1,6 +1,6 @@
 {
   "name": "brand-skills",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "AI-agent skills + CLI for extracting structured brand packages (.brand/) from client assets — Figma, live website, social, brand-guide PDFs. Pairs with the design.md spec.",
   "type": "module",
   "bin": {

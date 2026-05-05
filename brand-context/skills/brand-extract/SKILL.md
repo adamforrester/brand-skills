@@ -50,7 +50,9 @@ For each file found, classify by extension:
 
 ### 0c. Surface findings and confirm
 
-Show the practitioner what was discovered, in a short summary:
+Three cases — handle each explicitly. **Don't silently skip the asset step** even when nothing is found; the drop-folder pattern is the primary intake mechanism, so it has to be visible to a practitioner who hasn't read the docs.
+
+**Case 1: assets found.** Show what was discovered:
 
 > Looking through your project, I found:
 > - `assets/{filename}.pdf` — brand guide (cover reads "{brand} Brand Guidelines, 2024")
@@ -60,7 +62,27 @@ Show the practitioner what was discovered, in a short summary:
 >
 > I'll use these for Stage 4 (overview synthesis). Sound good, or should I skip any?
 
-If nothing was found in any of the asset directories, say so plainly: "No asset files found in `./assets/`, `./brand-assets/`, etc. We'll work from URLs only." Don't error.
+**Case 2: `./assets/` exists but is empty (or only contains the scaffold README).** Prompt explicitly:
+
+> Your `./assets/` directory is empty. If you have **any** of these for {client}, drop them in now — I'll wait:
+> - Brand guide PDF
+> - Style guide / voice doc PDF
+> - Reference screenshots (homepage, key pages, hero shots)
+> - Logo files (SVG or PNG)
+>
+> Word/PowerPoint/Keynote files aren't readable directly — export to PDF first.
+>
+> When you're done, say "ready" or "rescan" and I'll pick them up. Or say "skip assets" if you only have URLs to work from.
+
+After "ready"/"rescan", re-run the scan from 0b. If still empty after the rescan, accept "skip assets" or a re-prompt. **Don't loop indefinitely** — after two rescans with nothing new, move on with whatever's available.
+
+**Case 3: `./assets/` directory doesn't exist.** Offer to create it:
+
+> I don't see an `./assets/` directory. I can create one for you to drop brand files into (PDFs, screenshots, logos) — or we can work from URLs only.
+>
+> Create the assets folder? (yes / skip)
+
+If yes, `mkdir ./assets/` via Bash and write the same scaffold README that `brand-cli init` would. Then go to Case 2's prompt.
 
 ### 0d. Ask for non-file sources
 
