@@ -1,0 +1,34 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "brand-skills",
+  "id": "brand-skills",
+  "owner": {
+    "name": "adamforrester",
+    "url": "https://github.com/adamforrester"
+  },
+  "metadata": {
+    "description": "AI-agent skills for extracting structured brand packages from client assets — Figma variables, live website CSS, social copy, brand-guide PDFs, and reference screenshots — into a .brand/ directory plus a spec-compliant design.md and project-root brand.md.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "brand-extract",
+      "source": "./brand-extract",
+      "description": "Full brand-extraction pipeline: tokens (Figma + web), voice (website + social + app stores), overview (brand-guide PDF + screenshots), conflicts, and design-system repo scan. Includes /brand-extract and /brand-check slash commands. Playwright MCP recommended; falls back to native WebFetch when absent.",
+      "version": "0.1.0",
+      "author": {
+        "name": "adamforrester"
+      },
+      "keywords": [
+        "brand",
+        "design-system",
+        "design-tokens",
+        "design.md",
+        "extraction",
+        "voice",
+        "tokens"
+      ],
+      "category": "design"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "name": "brand-skills",
+  "version": "0.1.0",
+  "description": "AI-agent skills + CLI for extracting structured brand packages (.brand/) from client assets — Figma, live website, social, brand-guide PDFs. Pairs with the design.md spec.",
+  "type": "module",
+  "bin": {
+    "brand-cli": "./cli/bin/brand-cli.js"
+  },
+  "files": [
+    "cli/bin/",
+    "cli/src/",
+    "schema/",
+    "brand-extract/",
+    ".claude-plugin/"
+  ],
+  "scripts": {
+    "test": "echo 'TODO: add tests'"
+  },
+  "keywords": [
+    "brand",
+    "design-system",
+    "design-tokens",
+    "design.md",
+    "ai-agents",
+    "claude",
+    "claude-code",
+    "cursor",
+    "figma",
+    "playwright"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adamforrester/brand-skills.git"
+  },
+  "homepage": "https://github.com/adamforrester/brand-skills",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^14.0.3",
+    "inquirer": "^13.4.2",
+    "ora": "^9.4.0",
+    "yaml": "^2.7.1"
+  }
+}
