@@ -177,8 +177,8 @@ function buildComponentsSection(brandDir) {
   if (!existsSync(componentsDir)) return '';
 
   // Could enumerate components/*.md and summarise each, but for now just
-  // point readers at the directory. /brand-extract will fill in detail.
-  return '## Components\n\n<!-- See .brand/components/ for per-component specs. design.md component token mappings will be auto-populated by /brand-extract. -->';
+  // point readers at the directory. /brand-context:extract will fill in detail.
+  return '## Components\n\n<!-- See .brand/components/ for per-component specs. design.md component token mappings will be auto-populated by /brand-context:extract. -->';
 }
 
 function buildDosAndDontsSection(brandDir) {

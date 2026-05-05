@@ -26,12 +26,46 @@ const TIER_FILES = {
   ],
 };
 
-// Files with actual content beyond a placeholder comment
+// Detect whether a brand file has real content vs. just init-scaffolded placeholders.
+// A placeholder file has the marker `<!-- Fill this file following the schema...`
+// and/or commented-out (#) frontmatter values. Real content has body prose and
+// uncommented frontmatter values.
 function hasContent(filePath) {
   if (!existsSync(filePath)) return false;
-  const content = readFileSync(filePath, 'utf-8').trim();
-  // A placeholder file has < 100 chars (just a title and a comment)
-  return content.length > 100;
+  const raw = readFileSync(filePath, 'utf-8');
+
+  // The init scaffolder writes this exact placeholder marker into every fresh file.
+  // If it's still present, the file hasn't been edited.
+  if (raw.includes('<!-- Fill this file following the schema')) return false;
+
+  // Strip frontmatter and inspect what's left.
+  let body = raw;
+  const trimmed = body.trimStart();
+  if (trimmed.startsWith('---')) {
+    const rest = trimmed.slice(3);
+    const end = rest.indexOf('\n---');
+    if (end !== -1) body = rest.slice(end + 4);
+  }
+
+  // Strip leading H1 ("# Title\n"), HTML comments, and blank lines.
+  body = body
+    .replace(/^#\s+[^\n]+\n+/, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .trim();
+
+  // For token files, also check whether the YAML frontmatter has any uncommented
+  // entries beyond the top-level key. If every value line starts with `#`, it's
+  // still a placeholder regardless of body length.
+  const fm = raw.match(/^---\n([\s\S]*?)\n---/);
+  if (fm) {
+    const fmLines = fm[1].split('\n').filter(l => l.trim());
+    const valueLines = fmLines.filter(l => /^\s+/.test(l));
+    const allCommented = valueLines.length > 0 && valueLines.every(l => /^\s*#/.test(l));
+    if (allCommented && body.length < 50) return false;
+  }
+
+  // Real content: substantial body or uncommented frontmatter values.
+  return body.length >= 50;
 }
 
 export async function scoreCommand(opts) {
@@ -50,7 +84,7 @@ export async function scoreCommand(opts) {
   }
 
   console.log('');
-  console.log(chalk.bold('  XD Toolkit — Brand Package Score'));
+  console.log(chalk.bold('  brand-skills — Brand Package Score'));
   console.log('');
 
   const results = { tier: 'none', completeness: 0, files: {}, gaps: [] };

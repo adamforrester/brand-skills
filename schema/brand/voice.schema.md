@@ -62,7 +62,7 @@ Mechanical rules for consistency.
 
 ### Observed Voice — Live Channels (optional)
 
-Owned by `/brand-extract` Stage 3 (descriptive, not prescriptive). Sits alongside the prescriptive sections above and never replaces them. When the brand guide and the live experience diverge, this section flags the divergence for Stage 5 conflict resolution.
+Owned by `/brand-context:extract` Stage 3 (descriptive, not prescriptive). Sits alongside the prescriptive sections above and never replaces them. When the brand guide and the live experience diverge, this section flags the divergence for Stage 5 conflict resolution.
 
 | Field | Required | Description |
 |-------|----------|-------------|

@@ -8,7 +8,7 @@
 
 ## What it does
 
-Run `/brand-extract` once, get a structured brand package any AI agent can read:
+Run `/brand-context:extract` once, get a structured brand package any AI agent can read:
 
 ```
 your-project/
@@ -29,8 +29,8 @@ your-project/
 ```
 
 Two slash commands:
-- **`/brand-extract`** — runs the full extraction pipeline (or a subset based on what sources are available)
-- **`/brand-check`** — reports completeness, surfaces gaps, suggests next actions
+- **`/brand-context:extract`** — runs the full extraction pipeline (or a subset based on what sources are available)
+- **`/brand-context:check`** — reports completeness, surfaces gaps, suggests next actions
 
 A small CLI (`brand-cli`) for the deterministic non-AI bits (scaffold, regenerate root artifacts, score completeness, install MCPs).
 
@@ -42,10 +42,10 @@ A small CLI (`brand-cli`) for the deterministic non-AI bits (scaffold, regenerat
 
 ```bash
 claude plugin marketplace add adamforrester/brand-skills
-claude plugin install brand-extract@brand-skills
+claude plugin install brand-context@brand-skills
 ```
 
-That gives you `/brand-extract` and `/brand-check` in any Claude Code project.
+That gives you `/brand-context:extract` and `/brand-context:check` in any Claude Code project.
 
 ### 2. The CLI (recommended — speeds up regeneration, no AI tokens needed)
 
@@ -105,10 +105,10 @@ sources:
 In Claude Code:
 
 ```
-/brand-extract
+/brand-context:extract
 ```
 
-The skill walks you through scope confirmation, runs the pipeline, surfaces conflicts for your decision, and writes everything. Then `/brand-check` to see completeness.
+The skill walks you through scope confirmation, runs the pipeline, surfaces conflicts for your decision, and writes everything. Then `/brand-context:check` to see completeness.
 
 ---
 
@@ -158,11 +158,13 @@ The skill keeps all three in sync.
 ```
 brand-skills/
 ├── .claude-plugin/marketplace.json   # Claude Code plugin manifest
-├── brand-extract/                    # the plugin
+├── brand-context/                    # the plugin (slash command namespace)
 │   ├── skills/
 │   │   ├── brand-extract/SKILL.md    # main extraction skill
 │   │   └── brand-check/SKILL.md      # completeness check skill
-│   └── commands/                     # /brand-extract and /brand-check slash commands
+│   └── commands/
+│       ├── extract.md                # → /brand-context:extract
+│       └── check.md                  # → /brand-context:check
 ├── cli/                              # npm package
 │   ├── bin/brand-cli.js
 │   └── src/
@@ -178,7 +180,7 @@ brand-skills/
 ## Roadmap
 
 - **`/brand-audit`** — score agent output against the brand package (token compliance, voice consistency, anti-pattern checks)
-- **`/brand-refresh`** — explicit re-run with a structured diff against the previous extraction (today, re-running `/brand-extract` does this implicitly via the additive policies on `voice.md` and `conflicts.md`)
+- **`/brand-refresh`** — explicit re-run with a structured diff against the previous extraction (today, re-running `/brand-context:extract` does this implicitly via the additive policies on `voice.md` and `conflicts.md`)
 - **Component generation from `.brand/components/`** — emit code stubs in the project's framework
 - **Publish to npm** (currently install-from-GitHub)
 

@@ -1,9 +1,9 @@
 # Schema: .brand/conflicts.md
 
-**Purpose:** Track contradictions surfaced during brand extraction between brand guide, Figma variables, live website behavior, and observed user-facing copy. Distinguishes genuine conflicts (which need resolution) from intentional digital adaptations (which need documentation, not resolution). Owned by `/brand-extract` Stage 5.
+**Purpose:** Track contradictions surfaced during brand extraction between brand guide, Figma variables, live website behavior, and observed user-facing copy. Distinguishes genuine conflicts (which need resolution) from intentional digital adaptations (which need documentation, not resolution). Owned by `/brand-context:extract` Stage 5.
 
 **Tier:** Standard (and above)
-**Loaded:** When the practitioner asks about brand conflicts, makes design decisions that touch a flagged token, or runs `/brand-check`. Not loaded by default in every visual implementation task — the resolution lives in the relevant `.brand/` file's prose.
+**Loaded:** When the practitioner asks about brand conflicts, makes design decisions that touch a flagged token, or runs `/brand-context:check`. Not loaded by default in every visual implementation task — the resolution lives in the relevant `.brand/` file's prose.
 
 ---
 
@@ -11,7 +11,7 @@
 
 ### Header
 
-A short paragraph stating who maintains this file (Stage 5 of `/brand-extract`) and a pointer to the source authority hierarchy below. Date of last update.
+A short paragraph stating who maintains this file (Stage 5 of `/brand-context:extract`) and a pointer to the source authority hierarchy below. Date of last update.
 
 ### Source Authority Hierarchy (required)
 
@@ -37,7 +37,7 @@ Conflicts that need resolution. Each conflict is its own subsection:
 | Sources in tension | required | A bulleted list — for each source, what it says + citation (page #, file path, URL) |
 | Recommended resolution | required | A one-paragraph recommendation grounded in the source authority hierarchy |
 | Status | required | `unresolved`, `resolved-with-rationale`, or `intentional-adaptation` |
-| Resolution rationale | required when status ≠ `unresolved` | Why this resolution was chosen. Filled in by the practitioner during the Stage 5 walkthrough or later via `/brand-extract` re-run. |
+| Resolution rationale | required when status ≠ `unresolved` | Why this resolution was chosen. Filled in by the practitioner during the Stage 5 walkthrough or later via `/brand-context:extract` re-run. |
 | Date raised | required | YYYY-MM-DD when first detected |
 | Date resolved | required when status ≠ `unresolved` | YYYY-MM-DD |
 
@@ -76,7 +76,7 @@ Stage 5 is **additive**. It must:
 ```markdown
 # Conflicts
 
-Maintained by `/brand-extract` Stage 5. Last updated 2026-04-29.
+Maintained by `/brand-context:extract` Stage 5. Last updated 2026-04-29.
 
 ## Source Authority Hierarchy
 

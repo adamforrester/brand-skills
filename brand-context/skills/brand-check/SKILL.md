@@ -3,7 +3,7 @@ name: brand-check
 description: Check brand package completeness and health. Reports which .brand/ files are populated, which are placeholders or empty, and what gaps exist relative to the project's tier (minimum / standard / comprehensive). Use when someone asks "is the brand package complete", "what's missing from the brand package", "/brand-check", "score the brand", or after running /brand-extract to see what's left.
 ---
 
-# /brand-check
+# /brand-context:check
 
 Run `brand-cli score` (when available) and present results conversationally. The goal is to surface gaps an agent or practitioner can act on, not to dump a raw report.
 
@@ -58,12 +58,12 @@ For each gap, suggest the action that resolves it:
 
 | Gap | Suggested action |
 |---|---|
-| Missing `voice.md` | "I can run `/brand-extract` Stage 3 to scrape voice samples from the website and social — or paste in your brand voice document." |
-| Empty token files | "Do you have a Figma file? I can pull variables via `/brand-extract` Stage 1. Or `/brand-extract` Stage 2 can sample computed CSS from the live site." |
-| Empty `overview.md` | "Drop the brand-guide PDF or screenshots into the project and run `/brand-extract` — Stage 4 reads them via multimodal vision." |
+| Missing `voice.md` | "I can run `/brand-context:extract` Stage 3 to scrape voice samples from the website and social — or paste in your brand voice document." |
+| Empty token files | "Do you have a Figma file? I can pull variables via `/brand-context:extract` Stage 1. Or `/brand-context:extract` Stage 2 can sample computed CSS from the live site." |
+| Empty `overview.md` | "Drop the brand-guide PDF or screenshots into the project and run `/brand-context:extract` — Stage 4 reads them via multimodal vision." |
 | Missing self-test | "I can generate one from `overview.md` personality + anti-patterns — say the word." |
 | Missing aesthetic anti-patterns | "I can infer what this brand is NOT from the personality traits and visual direction." |
-| Empty `conflicts.md` | "Either there are no conflicts, or `/brand-extract` Stage 5 hasn't run yet. Want me to run it?" |
-| Empty `components/` | "If you have a design-system codebase, add `sources.design_system_repo` to `.brandrc.yaml` and run `/brand-extract` — Stage 6 inventories it (comprehensive tier only)." |
+| Empty `conflicts.md` | "Either there are no conflicts, or `/brand-context:extract` Stage 5 hasn't run yet. Want me to run it?" |
+| Empty `components/` | "If you have a design-system codebase, add `sources.design_system_repo` to `.brandrc.yaml` and run `/brand-context:extract` — Stage 6 inventories it (comprehensive tier only)." |
 
 Be concise. The whole report is a short message, not a wall of text.

@@ -26,7 +26,7 @@ export function generateBrandContext(brandDir, brandName = 'Brand') {
   const sections = [];
   sections.push(`# Brand Context — ${brandName}`);
   sections.push('');
-  sections.push('Loaded by AI agents on every interaction. Generated from `.brand/` — edit there, not here. Re-run `brand-cli refresh-context` (or `/brand-extract`) to regenerate.');
+  sections.push('Loaded by AI agents on every interaction. Generated from `.brand/` — edit there, not here. Re-run `brand-cli refresh-context` (or `/brand-context:extract`) to regenerate.');
   sections.push('');
 
   sections.push(buildIdentityBlock(overview));
@@ -67,7 +67,7 @@ function pullSection(content, headingPattern) {
 
 function buildIdentityBlock(overview) {
   const block = pullSection(overview, '(Brand Identity|Identity)');
-  if (!block) return '## Identity\n\n_Run `/brand-extract` to populate from brand sources._';
+  if (!block) return '## Identity\n\n_Run `/brand-context:extract` to populate from brand sources._';
   return `## Identity\n\n${block}`;
 }
 

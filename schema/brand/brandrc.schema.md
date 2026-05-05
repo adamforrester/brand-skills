@@ -4,7 +4,7 @@
 
 **Location:** Project root.
 **Created by:** `brand-cli init`.
-**Used by:** `brand-cli` commands and the `/brand-extract`, `/brand-check` skills.
+**Used by:** `brand-cli` commands and the `/brand-context:extract`, `/brand-context:check` skills.
 
 ---
 
@@ -27,7 +27,7 @@
 
 ### Brand Sources (optional)
 
-References to source materials for the extraction pipeline. Drives what `/brand-extract` crawls without prompting the practitioner during extraction.
+References to source materials for the extraction pipeline. Drives what `/brand-context:extract` crawls without prompting the practitioner during extraction.
 
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|

@@ -36,7 +36,7 @@ Standard reverse-chronological changelog.
 - `composition/page-types.md` — updated menu page structure for new category tabs
 
 ## [1.0.0] - 2026-04-01
-**Source:** Initial brand package from /brand-extract
+**Source:** Initial brand package from /brand-context:extract
 ### Added
 - Complete brand package: overview, voice, all tokens, 8 components, 3 page types
 - All composition patterns and anti-patterns

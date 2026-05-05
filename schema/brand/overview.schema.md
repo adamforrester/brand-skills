@@ -70,7 +70,7 @@ A short checklist (5-10 yes/no questions) that agents run against any output to 
 |-------|----------|-------------|
 | `Questions` | optional | 5-10 yes/no questions. Each question tests one specific brand attribute. Mix of visual (typography, color, layout), tonal (copy, voice), and holistic (overall feel) questions. The first question should always be: "Could this screen belong to a competitor? (should be NO)". The last should be an overall feel check tied to the visual atmosphere. |
 
-**When to run:** Before presenting any visual work. The `/critique` skill and `/brand-check` command should reference this self-test when evaluating output.
+**When to run:** Before presenting any visual work. The `/critique` skill and `/brand-context:check` command should reference this self-test when evaluating output.
 
 **How to generate:** Infer from brand personality traits, visual direction, design principles, signature elements, and anti-patterns. Each question should be falsifiable — a wrong answer means something specific needs to change.
 

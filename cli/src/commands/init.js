@@ -152,7 +152,7 @@ export async function initCommand(opts) {
   console.log(chalk.bold('  Next steps'));
   console.log('');
   console.log('  1. Add brand sources to .brandrc.yaml (website, Figma file, brand-guide PDF)');
-  console.log(`  2. In Claude Code, run ${chalk.cyan('/brand-extract')} to populate .brand/ from those sources`);
+  console.log(`  2. In Claude Code, run ${chalk.cyan('/brand-context:extract')} to populate .brand/ from those sources`);
   console.log(`  3. Or ${chalk.cyan('brand-cli refresh-design')} / ${chalk.cyan('brand-cli refresh-context')} to regenerate root artifacts after editing .brand/`);
   console.log('');
 

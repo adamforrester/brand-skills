@@ -49,7 +49,7 @@ export async function setupCommand(opts) {
 
   if (hasPlaywright) {
     console.log(chalk.green.bold('  All set.'));
-    console.log(chalk.dim('  Run `/brand-extract` in Claude Code, or `brand-cli init` to scaffold a project.'));
+    console.log(chalk.dim('  Run `/brand-context:extract` in Claude Code, or `brand-cli init` to scaffold a project.'));
     console.log('');
     return;
   }
