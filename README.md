@@ -28,9 +28,10 @@ your-project/
 └── .brandrc.yaml             # project config (sources, tier, mode)
 ```
 
-Two slash commands:
+Three slash commands:
 - **`/brand-context:extract`** — runs the full extraction pipeline (or a subset based on what sources are available)
 - **`/brand-context:check`** — reports completeness, surfaces gaps, suggests next actions
+- **`/brand-context:audit`** — scores a build target (file, URL, or screenshot) against the brand package; produces a severity-ranked findings list and an adherence score; reports go to `.brand/audits/`
 
 A small CLI (`brand-cli`) for the deterministic non-AI bits (scaffold, regenerate root artifacts, score completeness, install MCPs).
 
@@ -161,10 +162,12 @@ brand-skills/
 ├── brand-context/                    # the plugin (slash command namespace)
 │   ├── skills/
 │   │   ├── brand-extract/SKILL.md    # main extraction skill
-│   │   └── brand-check/SKILL.md      # completeness check skill
+│   │   ├── brand-check/SKILL.md      # completeness check skill
+│   │   └── brand-audit/SKILL.md      # brand-adherence scoring
 │   └── commands/
 │       ├── extract.md                # → /brand-context:extract
-│       └── check.md                  # → /brand-context:check
+│       ├── check.md                  # → /brand-context:check
+│       └── audit.md                  # → /brand-context:audit
 ├── cli/                              # npm package
 │   ├── bin/brand-cli.js
 │   └── src/
@@ -179,10 +182,11 @@ brand-skills/
 
 ## Roadmap
 
-- **`/brand-audit`** — score agent output against the brand package (token compliance, voice consistency, anti-pattern checks)
-- **`/brand-refresh`** — explicit re-run with a structured diff against the previous extraction (today, re-running `/brand-context:extract` does this implicitly via the additive policies on `voice.md` and `conflicts.md`)
+- **`/brand-context:audit` auto-fix mode** — today the audit is report-only; future versions will offer to apply low-risk fixes (token swaps, casing corrections) with practitioner confirmation
+- **`/brand-context:refresh`** — explicit re-run with a structured diff against the previous extraction (today, re-running `/brand-context:extract` does this implicitly via the additive policies on `voice.md` and `conflicts.md`)
 - **Component generation from `.brand/components/`** — emit code stubs in the project's framework
 - **Publish to npm** (currently install-from-GitHub)
+- **CI integration** — `brand-cli audit` headless mode for pre-merge gates
 
 ---
 

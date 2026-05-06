@@ -10,7 +10,7 @@ import { scoreCommand } from '../src/commands/score.js';
 program
   .name('brand-cli')
   .description('Standalone CLI for the brand-skills toolkit — scaffold .brand/, regenerate root artifacts, score completeness')
-  .version('0.3.1');
+  .version('0.4.0');
 
 program
   .command('setup')
