@@ -35,24 +35,32 @@ export function classifyFile(absPath) {
   }
 
   // Strip leading H1, HTML comments, blank lines.
+  // trimStart() first: after the frontmatter strip, body begins with "\n\n# Title…",
+  // which would prevent the anchored H1 regex from matching.
   body = body
+    .trimStart()
     .replace(/^#\s+[^\n]+\n+/, '')
     .replace(/<!--[\s\S]*?-->/g, '')
     .trim();
 
-  // Frontmatter check: walk the value lines once.
-  // - If every value line is commented and body is short → placeholder.
-  // - If at least one value line is uncommented (a real key:value) → complete,
-  //   regardless of body length: the frontmatter itself carries the content
-  //   (e.g. token files where the body is a short note above filled tokens).
+  // Frontmatter check: if the frontmatter contains at least one uncommented
+  // key:value line where the value is non-empty (top-level OR nested), treat
+  // the file as complete — the frontmatter itself carries the content (e.g.
+  // token files where the body is a short note above filled tokens). A bare
+  // header line like `colors:` with all children commented is NOT a value;
+  // we require non-whitespace after the first colon. If no real value is
+  // present, fall through to the body-length check (→ 'placeholder' when
+  // the body is short).
   const fm = raw.match(/^---\n([\s\S]*?)\n---/);
   if (fm) {
     const fmLines = fm[1].split('\n').filter((l) => l.trim());
-    const valueLines = fmLines.filter((l) => /^\s+/.test(l));
-    const allCommented = valueLines.length > 0 && valueLines.every((l) => /^\s*#/.test(l));
-    if (allCommented && body.length < 50) return 'placeholder';
-    const hasUncommentedValue = valueLines.some((l) => !/^\s*#/.test(l));
-    if (hasUncommentedValue) return 'complete';
+    const uncommentedValueLines = fmLines.filter((l) => {
+      if (/^\s*#/.test(l)) return false;
+      const idx = l.indexOf(':');
+      if (idx === -1) return false;
+      return l.slice(idx + 1).trim().length > 0;
+    });
+    if (uncommentedValueLines.length > 0) return 'complete';
   }
 
   return body.length >= 50 ? 'complete' : 'placeholder';

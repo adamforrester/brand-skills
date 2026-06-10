@@ -60,3 +60,20 @@ test('classifyFile strips H1 and HTML comments before measuring body', () => {
     assert.equal(classifyFile(p), 'placeholder');
   });
 });
+
+test('classifyFile returns complete for flat (non-nested) frontmatter with real values', () => {
+  const content = '---\ntitle: Acme Brand Overview\nclient: Acme Corp\n---\n\n# Overview\n\nShort body.\n';
+  withTmpFile(content, (p) => {
+    assert.equal(classifyFile(p), 'complete');
+  });
+});
+
+test('classifyFile returns complete when H1 + frontmatter present and body is long', () => {
+  // Without the H1-strip fix, the title text counts toward body length and
+  // pushes a borderline file over the 50-char threshold spuriously. With the
+  // fix, only the post-H1 body counts. Use a body that's clearly substantive.
+  const content = '---\nfoo: bar\n---\n\n# A Long Title That Could Mask Body Brevity\n\nThis is the real body content with more than fifty characters easily.';
+  withTmpFile(content, (p) => {
+    assert.equal(classifyFile(p), 'complete');
+  });
+});
