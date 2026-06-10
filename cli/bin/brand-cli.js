@@ -6,6 +6,7 @@ import { setupCommand } from '../src/commands/setup.js';
 import { refreshDesignCommand } from '../src/commands/refresh-design.js';
 import { refreshContextCommand } from '../src/commands/refresh-context.js';
 import { scoreCommand } from '../src/commands/score.js';
+import { emitManifestCommand } from '../src/commands/emit-manifest.js';
 
 program
   .name('brand-cli')
@@ -47,5 +48,12 @@ program
   .description('Report .brand/ package completeness against the schema')
   .option('--json', 'Output results as JSON')
   .action(scoreCommand);
+
+program
+  .command('emit-manifest')
+  .description('Emit .brand/manifest.json from .brand/ + stage data on stdin')
+  .option('--dry-run', 'Print manifest to stdout instead of writing to disk')
+  .option('--json', 'Output result as JSON')
+  .action(emitManifestCommand);
 
 program.parse();
