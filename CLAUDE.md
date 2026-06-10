@@ -87,6 +87,24 @@ The active goal is making `brand-skills` viable for users **outside the XD pract
 
 ---
 
+## Stance on dembrandt and other peer tools
+
+[`dembrandt`](https://github.com/dembrandt/dembrandt) is the closest peer to brand-skills — a polished, MIT-licensed design-token extractor with a mature MCP server. We've decided **borrow without dependency**, with an optional graceful-degradation hook for users who already have dembrandt installed (Option 3 in `docs/research-notes.md`).
+
+**What this means in practice:**
+
+1. **Don't add dembrandt as a runtime dependency.** Our minimal-dependency invariant (no required CLI / MCP / framework, see `docs/DESIGN.md`) is load-bearing. Adding a hard dependency on any peer tool reverses it.
+2. **Borrow patterns and open specs freely.** DTCG token format, MCP tool-shape conventions, motion-token extraction approaches, multi-page confidence boosting — all reimplement-and-own. dembrandt is MIT; specs (DTCG, design.md) are open.
+3. **Optional delegation, not required.** A future Stage 2 enhancement may detect dembrandt and delegate visual-token extraction to it (same pattern as our Playwright-or-WebFetch fallback). This is additive, not a hard switch.
+4. **Stay differentiating.** Voice extraction, multi-source reconciliation (Figma + PDF + web + social), conflicts.md, and `/brand-context:audit` are unique to us. Don't cede any of them in pursuit of "compose with dembrandt."
+5. **Avoid their anti-patterns.** dembrandt's drift / CI / ingest features are sponsor-gated; ours stay in the free CLI. Their `--stealth` and anti-detection flags are off-limits.
+
+If a future feature here looks like "wrap dembrandt's CLI / MCP," push back unless it's strictly an opt-in fallback path. The default must keep working when dembrandt is absent.
+
+Same posture applies to design-oracle, Agent-Reach, or any peer that emerges later. See `docs/research-notes.md` for the full comparison.
+
+---
+
 ## Versioning + release
 
 - **One version, three places.** `package.json` `version`, `.claude-plugin/marketplace.json` `metadata.version` AND `plugins[0].version`, and `cli/bin/brand-cli.js` `program.version()`. All three must match. Easy to miss the CLI bin file.
