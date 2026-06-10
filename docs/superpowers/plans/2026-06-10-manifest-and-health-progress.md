@@ -3,9 +3,9 @@
 Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10 — through Task 8
+**Last updated:** 2026-06-10 — through Task 8 (+ doc commit)
 **Test status:** 35/35 passing on the branch
-**HEAD:** `d858b42` (Task 8 refinement; progress-doc commit will follow)
+**HEAD:** the latest progress-doc commit on `feat/manifest-and-health`. Don't bother chasing the exact SHA in this doc — `git rev-parse HEAD` is authoritative. As of writing, it should match the most-recent `docs:` commit at the top of `git log --oneline main..HEAD`.
 **Next task:** **Task 9** — Refactor `score.js` to use shared utils + emit `.health.json`
 
 ---
@@ -31,10 +31,10 @@ $ git rev-parse --abbrev-ref HEAD
 feat/manifest-and-health
 
 $ git log --oneline main..HEAD | wc -l
-15    # twelve task commits + two progress-doc commits + one upcoming progress-doc commit
+18    # 13 task/code commits + 5 progress-doc commits
 
 $ git log -1 --format=%H
-<latest progress-doc SHA, currently d858b42 until this update is committed>
+<the most recent progress-doc commit on the branch — top of git log main..HEAD>
 
 $ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
 # tests 35
@@ -44,13 +44,14 @@ $ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
 
 If any of those don't match, **stop and tell the user** — something diverged between sessions.
 
-### Things that bite repeatedly (from D1-D7 below; read those for full context)
+### Things that bite repeatedly (from D1-D8 below; read those for full context)
 
 - **`ajv/dist/2020.js`, not `ajv`.** The plan's pasted writer code uses plain `import Ajv from 'ajv'` which crashes at module load against draft 2020-12 schemas. Both `manifest-writer.js` and `health-writer.js` use the dist/2020 entry point. Any new module that compiles these schemas must do the same. (D5)
 - **Apostrophes break heredoc commit messages.** Always write the commit message to `/tmp/commit-msg.txt` and use `git commit -F`. Subagents need to be told this every time.
 - **`package-lock.json` is gitignored.** Don't try to `git add` it. (D4)
 - **Don't bump the package version. Don't touch `~/Documents/xd-toolkit`.** Durable rules from CLAUDE.md.
-- **Two-stage review per task** (spec compliance, then code quality). Don't shortcut. Reviewers have caught real plan bugs in 4 of the 7 tasks so far. (D7)
+- **Two-stage review per task** (spec compliance, then code quality). Don't shortcut. **5 of 8 tasks (≈60%)** have needed a refinement subagent for reviewer-flagged Critical/Important findings. Plan-pasted code has had three real bugs (D1, D2, D8) and one wrong import (D5). (D7)
+- **Long-running implementer/refinement agents can die mid-flight on token expiration.** When the file edits are already on disk but the agent didn't commit, just run smoke-tests + commit yourself rather than re-dispatching from scratch. The Task 8 refinement died this way after editing but before committing — the diff was correct, mechanical to verify and commit. (Bare-fact, no decision letter assigned.)
 
 ---
 
