@@ -3,10 +3,10 @@
 Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10 — through Task 7
+**Last updated:** 2026-06-10 — through Task 8
 **Test status:** 35/35 passing on the branch
-**HEAD:** `d3a7401` (this progress-doc commit)
-**Next task:** **Task 8** — emit-manifest CLI command
+**HEAD:** `d858b42` (Task 8 refinement; progress-doc commit will follow)
+**Next task:** **Task 9** — Refactor `score.js` to use shared utils + emit `.health.json`
 
 ---
 
@@ -22,7 +22,7 @@ If this conversation got cleared and you're picking up the work:
 6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline: implementer + spec review + code quality review per task).
 7. Resume at the next pending task using the dispatch protocol at the bottom of this file.
 
-### Quick state check (as of 2026-06-10 through Task 7)
+### Quick state check (as of 2026-06-10 through Task 8)
 
 Verify before continuing:
 
@@ -31,10 +31,10 @@ $ git rev-parse --abbrev-ref HEAD
 feat/manifest-and-health
 
 $ git log --oneline main..HEAD | wc -l
-11    # ten task commits + one progress-doc commit (d3a7401)
+15    # twelve task commits + two progress-doc commits + one upcoming progress-doc commit
 
 $ git log -1 --format=%H
-d3a7401...
+<latest progress-doc SHA, currently d858b42 until this update is committed>
 
 $ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
 # tests 35
@@ -65,6 +65,7 @@ If any of those don't match, **stop and tell the user** — something diverged b
 | 5 | JSON Schemas + cross-link | `8c044c2`, `4ba2d42` | 0 (no test layer change) | Refinement (`4ba2d42`) tightened `generator` regex (`@` → `@\S+$`) and added `description` to `tier_label` + `confidence`. Plan's Step 4 ajv compile snippet was wrong — needs `ajv/dist/2020`, not `ajv`, since draft 2020-12 metaschema is not in the default Ajv class. See D5. |
 | 6 | manifest-writer (TDD) | `d76cc63` | +7 | Used `import Ajv from 'ajv/dist/2020.js'` per D5. Code review Minor only — flagged tempdir-helper duplication between this test file and `file-status.test.js`; fold both into Task 10's helper rather than letting `health-writer.test.js` add a third copy. |
 | 7 | health-writer (TDD) | `c0de23a`, `6a66d91` | +8 | Refinement (`6a66d91`) extracted `weightedCounts()` in tier-weights.js so the complete-or-defaults reduce lives in one place; refactored `readiness()` to delegate. Documented `scanCompleteRatio` as deliberately unweighted (per spec §3 wording) — distinct from the weighted `readiness`. See D6. |
+| 8 | emit-manifest CLI command | `ed3ede0`, `d858b42` | 0 (integration test in Task 12) | Refinement (`d858b42`) fixed three reviewer-flagged Important issues: (1) out-of-tier files on disk are now surfaced (spec §2 deviation in plan's pasted code); (2) invalid `tier` exits cleanly instead of throwing; (3) `file_overrides` for unknown paths surface rather than silently drop. See D8. Six Minor findings (JSDoc, `pkg` hoist, dead `projectDir` param, field ordering, `inventory.md` comment, brandrc-helper extraction) deferred per D7. |
 
 **Total tests:** 35 passing.
 
@@ -74,7 +75,6 @@ If any of those don't match, **stop and tell the user** — something diverged b
 
 In plan order. Pull the full task text from `2026-06-10-manifest-and-health.md` when dispatching.
 
-- [ ] **Task 8** — emit-manifest CLI command (`cli/src/commands/emit-manifest.js` + register in `cli/bin/brand-cli.js`). Plan lines ~1172-1382.
 - [ ] **Task 9** — Refactor `score.js` to use shared utils + emit `.health.json`. Plan lines ~1384-1602. **Biggest blast radius** of remaining work — touches an existing command. Expect to inherit the D1 H1-strip improvement.
 - [ ] **Task 10** — Test helpers (`tmp-brand.js`, `run-cli.js`). Plan lines ~1604-1709. See open question for retroactive migration of `manifest-writer.test.js` + `file-status.test.js`.
 - [ ] **Task 11** — Test fixtures (populated/, fresh-init/, mixed/, stage-data/). Plan lines ~1711-1900.
@@ -138,7 +138,23 @@ Task 4 (gap-actions) followed this. Future utility tasks should too.
 
 ### D7 — Reviewers consistently catch real issues; budget for refinement subagents (meta)
 
-**Pattern:** Across Tasks 2, 3, 5, 7 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had two real bugs (D1, D2) and one wrong import (D5). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. Budget ~1 refinement subagent per 2 tasks.
+**Pattern:** Across Tasks 2, 3, 5, 7, 8 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had three real bugs (D1, D2, D8), one wrong import (D5), and an unhandled error path (D8). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. **Updated rate:** ~5 of 8 tasks (≈60%) have needed a refinement.
+
+### D8 — emit-manifest spec deviation in plan's pasted code (Task 8)
+
+**Bug:** Plan's `buildFilesMap` pasted code surfaced out-of-tier files only when listed in `file_overrides`. Spec §2 explicitly requires: *"Out-of-tier files that do exist also appear (so a hand-written `composition/patterns.md` at `tier: minimum` is surfaced rather than hidden)."* A practitioner-written file that no producer mentioned was silently dropped from the manifest.
+
+**Two adjacent issues caught at the same review:**
+- Invalid `tier` value threw `Error: Unknown tier: <x>` from `weightsForTier()` and exited with a Node stack trace, instead of using the file's existing `console.error(chalk.red(...)) + process.exit(1)` pattern.
+- `file_overrides` referencing a path not in the active tier (e.g., a typo, or a producer mentioning an out-of-tier path) was silently dropped rather than surfaced. Producers (the brand-extract SKILL) had no signal.
+
+**Fix (commit `d858b42`):**
+- `buildFilesMap` now walks `weightsForTier('comprehensive')` as the universe of known schema paths and surfaces any not-in-active-tier file that exists on disk. Components branch (dynamic enumeration) stays separate.
+- New `VALID_TIERS = ['minimum','standard','comprehensive']` check after the brandrc/stdin merge; invalid value exits cleanly.
+- Override application now creates an entry for unknown paths (status from disk-classification if file exists, else `'missing'`) before applying the override's status/note.
+- Removes the old "overrides-on-disk" intermediate block — its semantics are subsumed by the broader walk + override fallback.
+
+**Implication for Task 12 (integration tests):** the goldens must reflect this corrected behavior. Hand-written out-of-tier files appear with their classified status; `file_overrides` for unknown paths surface; invalid `tier` exits 1 with a chalk-red message.
 
 ### D6 — `scanCompleteRatio` is unweighted by design (Task 7)
 
