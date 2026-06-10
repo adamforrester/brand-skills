@@ -27,6 +27,10 @@ test('weightsForTier(comprehensive) adds 4 workflow files', () => {
   assert.equal(w['workflows/figma-to-code.md'], 1);
 });
 
+test('weightsForTier throws on unknown tier', () => {
+  assert.throws(() => weightsForTier('bogus'), /Unknown tier/);
+});
+
 test('readiness counts complete and defaults; ignores partial/placeholder/missing', () => {
   const weights = { 'a.md': 2, 'b.md': 1, 'c.md': 1 };
   const files = { 'a.md': 'complete', 'b.md': 'defaults', 'c.md': 'placeholder' };

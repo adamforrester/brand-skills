@@ -1,3 +1,9 @@
+/**
+ * Tier weight tables, readiness formula, tier-label and confidence
+ * derivation. Single source of truth for tier weights — consumed by
+ * health-writer.js and score.js. Spec: docs/superpowers/specs/2026-06-10-manifest-and-health-design.md §3, §3.4.
+ */
+
 const MINIMUM_WEIGHTS = {
   'overview.md': 2,
   'voice.md': 2,
@@ -23,6 +29,9 @@ const COMPREHENSIVE_ADDITIONS = {
   'workflows/qa-checklist.md': 1,
 };
 
+/**
+ * Return the path→weight map for a given tier ('minimum' | 'standard' | 'comprehensive').
+ */
 export function weightsForTier(tier) {
   if (tier === 'minimum') return { ...MINIMUM_WEIGHTS };
   if (tier === 'standard') return { ...MINIMUM_WEIGHTS, ...STANDARD_ADDITIONS };
@@ -32,6 +41,9 @@ export function weightsForTier(tier) {
 
 const COMPLETE_LIKE = new Set(['complete', 'defaults']);
 
+/**
+ * Compute weighted readiness ratio (0–1, rounded to 2 decimals) from a files-status map and a weights map.
+ */
 export function readiness(files, weights) {
   let weightedTotal = 0;
   let weightedComplete = 0;
@@ -43,6 +55,9 @@ export function readiness(files, weights) {
   return Math.round((weightedComplete / weightedTotal) * 100) / 100;
 }
 
+/**
+ * Map a readiness ratio to a tier label ('ready' | 'good' | 'partial' | 'incomplete').
+ */
 export function tierLabel(r) {
   if (r >= 0.95) return 'ready';
   if (r >= 0.80) return 'good';
@@ -50,6 +65,9 @@ export function tierLabel(r) {
   return 'incomplete';
 }
 
+/**
+ * Derive a confidence level ('HIGH' | 'MEDIUM' | 'LOW') from manifest presence, defaults flag, and scan-complete ratio.
+ */
 export function confidence({ manifestSeen, hasDefaults, scanCompleteRatio }) {
   if (manifestSeen && !hasDefaults) return 'HIGH';
   if (manifestSeen && hasDefaults) return 'MEDIUM';
