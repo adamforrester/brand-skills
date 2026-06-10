@@ -3,8 +3,10 @@
 Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10
-**Test status:** 20/20 passing on the branch
+**Last updated:** 2026-06-10 — through Task 7
+**Test status:** 35/35 passing on the branch
+**HEAD:** `d3a7401` (this progress-doc commit)
+**Next task:** **Task 8** — emit-manifest CLI command
 
 ---
 
@@ -15,9 +17,40 @@ If this conversation got cleared and you're picking up the work:
 1. Read `docs/superpowers/specs/2026-06-10-manifest-and-health-design.md` — the spec we're implementing.
 2. Read `docs/superpowers/plans/2026-06-10-manifest-and-health.md` — the 18-task plan.
 3. Read THIS file to see what's done, what's next, and which decisions were made along the way that aren't in the plan.
-4. `git log --oneline main..HEAD` — verify your local branch matches the commit list below.
-5. `npm test` — verify the test count below still matches.
-6. Resume at the next pending task using the dispatch protocol described at the bottom of this file.
+4. `git log --oneline main..HEAD` — verify your local branch matches the commit list below. HEAD should be `d3a7401`.
+5. `npm test` — verify 35/35 passing.
+6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline: implementer + spec review + code quality review per task).
+7. Resume at the next pending task using the dispatch protocol at the bottom of this file.
+
+### Quick state check (as of 2026-06-10 through Task 7)
+
+Verify before continuing:
+
+```
+$ git rev-parse --abbrev-ref HEAD
+feat/manifest-and-health
+
+$ git log --oneline main..HEAD | wc -l
+11    # ten task commits + one progress-doc commit (d3a7401)
+
+$ git log -1 --format=%H
+d3a7401...
+
+$ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
+# tests 35
+# pass 35
+# fail 0
+```
+
+If any of those don't match, **stop and tell the user** — something diverged between sessions.
+
+### Things that bite repeatedly (from D1-D7 below; read those for full context)
+
+- **`ajv/dist/2020.js`, not `ajv`.** The plan's pasted writer code uses plain `import Ajv from 'ajv'` which crashes at module load against draft 2020-12 schemas. Both `manifest-writer.js` and `health-writer.js` use the dist/2020 entry point. Any new module that compiles these schemas must do the same. (D5)
+- **Apostrophes break heredoc commit messages.** Always write the commit message to `/tmp/commit-msg.txt` and use `git commit -F`. Subagents need to be told this every time.
+- **`package-lock.json` is gitignored.** Don't try to `git add` it. (D4)
+- **Don't bump the package version. Don't touch `~/Documents/xd-toolkit`.** Durable rules from CLAUDE.md.
+- **Two-stage review per task** (spec compliance, then code quality). Don't shortcut. Reviewers have caught real plan bugs in 4 of the 7 tasks so far. (D7)
 
 ---
 
@@ -41,20 +74,17 @@ If this conversation got cleared and you're picking up the work:
 
 In plan order. Pull the full task text from `2026-06-10-manifest-and-health.md` when dispatching.
 
-- [x] **Task 5** — JSON Schemas (`schema/manifest.schema.json`, `schema/health.schema.json`) + cross-link from `schema/brand/README.md`
-- [x] **Task 6** — manifest-writer (TDD, +7 tests)
-- [x] **Task 7** — health-writer (TDD, +8 tests)
-- [ ] **Task 8** — emit-manifest CLI command
-- [ ] **Task 9** — Refactor `score.js` to use shared utils + emit `.health.json`
-- [ ] **Task 10** — Test helpers (`tmp-brand.js`, `run-cli.js`)
-- [ ] **Task 11** — Test fixtures (populated/, fresh-init/, mixed/, stage-data/)
-- [ ] **Task 12** — Integration test: emit-manifest end-to-end (+ golden)
-- [ ] **Task 13** — Integration test: score emits health (+ golden)
-- [ ] **Task 14** — Integration tests: round-trip + scan fallback
-- [ ] **Task 15** — SKILL fallback golden + fresh-init test
-- [ ] **Task 16** — SKILL updates (brand-extract Section 10b, brand-check Step 1)
-- [ ] **Task 17** — Repo docs (CLAUDE.md, README, tasks.md)
-- [ ] **Task 18** — Final verification + final code-reviewer subagent across the branch
+- [ ] **Task 8** — emit-manifest CLI command (`cli/src/commands/emit-manifest.js` + register in `cli/bin/brand-cli.js`). Plan lines ~1172-1382.
+- [ ] **Task 9** — Refactor `score.js` to use shared utils + emit `.health.json`. Plan lines ~1384-1602. **Biggest blast radius** of remaining work — touches an existing command. Expect to inherit the D1 H1-strip improvement.
+- [ ] **Task 10** — Test helpers (`tmp-brand.js`, `run-cli.js`). Plan lines ~1604-1709. See open question for retroactive migration of `manifest-writer.test.js` + `file-status.test.js`.
+- [ ] **Task 11** — Test fixtures (populated/, fresh-init/, mixed/, stage-data/). Plan lines ~1711-1900.
+- [ ] **Task 12** — Integration test: emit-manifest end-to-end (+ golden). Plan lines ~1902-2036.
+- [ ] **Task 13** — Integration test: score emits health (+ golden). Plan lines ~2038-2140.
+- [ ] **Task 14** — Integration tests: round-trip + scan fallback. Plan lines ~2142-2272.
+- [ ] **Task 15** — SKILL fallback golden + fresh-init test. Plan lines ~2274-2360.
+- [ ] **Task 16** — SKILL updates (brand-extract Section 10b, brand-check Step 1). Plan lines ~2362-2480.
+- [ ] **Task 17** — Repo docs (CLAUDE.md, README, tasks.md). Plan lines ~2482-2570.
+- [ ] **Task 18** — Final verification + final code-reviewer subagent across the branch. Plan lines ~2572+.
 
 ---
 
@@ -105,6 +135,10 @@ All new files under `cli/src/utils/` get:
 Style mirrors `cli/src/utils/exec.js`. No `@param`/`@returns` tags. Don't add JSDoc to module-private constants.
 
 Task 4 (gap-actions) followed this. Future utility tasks should too.
+
+### D7 — Reviewers consistently catch real issues; budget for refinement subagents (meta)
+
+**Pattern:** Across Tasks 2, 3, 5, 7 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had two real bugs (D1, D2) and one wrong import (D5). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. Budget ~1 refinement subagent per 2 tasks.
 
 ### D6 — `scanCompleteRatio` is unweighted by design (Task 7)
 
@@ -163,8 +197,8 @@ For each remaining task:
 1. **Open the plan** (`docs/superpowers/plans/2026-06-10-manifest-and-health.md`), find the task by number, copy the FULL task text.
 2. **Dispatch implementer** (general-purpose subagent) with:
    - Full task text inline (don't make subagent read the plan file)
-   - Context: the branch, the prior tasks landed (point at this progress doc), any relevant decisions from D1–D4 above, and known open questions
-   - Project gotchas: apostrophes break heredoc commit messages (use tempfile + `git commit -F`); branch is `feat/manifest-and-health`; ajv/ajv-formats already installed
+   - Context: the branch, the prior tasks landed (point at this progress doc), any relevant decisions from D1–D7 above, and known open questions
+   - Project gotchas: apostrophes break heredoc commit messages (use tempfile + `git commit -F`); branch is `feat/manifest-and-health`; ajv/ajv-formats already installed; ajv import must be `ajv/dist/2020.js` not plain `ajv` (D5)
 3. **Spec compliance review** (general-purpose subagent) — verify by reading code, don't trust report.
 4. **Code quality review** (`superpowers:code-reviewer` subagent) — pass BASE_SHA (commit before this task) and HEAD_SHA.
 5. **If reviewer flags issues:** if `Critical` or `Important`, dispatch a refinement subagent; if `Minor` only, accept and proceed.

@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-10
+**Last updated:** 2026-06-10 (through Task 7 of 18)
 
 ---
 
@@ -14,7 +14,7 @@ The session task tool (TaskList) is ephemeral. This file is the durable record. 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
 **Spec:** [`docs/superpowers/specs/2026-06-10-manifest-and-health-design.md`](superpowers/specs/2026-06-10-manifest-and-health-design.md)
 **Plan:** [`docs/superpowers/plans/2026-06-10-manifest-and-health.md`](superpowers/plans/2026-06-10-manifest-and-health.md) (18 tasks)
-**Progress:** [`docs/superpowers/plans/2026-06-10-manifest-and-health-progress.md`](superpowers/plans/2026-06-10-manifest-and-health-progress.md) — 4/18 tasks complete; 20/20 tests passing
+**Progress:** [`docs/superpowers/plans/2026-06-10-manifest-and-health-progress.md`](superpowers/plans/2026-06-10-manifest-and-health-progress.md) — 7/18 tasks complete; 35/35 tests passing. Next: Task 8 (emit-manifest CLI).
 
 When the branch lands, move both #2 and #6 to Completed below and remove the "Blocked by #2" / "Blocked by #2, #6" notes from #3, #4, #5.
 
