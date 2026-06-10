@@ -10,7 +10,7 @@
     "_comment": { "type": "string" },
     "version": { "const": "1" },
     "generated_at": { "type": "string", "format": "date-time" },
-    "generator": { "type": "string", "pattern": "^(brand-cli|brand-extract-skill)@" },
+    "generator": { "type": "string", "pattern": "^(brand-cli|brand-extract-skill)@\\S+$" },
     "tier": { "enum": ["minimum", "standard", "comprehensive"] },
     "client": { "type": "string" },
     "files": {
@@ -61,6 +61,9 @@
   },
   "$defs": {
     "status": { "enum": ["complete", "partial", "placeholder", "missing", "defaults"] },
-    "confidence": { "enum": ["HIGH", "MEDIUM", "LOW"] }
+    "confidence": {
+      "description": "Per-stage confidence reported by the writing stage at emit time.",
+      "enum": ["HIGH", "MEDIUM", "LOW"]
+    }
   }
 }

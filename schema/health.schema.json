@@ -14,11 +14,14 @@
     "_comment": { "type": "string" },
     "version": { "const": "1" },
     "generated_at": { "type": "string", "format": "date-time" },
-    "generator": { "type": "string", "pattern": "^(brand-cli|brand-check-skill)@" },
+    "generator": { "type": "string", "pattern": "^(brand-cli|brand-check-skill)@\\S+$" },
     "tier": { "enum": ["minimum", "standard", "comprehensive"] },
     "client": { "type": "string" },
     "readiness": { "type": "number", "minimum": 0, "maximum": 1 },
-    "tier_label": { "enum": ["ready", "good", "partial", "incomplete"] },
+    "tier_label": {
+      "description": "Derived from readiness: >=0.95 → ready; >=0.80 → good; >=0.50 → partial; <0.50 → incomplete.",
+      "enum": ["ready", "good", "partial", "incomplete"]
+    },
     "manifest_seen": { "type": "boolean" },
     "manifest_generated_at": { "type": "string", "format": "date-time" },
     "weights": {
@@ -27,7 +30,10 @@
     },
     "weighted_complete": { "type": "integer", "minimum": 0 },
     "weighted_total": { "type": "integer", "minimum": 0 },
-    "confidence": { "enum": ["HIGH", "MEDIUM", "LOW"] },
+    "confidence": {
+      "description": "HIGH when manifest seen and no defaults; MEDIUM when manifest seen with defaults OR content-scan with >=80% complete; LOW otherwise.",
+      "enum": ["HIGH", "MEDIUM", "LOW"]
+    },
     "files": {
       "type": "object",
       "additionalProperties": {
