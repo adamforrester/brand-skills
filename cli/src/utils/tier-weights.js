@@ -42,15 +42,30 @@ export function weightsForTier(tier) {
 const COMPLETE_LIKE = new Set(['complete', 'defaults']);
 
 /**
+ * Walk a {file → status} map against a {file → weight} map and return
+ * weighted + unweighted counts of "complete-or-defaults" entries.
+ * Single source of truth for the readiness formula's accumulation.
+ */
+export function weightedCounts(files, weights) {
+  let weightedComplete = 0;
+  let weightedTotal = 0;
+  let completeCount = 0;
+  const totalCount = Object.keys(weights).length;
+  for (const [path, weight] of Object.entries(weights)) {
+    weightedTotal += weight;
+    if (COMPLETE_LIKE.has(files[path])) {
+      weightedComplete += weight;
+      completeCount += 1;
+    }
+  }
+  return { weightedComplete, weightedTotal, completeCount, totalCount };
+}
+
+/**
  * Compute weighted readiness ratio (0–1, rounded to 2 decimals) from a files-status map and a weights map.
  */
 export function readiness(files, weights) {
-  let weightedTotal = 0;
-  let weightedComplete = 0;
-  for (const [path, weight] of Object.entries(weights)) {
-    weightedTotal += weight;
-    if (COMPLETE_LIKE.has(files[path])) weightedComplete += weight;
-  }
+  const { weightedComplete, weightedTotal } = weightedCounts(files, weights);
   if (weightedTotal === 0) return 0;
   return Math.round((weightedComplete / weightedTotal) * 100) / 100;
 }

@@ -15,6 +15,7 @@ import {
   readiness as computeReadiness,
   tierLabel,
   confidence as computeConfidence,
+  weightedCounts,
 } from './tier-weights.js';
 import { classifyFile } from './file-status.js';
 import { suggestedAction } from './gap-actions.js';
@@ -77,16 +78,12 @@ export function buildHealth({ manifest, brandDir, tier, client, now }) {
 
   const weights = weightsForTier(resolvedTier);
   const r = computeReadiness(files, weights);
-  const weightedComplete = Object.entries(weights).reduce((sum, [path, w]) => {
-    return sum + (files[path] === 'complete' || files[path] === 'defaults' ? w : 0);
-  }, 0);
-  const weightedTotal = Object.values(weights).reduce((a, b) => a + b, 0);
+  const { weightedComplete, weightedTotal, completeCount, totalCount } = weightedCounts(files, weights);
 
   const hasDefaults = downgrades.length > 0;
-  const completeCount = Object.entries(weights).filter(
-    ([p]) => files[p] === 'complete' || files[p] === 'defaults'
-  ).length;
-  const totalCount = Object.keys(weights).length;
+  // Per spec section 3 (.health.json): "MEDIUM when ... manifest absent and >=80%
+  // files complete by content scan." That's an *unweighted* file-count ratio
+  // (count, not weight) — distinct from `readiness` which is weighted.
   const scanCompleteRatio = totalCount === 0 ? 0 : completeCount / totalCount;
   const conf = computeConfidence({ manifestSeen: manifest_seen, hasDefaults, scanCompleteRatio });
 

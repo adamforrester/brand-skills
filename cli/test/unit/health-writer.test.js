@@ -105,4 +105,5 @@ test('validateHealth rejects readiness > 1', () => {
   h.readiness = 1.5;
   const r = validateHealth(h);
   assert.equal(r.valid, false);
+  assert.match(r.errorText, /readiness/);
 });
