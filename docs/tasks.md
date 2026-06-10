@@ -8,6 +8,18 @@ The session task tool (TaskList) is ephemeral. This file is the durable record. 
 
 ---
 
+## In progress
+
+### #2 + #6 — Emit `.brand/manifest.json` + `.brand/.health.json` 🚧
+**Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
+**Spec:** [`docs/superpowers/specs/2026-06-10-manifest-and-health-design.md`](superpowers/specs/2026-06-10-manifest-and-health-design.md)
+**Plan:** [`docs/superpowers/plans/2026-06-10-manifest-and-health.md`](superpowers/plans/2026-06-10-manifest-and-health.md) (18 tasks)
+**Progress:** [`docs/superpowers/plans/2026-06-10-manifest-and-health-progress.md`](superpowers/plans/2026-06-10-manifest-and-health-progress.md) — 4/18 tasks complete; 20/20 tests passing
+
+When the branch lands, move both #2 and #6 to Completed below and remove the "Blocked by #2" / "Blocked by #2, #6" notes from #3, #4, #5.
+
+---
+
 ## Completed
 
 ### #1 — XD-assumption inventory (read-only audit) ✅
