@@ -342,7 +342,15 @@ SKILL fallback (CLI absent): `brand-check/SKILL.md` constructs the same JSON inl
 - `cli/src/utils/file-status.js` (new — extract `hasContent()` + status classifier from `score.js`)
 - `cli/src/utils/tier-weights.js` (new — single source of truth for weights)
 - `cli/bin/brand-cli.js` (register `emit-manifest`)
-- `package.json` (add `ajv`, `ajv-formats`)
+- `package.json` (add `ajv`, `ajv-formats`; replace `test` stub with `node --test cli/test/**/*.test.js`)
+
+### Test layer (new)
+- `cli/test/unit/{file-status,tier-weights,manifest-writer,health-writer}.test.js`
+- `cli/test/integration/{emit-manifest,score-emits-health,round-trip,score-without-manifest,fresh-init}.test.js`
+- `cli/test/fixtures/{populated,fresh-init,mixed}/.brand/...` (committed `.brand/` directories)
+- `cli/test/fixtures/stage-data/{full-pipeline,partial-pipeline,no-mcps}.json`
+- `cli/test/golden/{manifest-from-populated,manifest-from-skill,health-from-populated}.json`
+- `cli/test/helpers/{tmp-brand,run-cli}.js`
 
 ### SKILL layer
 - `brand-context/skills/brand-extract/SKILL.md` Section 11 (Final summary): add manifest-emission step (CLI shell-out + inline fallback)
@@ -359,31 +367,83 @@ SKILL fallback (CLI absent): `brand-check/SKILL.md` constructs the same JSON inl
 
 ## 8. Testing
 
-The repo has no test harness today (`npm test` is a stub). Not introducing one as part of this task. Verification protocol:
+The repo has no test harness today (`npm test` is a stub). **#2 + #6 introduces one.** This is load-bearing: every future change to manifest/health emission must run `npm test` and pass — no more relying on manual walks that erode after the first regression.
 
-### Manual end-to-end walks
+### Test runner
 
-- Populated `.brand/` → run `brand-cli score` → confirm `.health.json` written, validates, expected `readiness`.
-- Fresh `brand-cli init` directory → run `score` → confirm `readiness < 0.1`, all files in `gaps`.
-- Partial `.brand/` (mix of complete + placeholder) → confirm tier-weighted math hand-checks.
-- Crafted stdin → `brand-cli emit-manifest` → validates → round-trip through `score` produces `.health.json` with `manifest_seen: true` and matching `confidence`.
+**Node's built-in `node:test`** (Node ≥18). Zero new dependencies. Aligns with the minimal-dep invariant in `docs/DESIGN.md`. Output is TAP, CI-friendly. Tests live in `cli/test/`.
 
-### JSON Schema self-validation
-
-`cli/test/validate-schemas.js` (run via `npm run lint:schemas`):
-- Loads both schemas through ajv (catches malformed schemas)
-- Validates `tests/golden/manifest.json` against `schema/manifest.schema.json`
-- Validates `tests/golden/health.json` against `schema/health.schema.json`
-- Validates an intentionally-broken payload, expects rejection
-
-Two golden fixtures committed. They double as integration reference for hosts.
-
-### Round-trip integration check
-
-```bash
-cd tmp-test && brand-cli init && brand-cli score
-# expect: .brand/.health.json exists, validates, readiness ≈ 0.05
+```diff
+// package.json
+- "test": "echo \"Error: no test specified\" && exit 1"
++ "test": "node --test cli/test/**/*.test.js",
++ "test:watch": "node --test --watch cli/test/**/*.test.js"
 ```
+
+### Test layout
+
+```
+cli/test/
+├── unit/
+│   ├── file-status.test.js          ← hasContent() + status classifier
+│   ├── tier-weights.test.js         ← weight table + readiness formula
+│   ├── manifest-writer.test.js      ← schema validation, _comment handling, error throws
+│   └── health-writer.test.js        ← readiness math, tier_label boundaries, gaps generation
+├── integration/
+│   ├── emit-manifest.test.js        ← brand-cli emit-manifest end-to-end via tmp dirs
+│   ├── score-emits-health.test.js   ← brand-cli score writes .health.json
+│   └── round-trip.test.js           ← extract fixture → emit-manifest → score → assert health
+├── fixtures/
+│   ├── populated/                   ← .brand/ with mostly-complete files
+│   ├── fresh-init/                  ← .brand/ as brand-cli init produces (all placeholders)
+│   ├── mixed/                       ← .brand/ with mix of complete/placeholder/defaults
+│   └── stage-data/
+│       ├── full-pipeline.json       ← stdin to emit-manifest: all stages ran
+│       ├── partial-pipeline.json    ← stdin: only stages 2+3 ran
+│       └── no-mcps.json             ← stdin: zero MCPs available
+└── golden/
+    ├── manifest-from-populated.json ← expected emit-manifest output for fixtures/populated
+    ├── manifest-from-skill.json     ← reference shape the SKILL fallback should produce
+    └── health-from-populated.json   ← expected score output for fixtures/populated
+```
+
+### Test coverage targets
+
+**Unit (~12 tests):**
+- `file-status.js`: every status branch — placeholder marker, all-commented frontmatter, body length thresholds, missing files, real content
+- `tier-weights.js`: each tier returns expected weight map; readiness formula at boundaries (0.0, 0.50, 0.80, 0.95, 1.0); `tier_label` boundary mapping
+- `manifest-writer.js`: valid payload writes; invalid payload throws with ajv error text; `--dry-run` returns string instead of writing; `_comment` accepted; unknown root key rejected
+- `health-writer.js`: `readiness` rounds to 2 decimals; `gaps` generation skips `complete`/`defaults`; `downgrades` empty when `manifest_seen: false`; `confidence` derivation honors all branches
+
+**Integration (~5 tests):**
+- `emit-manifest.test.js`: spawn `brand-cli emit-manifest` with `fixtures/stage-data/*.json` on stdin, assert resulting `.brand/manifest.json` matches `golden/manifest-from-populated.json` exactly
+- `score-emits-health.test.js`: spawn `brand-cli score` against `fixtures/populated/`, assert `.brand/.health.json` matches golden
+- `round-trip.test.js`: emit-manifest → score; assert `health.manifest_seen: true`, `health.manifest_generated_at` matches manifest, `health.confidence: HIGH`
+- `score-without-manifest.test.js`: spawn `brand-cli score` against fixture with NO manifest; assert `manifest_seen: false`, `confidence` capped at MEDIUM, no files marked `partial` or `defaults`
+- `fresh-init.test.js`: `brand-cli init` in tmpdir, `brand-cli score`; assert `readiness < 0.1`, all files in `gaps`
+
+### Schema self-validation
+
+Bundled into the unit tests above. Each writer test compiles its schema with ajv at the top of the file — a malformed schema crashes the whole test file at load.
+
+### Test infrastructure helpers
+
+`cli/test/helpers/tmp-brand.js`: creates an isolated `.brand/` in a tmpdir for integration tests, copies a fixture in, returns the path. Cleaned up via `t.after()`.
+
+`cli/test/helpers/run-cli.js`: spawns `brand-cli <args>` with given stdin, captures stdout/stderr/exit, returns parsed result.
+
+### What this enables
+
+1. **Re-run on every change.** `npm test` runs in <1 second against built-in node test.
+2. **Localized failures.** Unit tests catch logic regressions; integration tests catch emission/CLI-wiring regressions; golden fixtures catch shape regressions.
+3. **Reference for hosts.** `cli/test/golden/*.json` is committed and double-serves as integration documentation for embedded hosts.
+4. **CI-ready.** Adding a `.github/workflows/test.yml` later is mechanical (out of scope here, but unblocked).
+
+### What's deferred
+
+- **SKILL-fallback drift detection.** Tests verify the CLI path produces correct output. The SKILL fallback (which constructs JSON inline via `Read`/`Write`) is covered only by `golden/manifest-from-skill.json` as a committed reference shape — not actually executed in tests. Future task: extract the construction logic into a shared helper both paths invoke.
+- **CI workflow.** `.github/workflows/test.yml` left for a follow-up.
+- **Coverage tooling.** `c8` or similar — out of scope; node:test has no built-in coverage in older Node releases.
 
 ---
 
@@ -400,3 +460,6 @@ Explicitly excluded; deferred or rejected during brainstorm:
 - **Per-stage MCP-fallback contract** ([#3](../../tasks.md)) — manifest schema accommodates it via `stages[*].reason`, but the contract of what each stage emits is its own task.
 - **`.scope.json` as alternate input** ([#4](../../tasks.md)) — separate task, separate file.
 - **Static `schema/tier-weights.json` publication** (rejected; weights echoed inline in every `.health.json`).
+- **CI workflow** — `.github/workflows/test.yml` left for a follow-up; tests run locally via `npm test`.
+- **SKILL-fallback execution tests** — golden reference shape committed but not executed; future task to extract shared construction helper.
+- **Coverage tooling** (`c8` etc.) — out of scope.
