@@ -3,10 +3,10 @@
 Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10 — through Task 9 (+ doc commit)
+**Last updated:** 2026-06-10 — through Task 10 (+ refinement + doc commit)
 **Test status:** 35/35 passing on the branch
 **HEAD:** the latest progress-doc commit on `feat/manifest-and-health`. Don't bother chasing the exact SHA in this doc — `git rev-parse HEAD` is authoritative. As of writing, it should match the most-recent `docs:` commit at the top of `git log --oneline main..HEAD`.
-**Next task:** **Task 10** — Test helpers (`tmp-brand.js`, `run-cli.js`)
+**Next task:** **Task 11** — Test fixtures (populated/, fresh-init/, mixed/, stage-data/)
 
 ---
 
@@ -22,7 +22,7 @@ If this conversation got cleared and you're picking up the work:
 6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline: implementer + spec review + code quality review per task).
 7. Resume at the next pending task using the dispatch protocol at the bottom of this file.
 
-### Quick state check (as of 2026-06-10 through Task 9)
+### Quick state check (as of 2026-06-10 through Task 10)
 
 Verify before continuing:
 
@@ -31,7 +31,7 @@ $ git rev-parse --abbrev-ref HEAD
 feat/manifest-and-health
 
 $ git log --oneline main..HEAD | wc -l
-20    # 14 task/code commits + 6 progress-doc commits
+23    # 16 task/code commits + 7 progress-doc commits
 
 $ git log -1 --format=%H
 <the most recent progress-doc commit on the branch — top of git log main..HEAD>
@@ -50,7 +50,7 @@ If any of those don't match, **stop and tell the user** — something diverged b
 - **Apostrophes break heredoc commit messages.** Always write the commit message to `/tmp/commit-msg.txt` and use `git commit -F`. Subagents need to be told this every time.
 - **`package-lock.json` is gitignored.** Don't try to `git add` it. (D4)
 - **Don't bump the package version. Don't touch `~/Documents/xd-toolkit`.** Durable rules from CLAUDE.md.
-- **Two-stage review per task** (spec compliance, then code quality). Don't shortcut. **5 of 9 tasks (≈56%)** have needed a refinement subagent for reviewer-flagged Critical/Important findings. Plan-pasted code has had three real bugs (D1, D2, D8) and one wrong import (D5). (D7)
+- **Two-stage review per task** (spec compliance, then code quality). Don't shortcut. **6 of 10 tasks (60%)** have needed a refinement subagent for reviewer-flagged Critical/Important findings. Plan-pasted code has had four real bugs (D1, D2, D8, D9) and one wrong import (D5). (D7)
 - **Long-running implementer/refinement agents can die mid-flight on token expiration.** When the file edits are already on disk but the agent didn't commit, just run smoke-tests + commit yourself rather than re-dispatching from scratch. The Task 8 refinement died this way after editing but before committing — the diff was correct, mechanical to verify and commit. (Bare-fact, no decision letter assigned.)
 
 ---
@@ -68,6 +68,7 @@ If any of those don't match, **stop and tell the user** — something diverged b
 | 7 | health-writer (TDD) | `c0de23a`, `6a66d91` | +8 | Refinement (`6a66d91`) extracted `weightedCounts()` in tier-weights.js so the complete-or-defaults reduce lives in one place; refactored `readiness()` to delegate. Documented `scanCompleteRatio` as deliberately unweighted (per spec §3 wording) — distinct from the weighted `readiness`. See D6. |
 | 8 | emit-manifest CLI command | `ed3ede0`, `d858b42` | 0 (integration test in Task 12) | Refinement (`d858b42`) fixed three reviewer-flagged Important issues: (1) out-of-tier files on disk are now surfaced (spec §2 deviation in plan's pasted code); (2) invalid `tier` exits cleanly instead of throwing; (3) `file_overrides` for unknown paths surface rather than silently drop. See D8. Six Minor findings (JSDoc, `pkg` hoist, dead `projectDir` param, field ordering, `inventory.md` comment, brandrc-helper extraction) deferred per D7. |
 | 9 | score.js refactor + .health.json emit | `5025e25` | 0 (integration test in Task 13) | Code review Minor only — accepted per D7. D1 H1-strip improvement now flows through `score`. Yellow-circle line shows real status names (`placeholder`/`partial`/`defaults`) instead of the old "(exists but empty/placeholder)". `--json` flag and exit-code semantics preserved. Six Minor findings deferred (unused `weightsForTier` import, repeated `manifest?.files?.[p]?.status ?? classifyFile(...)` pattern across 4 sites, empty-string `client` footgun, brandrc-vs-manifest tier-mismatch is silently resolved by manifest, no per-task regression test until Task 13, malformed manifest is silently treated as missing). |
+| 10 | Test helpers (`tmp-brand.js`, `run-cli.js`) | `844e6b4`, `9f6cdc0` | 0 (consumed by Tasks 11–15) | Refinement (`9f6cdc0`) made `emptyBrandDir`'s `mode` independent of `tier` — plan's `mode: ${tier}` produced combos that never appear from real init (`TIER_FOR_MODE` maps pitch→minimum, standard→standard, comprehensive→comprehensive). See D9. Open question on retroactive migration of `manifest-writer.test.js` + `file-status.test.js` resolved as DON'T MIGRATE — `withTmpFile(content, fn)` and the inline mkdtempSync don't map to `withFixture(name)` / `emptyBrandDir({tier, mode, client})`. Code reviewer agreed. |
 
 **Total tests:** 35 passing.
 
@@ -77,7 +78,6 @@ If any of those don't match, **stop and tell the user** — something diverged b
 
 In plan order. Pull the full task text from `2026-06-10-manifest-and-health.md` when dispatching.
 
-- [ ] **Task 10** — Test helpers (`tmp-brand.js`, `run-cli.js`). Plan lines ~1604-1709. See open question for retroactive migration of `manifest-writer.test.js` + `file-status.test.js`.
 - [ ] **Task 11** — Test fixtures (populated/, fresh-init/, mixed/, stage-data/). Plan lines ~1711-1900.
 - [ ] **Task 12** — Integration test: emit-manifest end-to-end (+ golden). Plan lines ~1902-2036.
 - [ ] **Task 13** — Integration test: score emits health (+ golden). Plan lines ~2038-2140.
@@ -177,6 +177,22 @@ Task 4 (gap-actions) followed this. Future utility tasks should too.
 
 Plan said `git add package.json package-lock.json` in Task 1. The repo's `.gitignore` excludes `package-lock.json`, so the lock file can't be committed. Deps re-resolve on each `npm install`. Not changed in this task — flagged for follow-up if reproducible installs become important.
 
+### D9 — `emptyBrandDir` `mode` is independent of `tier` (Task 10)
+
+**Bug:** Plan's pasted code in Task 10 wrote `mode: ${tier}` to `.brandrc.yaml`. But production `cli/src/commands/init.js:41-45` defines:
+```js
+const TIER_FOR_MODE = {
+  pitch: 'minimum',
+  standard: 'standard',
+  comprehensive: 'comprehensive',
+};
+```
+So `mode ∈ {pitch, standard, comprehensive}` and `tier ∈ {minimum, standard, comprehensive}` — the helper's default produced `mode: minimum`, an unreachable shape from real `init`. No CLI command currently reads `mode` from `.brandrc.yaml` (only `client` and `tier` are read), but the helper would have silently encoded the misleading shape into every integration test that consumes it.
+
+**Fix (commit `9f6cdc0`):** `emptyBrandDir({ tier = 'minimum', mode = 'standard', client = 'acme' } = {})` — `mode` is an independent third parameter defaulting to `'standard'` (production-valid for any tier). JSDoc points readers at `TIER_FOR_MODE` for the production mapping.
+
+**Implication for Tasks 11–15:** if any downstream test cares about the `mode` field's value, override it explicitly. Otherwise the `'standard'` default works.
+
 ---
 
 ## Open questions surfaced for upcoming tasks
@@ -189,13 +205,11 @@ Plan said `git add package.json package-lock.json` in Task 1. The repo's `.gitig
 
 A follow-up (separate, optional) could add a one-line `// partial intentionally omitted — falls through to generic` comment in `gap-actions.js`. Not blocking Task 7.
 
-### For Task 10 (test helpers)
+### For Task 10 (test helpers) — RESOLVED
 
 **Q:** Fold the tempdir setup pattern from `manifest-writer.test.js` and the `withTmpFile` helper from `file-status.test.js` into `tmp-brand.js`?
 
-**Context:** Task 6 reviewer flagged that `manifest-writer.test.js` re-implements `mkdtempSync` / `try` / `rmSync` inline, and `file-status.test.js` already has a near-identical `withTmpFile`. Without consolidation, `health-writer.test.js` (Task 7) will become the third copy.
-
-**Resolution path:** When Task 10 lands the helpers, also retroactively migrate `manifest-writer.test.js` and `file-status.test.js` to use the consolidated helper if the API fits cleanly. If migration risks regressions (the tests are tight; touching them is risky), document the duplication and move on.
+**Resolution:** Don't migrate. The new helpers are integration-test-focused (`withFixture(name)` copies a committed fixture; `emptyBrandDir({tier, mode, client})` scaffolds a `.brand/` + `.brandrc.yaml`). Neither maps to `withTmpFile(content, fn)` (generic-tmpdir-with-arbitrary-string-content) or to `manifest-writer.test.js`'s inlined `mkdtempSync`-then-write-JSON pattern. Forcing a migration would require committing string-content fixtures the existing tests inline cleanly. Code reviewer agreed during Task 10 review.
 
 ### For Task 18 (final verification)
 
