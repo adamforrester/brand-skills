@@ -29,8 +29,11 @@ If this conversation got cleared and you're picking up the work:
 | 2 | tier-weights utility (TDD) | `f65d3e8`, `7949ec6` | +12 | Refinement (`7949ec6`) added JSDoc to match `exec.js` style + one `assert.throws` test for unknown tier. |
 | 3 | file-status classifier (TDD) | `0bd9ef6`, `3dff0e3` | +8 | **Two real bugs caught.** See "Decisions" below. Refinement (`3dff0e3`) fixed both. |
 | 4 | gap-actions lookup | `0e6c2e1` | 0 (covered later) | Per-prefix entries deliberately omit `partial` — see open question for Task 7. |
+| 5 | JSON Schemas + cross-link | `8c044c2`, `4ba2d42` | 0 (no test layer change) | Refinement (`4ba2d42`) tightened `generator` regex (`@` → `@\S+$`) and added `description` to `tier_label` + `confidence`. Plan's Step 4 ajv compile snippet was wrong — needs `ajv/dist/2020`, not `ajv`, since draft 2020-12 metaschema is not in the default Ajv class. See D5. |
+| 6 | manifest-writer (TDD) | `d76cc63` | +7 | Used `import Ajv from 'ajv/dist/2020.js'` per D5. Code review Minor only — flagged tempdir-helper duplication between this test file and `file-status.test.js`; fold both into Task 10's helper rather than letting `health-writer.test.js` add a third copy. |
+| 7 | health-writer (TDD) | `c0de23a`, `6a66d91` | +8 | Refinement (`6a66d91`) extracted `weightedCounts()` in tier-weights.js so the complete-or-defaults reduce lives in one place; refactored `readiness()` to delegate. Documented `scanCompleteRatio` as deliberately unweighted (per spec §3 wording) — distinct from the weighted `readiness`. See D6. |
 
-**Total tests:** 20 passing.
+**Total tests:** 35 passing.
 
 ---
 
@@ -38,9 +41,9 @@ If this conversation got cleared and you're picking up the work:
 
 In plan order. Pull the full task text from `2026-06-10-manifest-and-health.md` when dispatching.
 
-- [ ] **Task 5** — JSON Schemas (`schema/manifest.schema.json`, `schema/health.schema.json`) + cross-link from `schema/brand/README.md`
-- [ ] **Task 6** — manifest-writer (TDD, +7 tests)
-- [ ] **Task 7** — health-writer (TDD, +8 tests)
+- [x] **Task 5** — JSON Schemas (`schema/manifest.schema.json`, `schema/health.schema.json`) + cross-link from `schema/brand/README.md`
+- [x] **Task 6** — manifest-writer (TDD, +7 tests)
+- [x] **Task 7** — health-writer (TDD, +8 tests)
 - [ ] **Task 8** — emit-manifest CLI command
 - [ ] **Task 9** — Refactor `score.js` to use shared utils + emit `.health.json`
 - [ ] **Task 10** — Test helpers (`tmp-brand.js`, `run-cli.js`)
@@ -103,6 +106,22 @@ Style mirrors `cli/src/utils/exec.js`. No `@param`/`@returns` tags. Don't add JS
 
 Task 4 (gap-actions) followed this. Future utility tasks should too.
 
+### D6 — `scanCompleteRatio` is unweighted by design (Task 7)
+
+**Decision:** `scanCompleteRatio` in `health-writer.buildHealth` uses an unweighted file-count ratio (`completeCount / totalCount`), NOT the weighted `weightedComplete / weightedTotal` ratio.
+
+**Why:** Spec section 3 (`docs/superpowers/specs/2026-06-10-manifest-and-health-design.md` line 185) defines the no-manifest MEDIUM threshold as "≥80% files `complete` by content scan." That phrasing reads as a file-count ratio, not a weighted-readiness ratio. The two diverge in the 0.7–0.85 band: a project missing `voice.md` (weight 2) but having all five token files (weight 1 each) scores 5/7 ≈ 0.71 unweighted vs. 5/9 ≈ 0.56 weighted.
+
+**Implication:** `readiness` and `scanCompleteRatio` are semantically different metrics — kept separate intentionally. An inline comment in `health-writer.js` documents the distinction.
+
+### D5 — ajv draft 2020-12 metaschema requires `ajv/dist/2020` import (Task 5)
+
+**Bug:** Plan's Step 4 ajv compile snippet uses `require('ajv').default`, the legacy Ajv class. Compiling a JSON Schema with `$schema: "https://json-schema.org/draft/2020-12/schema"` against that class throws `no schema with key or ref "https://json-schema.org/draft/2020-12/schema"`.
+
+**Fix:** Use `require('ajv/dist/2020').default` (CJS) or `import Ajv from 'ajv/dist/2020.js'` (ESM). This is the documented entry point in ajv@8 for draft 2020-12.
+
+**Implication for Tasks 6 + 7:** the manifest-writer and health-writer modules will compile these same schemas with ajv at module load. The plan's pasted code uses `import Ajv from 'ajv'` — update to `import Ajv from 'ajv/dist/2020.js'` in BOTH writer modules. Without this, the modules throw at import time and every test that imports them fails.
+
 ### D4 — `package-lock.json` is gitignored
 
 Plan said `git add package.json package-lock.json` in Task 1. The repo's `.gitignore` excludes `package-lock.json`, so the lock file can't be committed. Deps re-resolve on each `npm install`. Not changed in this task — flagged for follow-up if reproducible installs become important.
@@ -111,13 +130,21 @@ Plan said `git add package.json package-lock.json` in Task 1. The repo's `.gitig
 
 ## Open questions surfaced for upcoming tasks
 
-### For Task 7 (health-writer)
+### For Task 7 (health-writer) — RESOLVED
 
-**Q:** Should `gap-actions.js` per-prefix entries (`tokens/`, `composition/`, `workflows/`) include `partial` keys, or is falling through to the generic `Populate <path> per schema/brand/<dashed>.schema.md` correct?
+**Q:** Should `gap-actions.js` per-prefix entries (`tokens/`, `composition/`, `workflows/`) include `partial` keys?
 
-**Context:** Task 4's code review (commit `0e6c2e1`) flagged that a `tokens/colors.md` with status `partial` won't match the `tokens/` prefix entry (no `partial` key) and falls through to generic. Currently silent — readers have to derive intent from absence.
+**Resolution:** No. Task 7's plan-test for `gaps` only asserts `suggested_action` matches `/\S/` (non-empty). No per-status text assertions for `partial` in those prefixes. The generic `Populate <path> per schema/brand/<dashed>.schema.md` fallthrough is acceptable.
 
-**Resolution path:** Decide when Task 7 lands based on whether health-writer's tests assert on `suggested_action` text for partials in those prefixes. If yes, add `partial` keys (with wording like "Re-run /brand-context:extract Stage X to fill gaps, or extend manually"). If no, add a one-line comment in `gap-actions.js` noting the omission is deliberate.
+A follow-up (separate, optional) could add a one-line `// partial intentionally omitted — falls through to generic` comment in `gap-actions.js`. Not blocking Task 7.
+
+### For Task 10 (test helpers)
+
+**Q:** Fold the tempdir setup pattern from `manifest-writer.test.js` and the `withTmpFile` helper from `file-status.test.js` into `tmp-brand.js`?
+
+**Context:** Task 6 reviewer flagged that `manifest-writer.test.js` re-implements `mkdtempSync` / `try` / `rmSync` inline, and `file-status.test.js` already has a near-identical `withTmpFile`. Without consolidation, `health-writer.test.js` (Task 7) will become the third copy.
+
+**Resolution path:** When Task 10 lands the helpers, also retroactively migrate `manifest-writer.test.js` and `file-status.test.js` to use the consolidated helper if the API fits cleanly. If migration risks regressions (the tests are tight; touching them is risky), document the duplication and move on.
 
 ### For Task 18 (final verification)
 
