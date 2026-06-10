@@ -77,9 +77,14 @@ This repo was extracted from `xd-toolkit` (a separate internal repo at `~/Docume
 
 The active goal is making `brand-skills` viable for users **outside the XD practice**. That means questioning XD-specific assumptions baked into the skills, slash-command UX, and CLI prose.
 
-**Known XD residue worth noting (not exhaustive — a full inventory is the next session's work):**
-- `cli/src/utils/design-md-generator.js:23` — comment refers to "XD Toolkit-only `elevation` block"
-- The `--impeccable` flag on `brand-cli refresh-context` is XD-adjacent (Impeccable is an XD tool); kept for interop, but the framing in docs should treat it as one of several integrations, not the default.
+**Full XD-assumption inventory:** [`docs/xd-assumption-inventory.md`](docs/xd-assumption-inventory.md) — 18 findings, three impact tiers, three cross-cutting patterns. Read this before making changes that touch user-facing vocabulary, defaults, or schema shape.
+
+**Quick highlights from the inventory:**
+- The `comprehensive` tier conflates extraction completeness with workflow elaboration — it pulls in prototype-deploy / QA-checklist / Figma-to-code workflow files most users won't want.
+- `client` is required in `.brandrc.yaml`; agency framing.
+- `mode: pitch` is agency-pitch vocabulary.
+- `--impeccable` is the only first-class non-default integration; Impeccable is XD-internal.
+- `cli/src/utils/design-md-generator.js:23` — comment refers to "XD Toolkit-only `elevation` block".
 
 **When editing this repo, default to general-purpose framing.** Don't add new XD-specific defaults, vocabulary, or assumptions. If a change here would require a corresponding edit in `xd-toolkit`, flag it — don't reach into that repo.
 
@@ -137,8 +142,22 @@ When you change anything in this repo, walk this list before declaring done:
 
 ---
 
+## Where to find what
+
+| Need | File |
+|---|---|
+| What the project does, install, end-user usage | `README.md` |
+| Why the project is shaped this way (architectural rationale) | `docs/DESIGN.md` |
+| XD-assumption inventory and de-coupling targets | `docs/xd-assumption-inventory.md` |
+| Peer tool research (dembrandt, design-oracle, Agent-Reach) | `docs/research-notes.md` |
+| Active and candidate task list, sequencing, cross-task contracts | `docs/tasks.md` |
+| Per-`.brand/`-file schemas | `schema/brand/*.schema.md` |
+| Slash-command behavior and pipeline stages | `brand-context/skills/*/SKILL.md` |
+
+---
+
 ## What this file is not
 
 - Not the README. Don't restate what `README.md` says.
 - Not `brand.md`. That's per-project brand context loaded by AI agents at runtime; this file guides editing the tool itself.
-- Not a roadmap. The README has the roadmap.
+- Not a roadmap. The README has the user-facing roadmap; `docs/tasks.md` has the active engineering backlog.
