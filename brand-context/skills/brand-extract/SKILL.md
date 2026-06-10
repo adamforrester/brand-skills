@@ -17,7 +17,7 @@ You are running the brand-extract skill end to end. The full pipeline writes/ref
 
 **Pipeline scope:** all stages — 1 through 6, plus Stage 8 (`.brand/` regeneration of project-root files). Stage 7 doesn't exist in this numbering (reserved historically; collapsed into Stage 6).
 
-The full design reference lives at `https://github.com/adamforrester/brand-skills/blob/main/brand-context/skills/brand-extract/SKILL.md` (this file). Full architectural spec at the repo's `docs/DESIGN.md` if one is present.
+The full design reference lives at `https://github.com/adamforrester/brand-skills/blob/main/brand-context/skills/brand-extract/SKILL.md` (this file). Architectural overview in `docs/DESIGN.md`.
 
 ---
 
@@ -474,7 +474,7 @@ Cap inferred confidence: if a personality trait or audience claim relies on infe
 
 ### 6f. Write the file
 
-Use the `Write` tool when overwriting (or scaffolding from placeholder). Use `Edit` when merging. Build the file per `schema/brand/overview.schema.md`. The Wendy's fixture at `tests/fixtures/wendys/.brand/overview.md` shows the target shape and citation density.
+Use the `Write` tool when overwriting (or scaffolding from placeholder). Use `Edit` when merging. Build the file per `schema/brand/overview.schema.md` — the schema documents the target shape and the expected citation density.
 
 After writing, verify the file is no longer the placeholder by checking that the brand identity, personality, and visual language sections are populated.
 

@@ -1,0 +1,126 @@
+# CLAUDE.md
+
+Guidance for Claude (and other AI agents) working on **this repo**. Distinct from `brand.md`, which is generated context *about a client's brand*. This file is about how to edit `brand-skills` itself.
+
+For what the project does and how end users install it, read `README.md`. This file is the parts a contributor needs that the README doesn't cover.
+
+---
+
+## Naming — three different names, don't conflate them
+
+| Surface | Name | Where it appears |
+|---|---|---|
+| GitHub repo | `adamforrester/brand-skills` | `package.json` `repository.url`, plugin marketplace install |
+| npm package | `brand-skills` | `package.json` `name`, ships the CLI |
+| CLI binary | `brand-cli` | `package.json` `bin`, what users actually run |
+| Claude Code plugin | `brand-context` | `.claude-plugin/marketplace.json` `plugins[0].name`, command namespace |
+| Slash commands | `/brand-context:extract`, `:check`, `:audit` | `brand-context/commands/*.md` |
+
+The plugin was renamed from `brand-skills` to `brand-context` in v0.2.0; the repo and npm package kept the old name. **Don't unify them without explicit approval** — external installs reference both names independently.
+
+---
+
+## Architecture — three layers, edit them together
+
+```
+schema/brand/*.schema.md      ← source of truth for .brand/ file shapes
+       ↓
+brand-context/skills/*/SKILL.md   ← AI agent instructions (what to write)
+       ↓
+cli/src/                      ← deterministic regen (init scaffolding, refresh-design, refresh-context, score)
+```
+
+Editing one layer almost always means touching the others:
+
+- **Schema change** → update the SKILL.md section that writes that file → update `cli/src/commands/init.js` `BRAND_FILES` / `TOKEN_FRONTMATTER` / scaffold output → update `cli/src/utils/{design-md-generator,brand-context-generator}.js` if the file feeds either generated artifact
+- **New stage in `brand-extract` SKILL.md** → check the "Phase 8 scope reminder" block at the bottom of `brand-context/skills/brand-extract/SKILL.md` → check the README "How the pipeline works" table → check the "Stage status" line in the SKILL's final-summary section
+- **New audit dimension** → update `brand-context/skills/brand-audit/SKILL.md` Dimension list AND the `score = …` formula AND `schema/brand/audits.schema.md`
+
+If you're tempted to skip one of these propagations, don't. The three layers are read independently by users at runtime — drift between them produces silent wrongness.
+
+---
+
+## SKILL → CLI fallback contract
+
+Every CLI command has a SKILL.md inline fallback. The contract:
+
+- If `brand-cli` is installed → SKILL shells out via `Bash`
+- If not → SKILL regenerates the same file inline using `Read` / `Write` / `Edit`
+
+**Both paths must produce the same output shape.** When you change `cli/src/utils/design-md-generator.js`, you must also update the inline-fallback instructions in `brand-extract/SKILL.md` Section 8 (design.md regen). Same for `brand-context-generator.js` ↔ Section 10 (brand.md regen).
+
+The CLI is the canonical implementation; the SKILL fallback is the spec in prose. If they disagree, fix the SKILL — users without the CLI shouldn't get a different artifact.
+
+---
+
+## File-write policies — additive vs. overwrite
+
+This is the easiest thing to get wrong. Each `.brand/` file has a specific policy that the SKILL must honor:
+
+| File | Policy | Why |
+|---|---|---|
+| `tokens/{colors,typography,spacing,surfaces}.md` | **Overwrite** unprompted if placeholder marker present; otherwise prompt overwrite/merge/skip | Tokens are values; replacing is fine when the file is scaffolding |
+| `voice.md` | **Additive** — `## Observed Voice (live channels)` section is the *only* section Stage 3 writes; all prescriptive sections are preserved | Practitioners add voice principles from brand guides; Stage 3 must not erase them. Use `Edit`, never `Write`. See `brand-extract/SKILL.md` Section 4f for the three cases. |
+| `overview.md` | **Overwrite** when placeholder; prompt overwrite/merge/skip when populated. Merge regenerates only the brand-self-test block. | Single coherent document, no descriptive/prescriptive split |
+| `conflicts.md` | **Additive** — Active Conflicts can be rebuilt; Intentional Adaptations and Resolved Conflicts Archive are *never* deleted | Practitioner-resolved entries are the audit trail |
+| `components/*.md` | **Overwrite per-file** if provenance marker present; prompt if hand-edited | Auto-generated from repo scan; hand edits go to a sibling file |
+| `audits/*.md` | **Additive** — never overwrite, every run is a new dated file | The directory IS the audit trail |
+| `design.md`, `brand.md` | **Overwrite wholesale** every regen | Generated artifacts; source of truth is `.brand/` |
+
+If you add a new `.brand/` file, decide its policy explicitly and document it in the SKILL.
+
+---
+
+## Current direction: de-coupling from XD-toolkit
+
+This repo was extracted from `xd-toolkit` (a separate internal repo at `~/Documents/xd-toolkit`). `xd-toolkit` consumes this repo externally as of its v2.0.0 — there's no source duplication.
+
+The active goal is making `brand-skills` viable for users **outside the XD practice**. That means questioning XD-specific assumptions baked into the skills, slash-command UX, and CLI prose.
+
+**Known XD residue worth noting (not exhaustive — a full inventory is the next session's work):**
+- `cli/src/utils/design-md-generator.js:23` — comment refers to "XD Toolkit-only `elevation` block"
+- The `--impeccable` flag on `brand-cli refresh-context` is XD-adjacent (Impeccable is an XD tool); kept for interop, but the framing in docs should treat it as one of several integrations, not the default.
+
+**When editing this repo, default to general-purpose framing.** Don't add new XD-specific defaults, vocabulary, or assumptions. If a change here would require a corresponding edit in `xd-toolkit`, flag it — don't reach into that repo.
+
+**Constraint:** do not touch `~/Documents/xd-toolkit` from this repo's working tree.
+
+---
+
+## Versioning + release
+
+- **One version, three places.** `package.json` `version`, `.claude-plugin/marketplace.json` `metadata.version` AND `plugins[0].version`, and `cli/bin/brand-cli.js` `program.version()`. All three must match. Easy to miss the CLI bin file.
+- **No tests yet.** `npm test` is a TODO stub. Don't claim a change is verified by tests; manually walk the affected SKILL or CLI command end-to-end.
+- **Not yet on npm.** Install path today is GitHub-direct via `claude plugin marketplace add adamforrester/brand-skills`. The CLI is intended to publish to npm but hasn't yet (roadmap item in README).
+- **Don't bump the version proactively.** Wait for explicit instruction — release cadence is being decided.
+
+---
+
+## Things to know that aren't obvious from reading the code
+
+- **`tests/fixtures/wendys/.brand/overview.md` is referenced from `brand-extract/SKILL.md:477` but does not exist in the repo.** Either the reference should be removed or the fixture committed. Flag this if you're touching that section of the SKILL.
+- **The Wendy's brand is the canonical extraction example** in SKILL prose (red, food-photography references). When updating examples, swap to a different brand to avoid the impression that the tool is Wendy's-specific.
+- **`docs/` is empty but referenced.** `brand-extract/SKILL.md:20` mentions `docs/DESIGN.md`. Either remove the pointer or add the file.
+- **MCP dependencies are recommended but not required.** Playwright MCP, Figma Console MCP, and Firecrawl MCP all degrade gracefully. When adding a new SKILL feature that uses an MCP, write the no-MCP fallback at the same time.
+- **Stage numbering in `brand-extract` is non-contiguous.** Stages are 1, 2, 3, 4, 5, 6, 8 — there is no Stage 7 (collapsed historically). Don't "fix" this without reading the "Phase 8 scope reminder" block at the bottom of the SKILL; the numbers are referenced from outside this repo.
+
+---
+
+## Editing checklist (use when changing skills or schemas)
+
+When you change anything in this repo, walk this list before declaring done:
+
+1. **Schema change?** → SKILL section that writes that file updated? `cli/src/commands/init.js` scaffold updated? Generators (`design-md-generator.js`, `brand-context-generator.js`) updated?
+2. **SKILL change?** → README "How the pipeline works" table or "Three slash commands" list still accurate?
+3. **CLI change?** → Inline-fallback instructions in the corresponding SKILL section still match the CLI's behavior?
+4. **New file in `.brand/`?** → Overwrite policy declared in the SKILL? Init scaffolding writes a placeholder?
+5. **Version bumped?** → All three places (`package.json`, `marketplace.json` × 2 fields, `brand-cli.js`)?
+6. **XD residue introduced?** → Re-read your diff for XD-specific framing or vocabulary; rewrite to general-purpose.
+
+---
+
+## What this file is not
+
+- Not the README. Don't restate what `README.md` says.
+- Not `brand.md`. That's per-project brand context loaded by AI agents at runtime; this file guides editing the tool itself.
+- Not a roadmap. The README has the roadmap.
