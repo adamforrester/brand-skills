@@ -56,13 +56,17 @@ function buildFilesMap({ brandDir, tier, stageOverrides }) {
     files[path] = entry;
   }
 
-  // Out-of-tier files that exist on disk: surface them.
-  for (const path of Object.keys(stageOverrides ?? {})) {
+  // Out-of-tier files that exist on disk: surface them, regardless of
+  // whether a producer mentioned them in file_overrides. Spec §2: a
+  // hand-written composition/patterns.md at tier: minimum is surfaced
+  // rather than hidden. The 'comprehensive' weights table is the universe
+  // of all known schema paths; walk paths not already in the active tier.
+  const universe = weightsForTier('comprehensive');
+  for (const path of Object.keys(universe)) {
     if (files[path]) continue; // already in-tier
     const abs = join(brandDir, path);
     if (!existsSync(abs)) continue;
-    const status = classifyFile(abs);
-    files[path] = { status, bytes: statSync(abs).size };
+    files[path] = { status: classifyFile(abs), bytes: statSync(abs).size };
   }
 
   // Components (comprehensive only): surface each file.
@@ -74,15 +78,24 @@ function buildFilesMap({ brandDir, tier, stageOverrides }) {
   }
 
   // Apply per-file overrides from stdin (status, note) — producer can mark
-  // 'partial' or 'defaults' here.
+  // 'partial' or 'defaults' here. Overrides are producer-authoritative: if
+  // an override targets a path not yet in the files map (out-of-tier and
+  // not-on-disk, or a typo'd path), surface it rather than silently drop.
   for (const [path, override] of Object.entries(stageOverrides ?? {})) {
-    if (!files[path]) continue;
+    if (!files[path]) {
+      const abs = join(brandDir, path);
+      files[path] = existsSync(abs)
+        ? { status: classifyFile(abs), bytes: statSync(abs).size }
+        : { status: 'missing' };
+    }
     if (override.status) files[path].status = override.status;
     if (override.note) files[path].note = override.note;
   }
 
   return files;
 }
+
+const VALID_TIERS = ['minimum', 'standard', 'comprehensive'];
 
 export async function emitManifestCommand(opts) {
   const projectDir = process.cwd();
@@ -107,6 +120,13 @@ export async function emitManifestCommand(opts) {
   const brandrc = readBrandrc(projectDir);
   const tier = input.tier ?? brandrc.tier ?? 'minimum';
   const client = input.client ?? brandrc.client ?? '';
+
+  if (!VALID_TIERS.includes(tier)) {
+    console.error(chalk.red(
+      `Invalid tier "${tier}". Expected one of: ${VALID_TIERS.join(', ')}.`
+    ));
+    process.exit(1);
+  }
 
   const files = buildFilesMap({
     brandDir,
