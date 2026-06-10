@@ -1,0 +1,17 @@
+{
+  "tier": "standard",
+  "client": "acme",
+  "stages": {
+    "1_figma":     { "ran": false, "reason": "skipped: sources.figma unset" },
+    "2_web":       { "ran": true,  "wrote": ["tokens/colors.md","tokens/typography.md","tokens/spacing.md","tokens/surfaces.md"], "confidence": "MEDIUM" },
+    "3_voice":     { "ran": true,  "wrote": ["voice.md"], "samples": 14, "confidence": "MEDIUM" },
+    "4_overview":  { "ran": true,  "wrote": ["overview.md"], "sources": ["pdf:brand-guide.pdf"] },
+    "5_conflicts": { "ran": true,  "wrote": ["conflicts.md"], "active": 0 },
+    "6_components":{ "ran": false, "reason": "skipped: tier != comprehensive" },
+    "8_brand_md":  { "ran": true,  "wrote": ["../brand.md","../design.md"] }
+  },
+  "mcps": {
+    "playwright":    { "available": true,  "used": ["2_web","3_voice"] },
+    "figma_console": { "available": false, "used": [] }
+  }
+}

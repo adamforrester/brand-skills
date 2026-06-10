@@ -1,0 +1,15 @@
+{
+  "tier": "minimum",
+  "client": "acme",
+  "stages": {
+    "1_figma":   { "ran": false, "reason": "skipped: figma-console MCP unavailable" },
+    "2_web":     { "ran": false, "reason": "skipped: playwright MCP unavailable" },
+    "3_voice":   { "ran": true,  "wrote": ["voice.md"], "samples": 8, "confidence": "LOW" },
+    "4_overview":{ "ran": true,  "wrote": ["overview.md"], "sources": ["pdf:brand-guide.pdf"] },
+    "8_brand_md":{ "ran": true,  "wrote": ["../brand.md","../design.md"] }
+  },
+  "mcps": {
+    "playwright":    { "available": false, "used": [] },
+    "figma_console": { "available": false, "used": [] }
+  }
+}
