@@ -24,11 +24,12 @@ export function withFixture(fixtureName) {
 /**
  * Make a tmpdir with an empty .brand/ and a minimal .brandrc.yaml.
  * Used when a test wants to control file creation explicitly.
+ * `mode` and `tier` are independent — see `cli/src/commands/init.js` `TIER_FOR_MODE` for the production mapping.
  */
-export function emptyBrandDir({ tier = 'minimum', client = 'acme' } = {}) {
+export function emptyBrandDir({ tier = 'minimum', mode = 'standard', client = 'acme' } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'brand-test-empty-'));
   mkdirSync(join(dir, '.brand'), { recursive: true });
-  writeFileSync(join(dir, '.brandrc.yaml'), `client: ${client}\ntier: ${tier}\nmode: ${tier}\nsources: {}\n`);
+  writeFileSync(join(dir, '.brandrc.yaml'), `client: ${client}\ntier: ${tier}\nmode: ${mode}\nsources: {}\n`);
   return {
     dir,
     brandDir: join(dir, '.brand'),
