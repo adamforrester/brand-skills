@@ -115,7 +115,8 @@ Same posture applies to design-oracle, Agent-Reach, or any peer that emerges lat
 
 ## Versioning + release
 
-- **One version, three places (plus two test goldens).** `package.json` `version`, `.claude-plugin/marketplace.json` `metadata.version` AND `plugins[0].version`, and `cli/bin/brand-cli.js` `program.version()`. All three must match. Easy to miss the CLI bin file. Two test golden files also pin a literal version string in their `generator` field — `cli/test/golden/manifest-from-populated.json` (`brand-cli@<version>`) and `cli/test/golden/manifest-from-skill.json` (`brand-extract-skill@<version>`). They don't break tests if stale (the strip list deletes `generator` before deepEqual), but they mislead readers. Bump them with the others.
+- **One version, three places.** `package.json` `version`, `.claude-plugin/marketplace.json` `metadata.version` AND `plugins[0].version`, and `cli/bin/brand-cli.js` `program.version()`. All three must match. Easy to miss the CLI bin file.
+  - Two test goldens also pin the version literally in their `generator` field — `cli/test/golden/manifest-from-populated.json` (`brand-cli@<version>`) and `cli/test/golden/manifest-from-skill.json` (`brand-extract-skill@<version>`). Stale goldens don't break tests (the strip list deletes `generator` before deepEqual) but mislead readers. Bump them with the others.
 - **No tests yet.** `npm test` is a TODO stub. Don't claim a change is verified by tests; manually walk the affected SKILL or CLI command end-to-end.
 - **Not yet on npm.** Install path today is GitHub-direct via `claude plugin marketplace add adamforrester/brand-skills`. The CLI is intended to publish to npm but hasn't yet (roadmap item in README).
 - **Don't bump the version proactively.** Wait for explicit instruction — release cadence is being decided.
@@ -140,7 +141,7 @@ When you change anything in this repo, walk this list before declaring done:
 2. **SKILL change?** → README "How the pipeline works" table or "Three slash commands" list still accurate?
 3. **CLI change?** → Inline-fallback instructions in the corresponding SKILL section still match the CLI's behavior?
 4. **New file in `.brand/`?** → Overwrite policy declared in the SKILL? Init scaffolding writes a placeholder?
-5. **Version bumped?** → All three places (`package.json`, `marketplace.json` × 2 fields, `brand-cli.js`)?
+5. **Version bumped?** → All three places (`package.json`, `marketplace.json` × 2 fields, `brand-cli.js`)? Two test goldens (`cli/test/golden/manifest-from-{populated,skill}.json` `generator` field) bumped to match?
 6. **XD residue introduced?** → Re-read your diff for XD-specific framing or vocabulary; rewrite to general-purpose.
 
 ---
