@@ -3,10 +3,10 @@
 Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10 — through Task 13 (+ doc commit)
-**Test status:** 42/42 passing on the branch
+**Last updated:** 2026-06-10 — through Task 14 (+ doc commit)
+**Test status:** 46/46 passing on the branch
 **HEAD:** the latest progress-doc commit on `feat/manifest-and-health`. Don't bother chasing the exact SHA in this doc — `git rev-parse HEAD` is authoritative. As of writing, it should match the most-recent `docs:` commit at the top of `git log --oneline main..HEAD`.
-**Next task:** **Task 14** — Integration tests: round-trip + scan fallback
+**Next task:** **Task 15** — SKILL fallback golden + fresh-init test
 
 ---
 
@@ -22,7 +22,7 @@ If this conversation got cleared and you're picking up the work:
 6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline: implementer + spec review + code quality review per task).
 7. Resume at the next pending task using the dispatch protocol at the bottom of this file.
 
-### Quick state check (as of 2026-06-10 through Task 13)
+### Quick state check (as of 2026-06-10 through Task 14)
 
 Verify before continuing:
 
@@ -31,14 +31,14 @@ $ git rev-parse --abbrev-ref HEAD
 feat/manifest-and-health
 
 $ git log --oneline main..HEAD | wc -l
-31    # 19 task/code commits + 12 progress-doc commits (post this update)
+33    # 20 task/code commits + 13 progress-doc commits (post this update)
 
 $ git log -1 --format=%H
 <the most recent progress-doc commit on the branch — top of git log main..HEAD>
 
 $ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
-# tests 42
-# pass 42
+# tests 46
+# pass 46
 # fail 0
 ```
 
@@ -75,8 +75,9 @@ If any of those don't match, **stop and tell the user** — something diverged b
 | 11 | Test fixtures (populated/, fresh-init/, mixed/, stage-data/) | `04b3d8c` | 0 (consumed by Tasks 12–15) | Code review Minor only — accepted per D7. `fresh-init/` produced by literally running `brand-cli init --client acme --mode standard --force` (real init output, not hand-edited). `populated/` has all 12 required files classified `complete`; `mixed/` matches the 9-complete + 2-placeholder + 1-missing pattern; three JSON stage-data files match plan lines 1827–1883 byte-for-byte. 53 files / 490 insertions, all under `cli/test/fixtures/`. Four Minor findings deferred (populated `brand.md`/`design.md` still scaffold text not regenerated; static `2026-06-10` in CHANGELOG.md; `mixed/brand.md` references the deleted anti-patterns; plan prose nit on `cp -r` portability). |
 | 12 | Integration test: emit-manifest + golden | `1efef26` | +4 | Code review Minor only — accepted per D7. First integration test on the branch. Plan's Step 2 bash had a typo (`| \ > file`) — implementer used a corrected pipeline. Golden generated from current (post-d858b42) emit-manifest, reproduces independently. Five Minor findings deferred (volatile-field stripping is implicit; dynamic `import('node:fs')` in test 4; golden brittleness unsignalled to future editors; test 2 deep-compare opportunity; test 3 missing `tokens/colors.md.note` assertion). |
 | 13 | Integration test: score emits health + golden | `853e825` | +3 | Code review Minor only — accepted per D7. Sister test to Task 12, mirrors `emit-manifest.test.js` shape. Golden generated cleanly from populated fixture; eyeball-verified `version:'1'`, `manifest_seen:false`, `tier:'standard'`, `confidence:'MEDIUM'` (no manifest + 100% complete by scan ≥ 80% caps at MEDIUM per spec §3), `readiness:1`, `tier_label:'ready'`, weighted 14/14, `client:'acme'`, flat `{path:status}` files map per spec §3 line 186. Plan's Step 2 bash ran cleanly. Volatile strip list (`generated_at`, `generator`) sufficient for this golden — `manifest_generated_at` only emits when `manifest_seen:true`, so absent here. Seven Minor findings deferred (golden↔fixture coupling unsignalled in test code; strip list could be centralized in a helper; populated-fixture setup duplicated across two integration files; `readiness < 0.1` could tighten to `=== 0`; `tier_label` literal — agreed leave; test naming distinct enough; cleanup reliable). See D10. |
+| 14 | Integration tests: round-trip + scan fallback | `b1e3690` | +4 | Code review Minor only — accepted per D7. Implementer DONE on first run, no plan deviations. Verified manifest+health coupling: `populated + full-pipeline.json` (no overrides) → `confidence:HIGH` + `downgrades:[]`; `populated + partial-pipeline.json` (overrides `voice.md` + `tokens/colors.md` to `defaults`) → `confidence:MEDIUM` + 2 downgrades; `mixed` (no manifest) → all statuses ∈ `{complete,placeholder,missing}`, no `partial`/`defaults`; `populated` no manifest → MEDIUM cap (D10). Spec compliance reviewer confirmed `health-writer.js:65,117` echoes `manifest.generated_at` and downgrades source from `status === 'defaults'`. Five Minor findings deferred (inconsistent exit-code asserts in round-trip — only first `emit.exitCode` checked; partial-pipeline coupling unsignalled in deepEqual; some duplication of `manifest_seen:false` between Task 13 + Task 14 score-without-manifest test 2; no intermediate manifest-shape sanity check between emit and score; helper-extraction opportunity not yet a smell at 4 integration files). |
 
-**Total tests:** 42 passing.
+**Total tests:** 46 passing.
 
 ---
 
@@ -84,7 +85,6 @@ If any of those don't match, **stop and tell the user** — something diverged b
 
 In plan order. Pull the full task text from `2026-06-10-manifest-and-health.md` when dispatching.
 
-- [ ] **Task 14** — Integration tests: round-trip + scan fallback. Plan lines ~2142-2272.
 - [ ] **Task 15** — SKILL fallback golden + fresh-init test. Plan lines ~2274-2360.
 - [ ] **Task 16** — SKILL updates (brand-extract Section 10b, brand-check Step 1). Plan lines ~2362-2480.
 - [ ] **Task 17** — Repo docs (CLAUDE.md, README, tasks.md). Plan lines ~2482-2570.
@@ -142,7 +142,7 @@ Task 4 (gap-actions) followed this. Future utility tasks should too.
 
 ### D7 — Reviewers consistently catch real issues; budget for refinement subagents (meta)
 
-**Pattern:** Across Tasks 2, 3, 5, 7, 8 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had three real bugs (D1, D2, D8), one wrong import (D5), and an unhandled error path (D8). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. **Updated rate (post-Task 13):** 6 of 13 tasks (≈46%) have needed a refinement. Tasks 9, 11, 12, 13 (the integration-test trio + score refactor) all came back Minor-only — pasted code has stabilized as the build moves out of new-utility territory and into test wiring against existing utilities.
+**Pattern:** Across Tasks 2, 3, 5, 7, 8 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had three real bugs (D1, D2, D8), one wrong import (D5), and an unhandled error path (D8). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. **Updated rate (post-Task 14):** 6 of 14 tasks (≈43%) have needed a refinement. Tasks 9, 11, 12, 13, 14 (score refactor + four integration test files) all came back Minor-only. Pasted code has stabilized as the build moves out of new-utility territory and into test wiring against existing utilities.
 
 ### D8 — emit-manifest spec deviation in plan's pasted code (Task 8)
 
