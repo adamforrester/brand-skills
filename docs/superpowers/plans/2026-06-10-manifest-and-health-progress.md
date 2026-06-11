@@ -3,10 +3,10 @@
 Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10 — through Task 12 (+ doc commit)
-**Test status:** 39/39 passing on the branch
+**Last updated:** 2026-06-10 — through Task 13 (+ doc commit)
+**Test status:** 42/42 passing on the branch
 **HEAD:** the latest progress-doc commit on `feat/manifest-and-health`. Don't bother chasing the exact SHA in this doc — `git rev-parse HEAD` is authoritative. As of writing, it should match the most-recent `docs:` commit at the top of `git log --oneline main..HEAD`.
-**Next task:** **Task 13** — Integration test: score emits health (+ golden)
+**Next task:** **Task 14** — Integration tests: round-trip + scan fallback
 
 ---
 
@@ -22,7 +22,7 @@ If this conversation got cleared and you're picking up the work:
 6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline: implementer + spec review + code quality review per task).
 7. Resume at the next pending task using the dispatch protocol at the bottom of this file.
 
-### Quick state check (as of 2026-06-10 through Task 12)
+### Quick state check (as of 2026-06-10 through Task 13)
 
 Verify before continuing:
 
@@ -31,14 +31,14 @@ $ git rev-parse --abbrev-ref HEAD
 feat/manifest-and-health
 
 $ git log --oneline main..HEAD | wc -l
-29    # 18 task/code commits + 11 progress-doc commits
+31    # 19 task/code commits + 12 progress-doc commits (post this update)
 
 $ git log -1 --format=%H
 <the most recent progress-doc commit on the branch — top of git log main..HEAD>
 
 $ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
-# tests 39
-# pass 39
+# tests 42
+# pass 42
 # fail 0
 ```
 
@@ -74,8 +74,9 @@ If any of those don't match, **stop and tell the user** — something diverged b
 | 10 | Test helpers (`tmp-brand.js`, `run-cli.js`) | `844e6b4`, `9f6cdc0` | 0 (consumed by Tasks 11–15) | Refinement (`9f6cdc0`) made `emptyBrandDir`'s `mode` independent of `tier` — plan's `mode: ${tier}` produced combos that never appear from real init (`TIER_FOR_MODE` maps pitch→minimum, standard→standard, comprehensive→comprehensive). See D9. Open question on retroactive migration of `manifest-writer.test.js` + `file-status.test.js` resolved as DON'T MIGRATE — `withTmpFile(content, fn)` and the inline mkdtempSync don't map to `withFixture(name)` / `emptyBrandDir({tier, mode, client})`. Code reviewer agreed. |
 | 11 | Test fixtures (populated/, fresh-init/, mixed/, stage-data/) | `04b3d8c` | 0 (consumed by Tasks 12–15) | Code review Minor only — accepted per D7. `fresh-init/` produced by literally running `brand-cli init --client acme --mode standard --force` (real init output, not hand-edited). `populated/` has all 12 required files classified `complete`; `mixed/` matches the 9-complete + 2-placeholder + 1-missing pattern; three JSON stage-data files match plan lines 1827–1883 byte-for-byte. 53 files / 490 insertions, all under `cli/test/fixtures/`. Four Minor findings deferred (populated `brand.md`/`design.md` still scaffold text not regenerated; static `2026-06-10` in CHANGELOG.md; `mixed/brand.md` references the deleted anti-patterns; plan prose nit on `cp -r` portability). |
 | 12 | Integration test: emit-manifest + golden | `1efef26` | +4 | Code review Minor only — accepted per D7. First integration test on the branch. Plan's Step 2 bash had a typo (`| \ > file`) — implementer used a corrected pipeline. Golden generated from current (post-d858b42) emit-manifest, reproduces independently. Five Minor findings deferred (volatile-field stripping is implicit; dynamic `import('node:fs')` in test 4; golden brittleness unsignalled to future editors; test 2 deep-compare opportunity; test 3 missing `tokens/colors.md.note` assertion). |
+| 13 | Integration test: score emits health + golden | `853e825` | +3 | Code review Minor only — accepted per D7. Sister test to Task 12, mirrors `emit-manifest.test.js` shape. Golden generated cleanly from populated fixture; eyeball-verified `version:'1'`, `manifest_seen:false`, `tier:'standard'`, `confidence:'MEDIUM'` (no manifest + 100% complete by scan ≥ 80% caps at MEDIUM per spec §3), `readiness:1`, `tier_label:'ready'`, weighted 14/14, `client:'acme'`, flat `{path:status}` files map per spec §3 line 186. Plan's Step 2 bash ran cleanly. Volatile strip list (`generated_at`, `generator`) sufficient for this golden — `manifest_generated_at` only emits when `manifest_seen:true`, so absent here. Seven Minor findings deferred (golden↔fixture coupling unsignalled in test code; strip list could be centralized in a helper; populated-fixture setup duplicated across two integration files; `readiness < 0.1` could tighten to `=== 0`; `tier_label` literal — agreed leave; test naming distinct enough; cleanup reliable). See D10. |
 
-**Total tests:** 39 passing.
+**Total tests:** 42 passing.
 
 ---
 
@@ -83,7 +84,6 @@ If any of those don't match, **stop and tell the user** — something diverged b
 
 In plan order. Pull the full task text from `2026-06-10-manifest-and-health.md` when dispatching.
 
-- [ ] **Task 13** — Integration test: score emits health (+ golden). Plan lines ~2038-2140.
 - [ ] **Task 14** — Integration tests: round-trip + scan fallback. Plan lines ~2142-2272.
 - [ ] **Task 15** — SKILL fallback golden + fresh-init test. Plan lines ~2274-2360.
 - [ ] **Task 16** — SKILL updates (brand-extract Section 10b, brand-check Step 1). Plan lines ~2362-2480.
@@ -142,7 +142,7 @@ Task 4 (gap-actions) followed this. Future utility tasks should too.
 
 ### D7 — Reviewers consistently catch real issues; budget for refinement subagents (meta)
 
-**Pattern:** Across Tasks 2, 3, 5, 7, 8 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had three real bugs (D1, D2, D8), one wrong import (D5), and an unhandled error path (D8). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. **Updated rate:** ~5 of 8 tasks (≈60%) have needed a refinement.
+**Pattern:** Across Tasks 2, 3, 5, 7, 8 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had three real bugs (D1, D2, D8), one wrong import (D5), and an unhandled error path (D8). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. **Updated rate (post-Task 13):** 6 of 13 tasks (≈46%) have needed a refinement. Tasks 9, 11, 12, 13 (the integration-test trio + score refactor) all came back Minor-only — pasted code has stabilized as the build moves out of new-utility territory and into test wiring against existing utilities.
 
 ### D8 — emit-manifest spec deviation in plan's pasted code (Task 8)
 
@@ -195,6 +195,14 @@ So `mode ∈ {pitch, standard, comprehensive}` and `tier ∈ {minimum, standard,
 **Fix (commit `9f6cdc0`):** `emptyBrandDir({ tier = 'minimum', mode = 'standard', client = 'acme' } = {})` — `mode` is an independent third parameter defaulting to `'standard'` (production-valid for any tier). JSDoc points readers at `TIER_FOR_MODE` for the production mapping.
 
 **Implication for Tasks 11–15:** if any downstream test cares about the `mode` field's value, override it explicitly. Otherwise the `'standard'` default works.
+
+### D10 — `confidence: MEDIUM` is the cap when no `manifest.json` is present (Task 13)
+
+**Confirmed by spec + golden:** spec §3 (lines ~183–185) says no-manifest paths can never produce HIGH confidence — the cap is MEDIUM when ≥80% of files are `complete` by content scan, LOW otherwise. The Task 13 populated-fixture golden has 100% complete and lands on MEDIUM (not HIGH), confirming the cap is enforced in `health-writer.buildHealth`.
+
+**Implication for Tasks 14–15:** the round-trip test (Task 14) is the path that produces `manifest_seen: true` — that's where you'd see HIGH (or whatever confidence the manifest itself reports, possibly downgraded). The fresh-init / mixed-fixture branches in Task 14 / Task 15 should expect MEDIUM or LOW depending on `scanCompleteRatio`. Don't accidentally assert HIGH on a no-manifest path — it can never happen.
+
+**`scanCompleteRatio` is internal:** it's computed inside `health-writer.js` to gate the MEDIUM/LOW choice but is NOT surfaced as a field in the emitted `.health.json`. D6's distinction (unweighted vs. weighted) only matters internally; downstream consumers see `confidence` + `readiness` + `weighted_complete`/`weighted_total` and that's it.
 
 ---
 
