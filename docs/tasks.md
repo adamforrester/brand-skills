@@ -4,23 +4,17 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-10 (through Task 8 of 18)
-
----
-
-## In progress
-
-### #2 + #6 — Emit `.brand/manifest.json` + `.brand/.health.json` 🚧
-**Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Spec:** [`docs/superpowers/specs/2026-06-10-manifest-and-health-design.md`](superpowers/specs/2026-06-10-manifest-and-health-design.md)
-**Plan:** [`docs/superpowers/plans/2026-06-10-manifest-and-health.md`](superpowers/plans/2026-06-10-manifest-and-health.md) (18 tasks)
-**Progress:** [`docs/superpowers/plans/2026-06-10-manifest-and-health-progress.md`](superpowers/plans/2026-06-10-manifest-and-health-progress.md) — 8/18 tasks complete; 35/35 tests passing. Next: Task 9 (refactor `score.js` + emit `.health.json`).
-
-When the branch lands, move both #2 and #6 to Completed below and remove the "Blocked by #2" / "Blocked by #2, #6" notes from #3, #4, #5.
+**Last updated:** 2026-06-10
 
 ---
 
 ## Completed
+
+### #2 — Emit `.brand/manifest.json` from `/brand-context:extract` ✅
+**Output:** `.brand/manifest.json` per `schema/manifest.schema.json`. Per-file statuses + per-stage outcomes + MCP availability. Emitted at end of Stage 8.
+
+### #6 — Emit `.brand/.health.json` from `/brand-context:check` ✅
+**Output:** `.brand/.health.json` per `schema/health.schema.json`. Tier-weighted readiness, gaps, downgrades. Emitted by every `brand-cli score` run.
 
 ### #1 — XD-assumption inventory (read-only audit) ✅
 **Output:** [`docs/xd-assumption-inventory.md`](xd-assumption-inventory.md)
@@ -45,26 +39,17 @@ Strategic decision recorded: **borrow without dependency** (Option 3). Captured 
 
 ### Unblocked (ready to start)
 
-#### #2 — Emit `.brand/manifest.json` from `/brand-context:extract`
-Per-section completeness flags + per-stage status. Vocabulary: `complete | partial | placeholder | missing | defaults`. Public contract — host orchestrators will gate on it. Sister to #6; share status vocabulary. Source: feedback item #1.
-
-When designing the schema, reference dembrandt's MCP tool output shapes (`get_design_tokens`, `get_color_palette`, etc.) — they're a useful starting point for typed JSON output.
-
-#### #6 — Emit `.brand/.health.json` from `/brand-context:check`
-Machine-readable sidecar to the markdown health report. Same status vocabulary as #2 (sister task). Embedded host projects gate on `brand.readiness >= 0.8` rather than human review. Source: feedback item #5.
+#### #3 — Explicit MCP-fallback contract per stage in `brand-extract`
+Per stage, declare which MCPs are required vs recommended; on absence emit HALT / DOWNGRADE / SKIP. Decisions land in `manifest.json`. Source: feedback item #2.
+**Status:** Unblocked — manifest schema accommodates `stages[*].reason` and `mcps[*].used`. Implementation can begin.
 
 #### #8 — DTCG token export (`brand-cli refresh-design --dtcg`)
 W3C Design Tokens Community Group format. Pure spec adoption — interoperates with Style Dictionary, Tokens Studio, Figma plugins, dembrandt itself. Composes with #2 (manifest can declare `dtcg_export: true|false|<path>`). Source: dembrandt research; CLAUDE.md "borrow without dependency" stance.
 
-### Blocked
-
-#### #3 — Explicit MCP-fallback contract per stage in `brand-extract`
-Per stage, declare which MCPs are required vs recommended; on absence emit HALT / DOWNGRADE / SKIP. Decisions land in `manifest.json`. Source: feedback item #2.
-**Blocked by:** #2 (manifest schema is the carrier).
-
 #### #4 — Support `.brand/.scope.json` as alternative to conversational scope-confirmation
 Structured-input path for embedded use. Conversational flow stays the standalone default. Two paths produce equivalent `.brandrc.yaml` state. Source: feedback item #3.
-**Blocked by:** #2, #6 (status vocabulary lands first).
+
+### Blocked
 
 #### #5 — Inject industry signal into voice + overview extraction
 `industry:` field in `.brandrc.yaml` (and/or scope payload). Stages 3 + 4 read it; bias inference transparently. Cite the prior in voice.md / overview.md prose. Source: feedback item #4.

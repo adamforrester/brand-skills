@@ -17,6 +17,8 @@ brand-cli score --json
 
 `brand-cli score` always also writes `.brand/.health.json` — a machine-readable verdict (readiness, tier_label, gaps, downgrades) for hosts that gate on the package programmatically. Humans read the console output; hosts read the JSON.
 
+The CLI's `.health.json` and the SKILL's inline-fallback `.health.json` must share the same shape — see `schema/health.schema.json` and the field set the inline-fallback step 5 below produces.
+
 If `brand-cli` is not installed, score manually:
 
 1. Read `.brandrc.yaml` for `tier` and `mode`.

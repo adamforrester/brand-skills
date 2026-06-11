@@ -24,10 +24,11 @@ The plugin was renamed from `brand-skills` to `brand-context` in v0.2.0; the rep
 
 ```
 schema/brand/*.schema.md      ← source of truth for .brand/ file shapes
+schema/{manifest,health}.schema.json ← machine-validation contracts (NEW)
        ↓
 brand-context/skills/*/SKILL.md   ← AI agent instructions (what to write)
        ↓
-cli/src/                      ← deterministic regen (init scaffolding, refresh-design, refresh-context, score)
+cli/src/                      ← deterministic regen (init scaffolding, refresh-design, refresh-context, score, emit-manifest)
 ```
 
 Editing one layer almost always means touching the others:
@@ -65,6 +66,8 @@ This is the easiest thing to get wrong. Each `.brand/` file has a specific polic
 | `conflicts.md` | **Additive** — Active Conflicts can be rebuilt; Intentional Adaptations and Resolved Conflicts Archive are *never* deleted | Practitioner-resolved entries are the audit trail |
 | `components/*.md` | **Overwrite per-file** if provenance marker present; prompt if hand-edited | Auto-generated from repo scan; hand edits go to a sibling file |
 | `audits/*.md` | **Additive** — never overwrite, every run is a new dated file | The directory IS the audit trail |
+| `manifest.json` | **Overwrite wholesale every run** | Generated artifact; source of truth is `.brand/*.md`. Same as `design.md`/`brand.md`. Emitted by `/brand-context:extract` end-of-pipeline. |
+| `.health.json` | **Overwrite wholesale every run** | Verdict cache emitted by `/brand-context:check` (and `brand-cli score`). Reproducible from manifest + tier weights. |
 | `design.md`, `brand.md` | **Overwrite wholesale** every regen | Generated artifacts; source of truth is `.brand/` |
 
 If you add a new `.brand/` file, decide its policy explicitly and document it in the SKILL.
@@ -112,7 +115,7 @@ Same posture applies to design-oracle, Agent-Reach, or any peer that emerges lat
 
 ## Versioning + release
 
-- **One version, three places.** `package.json` `version`, `.claude-plugin/marketplace.json` `metadata.version` AND `plugins[0].version`, and `cli/bin/brand-cli.js` `program.version()`. All three must match. Easy to miss the CLI bin file.
+- **One version, three places (plus two test goldens).** `package.json` `version`, `.claude-plugin/marketplace.json` `metadata.version` AND `plugins[0].version`, and `cli/bin/brand-cli.js` `program.version()`. All three must match. Easy to miss the CLI bin file. Two test golden files also pin a literal version string in their `generator` field — `cli/test/golden/manifest-from-populated.json` (`brand-cli@<version>`) and `cli/test/golden/manifest-from-skill.json` (`brand-extract-skill@<version>`). They don't break tests if stale (the strip list deletes `generator` before deepEqual), but they mislead readers. Bump them with the others.
 - **No tests yet.** `npm test` is a TODO stub. Don't claim a change is verified by tests; manually walk the affected SKILL or CLI command end-to-end.
 - **Not yet on npm.** Install path today is GitHub-direct via `claude plugin marketplace add adamforrester/brand-skills`. The CLI is intended to publish to npm but hasn't yet (roadmap item in README).
 - **Don't bump the version proactively.** Wait for explicit instruction — release cadence is being decided.
