@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-10
+**Last updated:** 2026-06-11 — #2 + #6 merged via PR #1 (merge commit `3041891`).
 
 ---
 

@@ -1,45 +1,32 @@
 # Manifest + Health — Implementation Progress
 
-Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
+Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Historical artifact post-merge — kept for the D-letter pattern as a reference for future similar work (per the original handoff instruction).
 
-**Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10 — through Task 18 (verification + final cross-branch review)
-**Test status:** 47/47 passing on Node ≥22 (Node 18/20 fail — `node --test` glob support didn't land until Node 21; engines floor bumped accordingly in Task 18)
-**HEAD:** the latest commit on `feat/manifest-and-health`. Don't bother chasing the exact SHA in this doc — `git rev-parse HEAD` is authoritative. As of Task 18 close, it should match `docs: tighten progress doc post-Task-18` (or whatever the final progress-doc commit is) at the top of `git log --oneline main..HEAD`.
-**Next task:** **Final-stage handoff** — open PR per the section at the bottom of this doc.
+**Status:** ✅ **MERGED to `main`** via PR [#1](https://github.com/adamforrester/brand-skills/pull/1) on 2026-06-11 (merge commit `3041891`).
+**Branch (deleted):** `feat/manifest-and-health` — branched off `main` at `e54066f`, 44 commits.
+**Last updated:** 2026-06-11 — post-merge cleanup pass.
+**Test status at merge:** 47/47 passing on Node ≥22 (Node 18/20 fail — `node --test` glob support didn't land until Node 21; engines floor bumped accordingly in Task 18, see D13).
 
 ---
 
-## How to resume in a fresh session
+## How to resume in a fresh session — N/A post-merge
 
-If this conversation got cleared and you're picking up the work:
+This section was load-bearing while the branch was active. Preserved here as a reference pattern for future similar branches:
 
-1. Read `docs/superpowers/specs/2026-06-10-manifest-and-health-design.md` — the spec we're implementing.
-2. Read `docs/superpowers/plans/2026-06-10-manifest-and-health.md` — the 18-task plan.
-3. Read THIS file to see what's done, what's next, and which decisions were made along the way that aren't in the plan.
-4. `git log --oneline main..HEAD` — verify your local branch state matches the Quick state check below.
-5. `npm test` — verify 47/47 passing.
-6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline). **Task 18 is shape-different** — it's verification, not build. Read the **"Task 18 dispatch protocol"** section near the bottom of this file (NOT the generic per-task protocol — that one assumes implementer + 2 reviewers, which doesn't fit Task 18).
-7. Resume at Task 18.
+1. Read the spec doc, the plan doc, then this progress doc.
+2. `git log --oneline main..HEAD` — verify branch state matches the Quick state check below.
+3. `npm test` — verify expected count passes.
+4. Invoke `superpowers:subagent-driven-development` (full discipline). Verification-only tasks (like Task 18 was) are shape-different — they don't need an implementer subagent; check whether a task-specific dispatch protocol exists before defaulting to the generic per-task one.
+5. Resume at the next pending task.
 
-### Quick state check (as of 2026-06-10 through Task 18)
-
-Verify before continuing:
+### Final state at merge (2026-06-11, PR [#1](https://github.com/adamforrester/brand-skills/pull/1))
 
 ```
-$ git rev-parse --abbrev-ref HEAD
-feat/manifest-and-health
-
-$ git log --oneline main..HEAD | wc -l
-45    # 25 task/code commits + 18 progress-doc commits + 1 engines bump + this commit
-
-$ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
-# tests 47
-# pass 47
-# fail 0
+Merge commit:        3041891
+Branch (deleted):    feat/manifest-and-health (44 commits)
+Diff:                85 files changed, +2687/-106
+Test count at merge: 47/47 passing on Node ≥22
 ```
-
-If any of those don't match, **stop and tell the user** — something diverged between sessions.
 
 ### Things that bite repeatedly (from D1–D12 below; read those for full context)
 
@@ -326,21 +313,16 @@ Templates for the three subagent prompts live in the `superpowers:subagent-drive
 
 ---
 
-## Final-stage handoff
+## Final-stage handoff — DONE
 
-After Task 18 completes:
+All four steps completed:
 
-1. Run `npm test` one more time as the absolute last check. Expected: 47/47.
-2. ~~Update `docs/tasks.md` to move #2+#6 to Completed and unblock #3.~~ **Already done** in Task 17 (commit `49863af`). Skip.
-3. Open a PR from `feat/manifest-and-health` → `main`. PR body should include:
-   - Spec link: `docs/superpowers/specs/2026-06-10-manifest-and-health-design.md`
-   - Plan link: `docs/superpowers/plans/2026-06-10-manifest-and-health.md`
-   - Progress doc link (this file)
-   - Test delta (47/47 passing, +47 from baseline 0)
-   - Commit count (~25 task/code commits + ~17 progress-doc commits, depending on Task 18's emissions)
-4. Use the `superpowers:finishing-a-development-branch` skill if it applies. (Worth invoking — it has merge-readiness checks beyond what Task 18's plan covers.)
+1. ✅ Final `npm test` — 47/47 passing on `main` post-merge.
+2. ✅ `docs/tasks.md` already had #2+#6 in Completed and #3+#4 unblocked from Task 17 (commit `49863af`); no further edit needed at handoff time.
+3. ✅ PR [#1](https://github.com/adamforrester/brand-skills/pull/1) opened with full body (spec link, plan link, this progress doc link, test delta, commit count, engines-bump rationale, final-reviewer verdict). Merged via `--merge` (preserves history so commit SHAs in D1–D13 remain valid). Merge commit `3041891`.
+4. ✅ `superpowers:finishing-a-development-branch` skill invoked — verified tests, presented options, executed Option 2 (push + PR).
 
-**Things NOT to forget at the PR step:**
+**Lessons preserved for future similar branches:**
 
-- The `Branch:` line at the top of `docs/tasks.md` says `(off main at e54066f)`. After merge, that line becomes stale (the work is on main, not a branch). Either remove it from the merged-state docs/tasks.md, or accept that it'll be cleaned up by the next person editing `docs/tasks.md`.
-- The progress doc (this file) lives at `docs/superpowers/plans/`. After merge, it'll be a historical artifact. Don't delete it; future similar work benefits from the D-letter pattern as a reference.
+- This progress doc is now a historical artifact. The D-letter pattern (D1–D13) is the durable reference: each entry leads with the bug/decision, then a Why/Implication block. Future similar branches should adopt the same shape — reviewers learn from the rate (8 of 18 tasks needed refinement = 44% post-Task-18) and the recurring footguns.
+- "Things that bite repeatedly" list near the top of this doc is the most directly transferable artifact. Patterns like "ajv/dist/2020.js, not ajv", "apostrophes break heredoc commit messages", "plan-pasted node -e snippets that use require() are broken under type:module", and "node --test glob requires Node ≥21" are not branch-specific and should be considered for promotion into CLAUDE.md as a "lessons" appendix when the next contributor wants them.
