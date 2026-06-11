@@ -752,7 +752,16 @@ Use `file_overrides` to mark any file `defaults` (low-confidence inferred conten
 
 **Inline fallback (CLI absent):**
 
-Construct the same JSON in memory using `Read` to inspect each `.brand/` file (apply the same content-scan logic — placeholder marker, frontmatter inspection, body length), fold in stage-execution data accumulated through the run, and `Write` to `.brand/manifest.json`. Use `generator: brand-extract-skill@<plugin-version>`. The reference shape is at `cli/test/golden/manifest-from-skill.json` in the brand-skills repo.
+Construct the manifest in memory and `Write` to `.brand/manifest.json`. The reference shape — including every required field with a concrete example value — is at `cli/test/golden/manifest-from-skill.json` in the brand-skills repo. Mirror that shape exactly.
+
+The non-derivable fields the SKILL must set itself:
+
+- `version`: `"1"` (literal — schema enforces a const)
+- `generated_at`: ISO-8601 datetime (e.g. `"2026-06-10T15:30:00Z"`)
+- `generator`: `brand-extract-skill@<plugin-version>`
+- `tier`, `client`: from `.brandrc.yaml`
+- `stages`, `mcps`: from stage-execution data accumulated through the run (use the keys shown in the CLI-path JSON example above)
+- `files`: an object keyed by relative path under `.brand/`, with each entry `{"status": "<enum>", "bytes": <integer>}` (and an optional `"note": "<reason>"` for `defaults`/`partial` statuses). Apply the same content-scan logic the CLI uses — placeholder marker, frontmatter inspection, body length — to assign one of `complete | partial | placeholder | missing | defaults`. Include every file under `.brand/`, not just the ones listed in `file_overrides`.
 
 ## 11. Final summary
 
