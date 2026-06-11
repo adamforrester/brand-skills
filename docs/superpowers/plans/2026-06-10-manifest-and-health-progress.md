@@ -17,8 +17,8 @@ If this conversation got cleared and you're picking up the work:
 1. Read `docs/superpowers/specs/2026-06-10-manifest-and-health-design.md` — the spec we're implementing.
 2. Read `docs/superpowers/plans/2026-06-10-manifest-and-health.md` — the 18-task plan.
 3. Read THIS file to see what's done, what's next, and which decisions were made along the way that aren't in the plan.
-4. `git log --oneline main..HEAD` — verify your local branch matches the commit list below. HEAD should be `d3a7401`.
-5. `npm test` — verify 35/35 passing.
+4. `git log --oneline main..HEAD` — verify your local branch state matches the Quick state check below.
+5. `npm test` — verify 39/39 passing.
 6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline: implementer + spec review + code quality review per task).
 7. Resume at the next pending task using the dispatch protocol at the bottom of this file.
 
@@ -52,6 +52,9 @@ If any of those don't match, **stop and tell the user** — something diverged b
 - **Don't bump the package version. Don't touch `~/Documents/xd-toolkit`.** Durable rules from CLAUDE.md.
 - **Two-stage review per task** (spec compliance, then code quality). Don't shortcut. **6 of 12 tasks (50%)** have needed a refinement subagent for reviewer-flagged Critical/Important findings. Plan-pasted code has had four real bugs (D1, D2, D8, D9) and one wrong import (D5). (D7)
 - **Long-running implementer/refinement agents can die mid-flight on token expiration.** When the file edits are already on disk but the agent didn't commit, just run smoke-tests + commit yourself rather than re-dispatching from scratch. The Task 8 refinement died this way after editing but before committing — the diff was correct, mechanical to verify and commit. (Bare-fact, no decision letter assigned.)
+- **Plan-pasted bash pipelines have had typos.** Task 12 Step 2's golden-bootstrap command ended with `| \ > file` (empty pipe stage). Task 11 also had `cp -r` portability concerns called out by the reviewer. When dispatching a task whose plan includes multi-line bash, glance at the pipeline before pasting it into the implementer prompt. Better still: tell the implementer to verify any bash command runs cleanly before relying on it.
+- **Golden files are coupled to fixture bytes.** `cli/test/golden/manifest-from-populated.json` records `bytes` for every file in `populated/.brand/`. Any edit to a populated-fixture file (typo, whitespace) shifts byte counts and breaks the deepEqual. When editing fixtures: regenerate the affected goldens via the bootstrap command in the corresponding integration test's prose. The deepEqual deletes only `generated_at` + `generator` — anything else volatile must be added to the strip list.
+- **The progress doc commit's `git log` count drifts on its own.** The `Quick state check` block names a commit count, but every progress-doc commit increments that count. After this commit lands, the count goes from N to N+1 — but the doc text was edited to say "N+1" *before* the commit, so it's correct only post-commit. Read the count as "after this doc commit lands". Don't try to make it self-reference.
 
 ---
 
