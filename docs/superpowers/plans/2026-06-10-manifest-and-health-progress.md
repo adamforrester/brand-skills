@@ -3,7 +3,7 @@
 Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10 — through Task 17 (+ doc commit)
+**Last updated:** 2026-06-10 — through Task 17 (+ doc commit + Task-18-prep tighten)
 **Test status:** 47/47 passing on the branch
 **HEAD:** the latest progress-doc commit on `feat/manifest-and-health`. Don't bother chasing the exact SHA in this doc — `git rev-parse HEAD` is authoritative. As of writing, it should match the most-recent `docs:` commit at the top of `git log --oneline main..HEAD`.
 **Next task:** **Task 18** — Final verification + final code-reviewer subagent across the branch
@@ -18,9 +18,9 @@ If this conversation got cleared and you're picking up the work:
 2. Read `docs/superpowers/plans/2026-06-10-manifest-and-health.md` — the 18-task plan.
 3. Read THIS file to see what's done, what's next, and which decisions were made along the way that aren't in the plan.
 4. `git log --oneline main..HEAD` — verify your local branch state matches the Quick state check below.
-5. `npm test` — verify 39/39 passing.
-6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline: implementer + spec review + code quality review per task).
-7. Resume at the next pending task using the dispatch protocol at the bottom of this file.
+5. `npm test` — verify 47/47 passing.
+6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline). **Task 18 is shape-different** — it's verification, not build. Read the **"Task 18 dispatch protocol"** section near the bottom of this file (NOT the generic per-task protocol — that one assumes implementer + 2 reviewers, which doesn't fit Task 18).
+7. Resume at Task 18.
 
 ### Quick state check (as of 2026-06-10 through Task 17)
 
@@ -31,7 +31,7 @@ $ git rev-parse --abbrev-ref HEAD
 feat/manifest-and-health
 
 $ git log --oneline main..HEAD | wc -l
-41    # 25 task/code commits + 16 progress-doc commits (post this update)
+42    # 25 task/code commits + 17 progress-doc commits (post this tighten commit)
 
 $ git log -1 --format=%H
 <the most recent progress-doc commit on the branch — top of git log main..HEAD>
@@ -44,17 +44,18 @@ $ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
 
 If any of those don't match, **stop and tell the user** — something diverged between sessions.
 
-### Things that bite repeatedly (from D1-D8 below; read those for full context)
+### Things that bite repeatedly (from D1–D12 below; read those for full context)
 
-- **`ajv/dist/2020.js`, not `ajv`.** The plan's pasted writer code uses plain `import Ajv from 'ajv'` which crashes at module load against draft 2020-12 schemas. Both `manifest-writer.js` and `health-writer.js` use the dist/2020 entry point. Any new module that compiles these schemas must do the same. (D5)
-- **Apostrophes break heredoc commit messages.** Always write the commit message to `/tmp/commit-msg.txt` and use `git commit -F`. Subagents need to be told this every time.
-- **`package-lock.json` is gitignored.** Don't try to `git add` it. (D4)
-- **Don't bump the package version. Don't touch `~/Documents/xd-toolkit`.** Durable rules from CLAUDE.md.
-- **Two-stage review per task** (spec compliance, then code quality). Don't shortcut. **6 of 12 tasks (50%)** have needed a refinement subagent for reviewer-flagged Critical/Important findings. Plan-pasted code has had four real bugs (D1, D2, D8, D9) and one wrong import (D5). (D7)
-- **Long-running implementer/refinement agents can die mid-flight on token expiration.** When the file edits are already on disk but the agent didn't commit, just run smoke-tests + commit yourself rather than re-dispatching from scratch. The Task 8 refinement died this way after editing but before committing — the diff was correct, mechanical to verify and commit. (Bare-fact, no decision letter assigned.)
-- **Plan-pasted bash pipelines have had typos.** Task 12 Step 2's golden-bootstrap command ended with `| \ > file` (empty pipe stage). Task 11 also had `cp -r` portability concerns called out by the reviewer. When dispatching a task whose plan includes multi-line bash, glance at the pipeline before pasting it into the implementer prompt. Better still: tell the implementer to verify any bash command runs cleanly before relying on it.
-- **Golden files are coupled to fixture bytes.** `cli/test/golden/manifest-from-populated.json` records `bytes` for every file in `populated/.brand/`. Any edit to a populated-fixture file (typo, whitespace) shifts byte counts and breaks the deepEqual. When editing fixtures: regenerate the affected goldens via the bootstrap command in the corresponding integration test's prose. The deepEqual deletes only `generated_at` + `generator` — anything else volatile must be added to the strip list.
-- **The progress doc commit's `git log` count drifts on its own.** The `Quick state check` block names a commit count, but every progress-doc commit increments that count. After this commit lands, the count goes from N to N+1 — but the doc text was edited to say "N+1" *before* the commit, so it's correct only post-commit. Read the count as "after this doc commit lands". Don't try to make it self-reference.
+- **`ajv/dist/2020.js`, not `ajv`.** Plan-pasted writer code uses `import Ajv from 'ajv'` which crashes at module load against draft 2020-12 schemas. Any new module that compiles these schemas must use `ajv/dist/2020.js`. Both `manifest-writer.js` and `health-writer.js` already do. (D5)
+- **Apostrophes break heredoc commit messages.** Always write to `/tmp/commit-msg.txt` and use `git commit -F`. Subagents need to be told this every time.
+- **`package-lock.json` is gitignored.** Don't `git add` it. (D4)
+- **Don't bump the package version. Don't touch `~/Documents/xd-toolkit`.** Durable rules from CLAUDE.md. **Caveat for Task 18:** if Node-18 compat fails, bumping `engines.node` to `>=20.0.0` is on the table — that's a different field from the package's `version`. Treat as scope-permitted if surfaced.
+- **Two-stage review per task** (spec compliance, then code quality). **8 of 17 tasks (47%)** have needed a refinement subagent. Plan-pasted code has had four real bugs (D1, D2, D8, D9), one wrong import (D5), an under-specified contract (D12), and an intra-document drift (Task 17 M1+M2). Don't shortcut. (D7)
+- **Plan-pasted `node -e` snippets that use `require()` are broken in this repo.** This repo is `"type":"module"`. `require` isn't defined inside `await import()` callbacks under ESM. Default to `node --input-type=module -e "..."` with named ESM imports. (D7 footnote, surfaced by Task 15)
+- **Long-running implementer/refinement agents can die mid-flight on token expiration.** If file edits are on disk but the agent didn't commit, run smoke-tests + commit yourself rather than re-dispatching. Happened on Task 8.
+- **Plan-pasted bash pipelines have had typos.** Task 12 Step 2 ended with `| \ > file` (empty pipe stage). Task 11 had `cp -r` portability concerns. Glance at any multi-line bash before pasting it into an implementer prompt; better still, tell the implementer to verify the command before relying on it.
+- **Golden files are coupled to fixture bytes.** `cli/test/golden/manifest-from-populated.json` records `bytes` for every file in `populated/.brand/`. Any edit to a populated-fixture file shifts byte counts and breaks the deepEqual. The deepEqual strips only `generated_at` + `generator` — anything else volatile must be added to the strip list. (Out of scope for Task 18 — flagged for future fixture editors.)
+- **The progress doc commit's `git log` count drifts on its own.** The `Quick state check` block names a commit count, but every progress-doc commit increments that count. After a progress-doc commit lands, the count goes from N to N+1 — the doc text edits to "N+1" *before* the commit, so it's correct only post-commit. Don't try to self-reference.
 
 ---
 
@@ -257,36 +258,84 @@ A follow-up (separate, optional) could add a one-line `// partial intentionally 
 
 **Q:** Does `npm test` run cleanly on the lowest supported Node version (`engines.node: >=18.0.0`)?
 
-**Context:** Task 1's code reviewer noted that `node --test` glob support solidified in Node 21+. On Node 18/20 the quoted-glob argument may behave differently.
+**Context:** Task 1's code reviewer noted that `node --test` glob support solidified in Node 21+. On Node 18/20 the quoted-glob argument may behave differently. Local dev (the runs we've been doing) is on a more recent Node — we don't know what happens at the floor.
 
-**Resolution path:** Run the full suite on Node 18 (or whatever the floor we want to claim) during final verification. If it fails, bump `engines.node` to `>=20.0.0`.
+**Resolution path:** During Task 18 verification, attempt the full suite on Node 18 if `nvm` (or `volta` / `fnm`) is available locally. If it fails, the call is between (a) bumping `engines.node` to `>=20.0.0` (changes the package's compat envelope — fine, this is a feature branch) or (b) reworking the test invocation to be Node-18-compatible. Bumping is the cheaper move; the package isn't on npm yet, so no one's pinning to the current floor.
+
+**If `nvm`/`volta`/`fnm` is NOT available locally:** flag it for the user, don't fake it. The user can run a Node-18 check separately (or accept the risk and document the actual tested floor in `engines.node`).
 
 ---
 
-## Per-task dispatch protocol
+## Task 18 dispatch protocol (THIS task — different shape from prior tasks)
 
-For each remaining task:
+**Task 18 is verification, not build.** No implementer subagent needed (there's nothing to implement). The plan defines four checklist steps the controller (you) executes, ending with a single final code-reviewer subagent across the entire branch diff.
+
+The plan's Task 18 section is at lines ~2572+ of `2026-06-10-manifest-and-health.md`. Four checklist steps:
+
+1. **`npm test`** — run the full suite. Expected: 47/47 passing. (Note count for spec coverage.)
+2. **End-to-end smoke test** — manually run `init → emit-manifest → score` against a tempdir, verify `manifest.json` and `.health.json` are written with sensible shape. Plan-pasted bash includes `head -30 .brand/manifest.json` style sanity checks.
+3. **`git status`** — confirm working tree clean (no untracked or modified files left behind).
+4. **Spec coverage skim** — open the design spec and verify every requirement maps to a landed task. File a follow-up if anything's uncovered.
+
+**Then** dispatch a single **final code-reviewer subagent** across the entire branch:
+
+- BASE_SHA: `e54066f` (the `main` branch tip the feature branched off, per top-of-doc)
+- HEAD_SHA: post-Task-18 final commit (or `feat/manifest-and-health` HEAD if no Task 18 commits land)
+- Scope: full branch review (every commit, every file changed). Different from per-task reviews — this one is asking "is the whole feature ready to merge?"
+- Use `superpowers:code-reviewer` subagent.
+
+**Things to verify in the smoke test that the plan doesn't spell out:**
+
+- `.brand/manifest.json` should have `manifest_seen` is a property of `.health.json`, NOT `manifest.json`. Don't confuse the shapes (intentionally different per spec §3 — manifest's `files` is nested `{path: {status, bytes, note}}`; health's `files` is flat `{path: status}`).
+- `.health.json` after a round-trip should have `manifest_seen: true`, `confidence: HIGH` (no defaults from the smoke-test stdin), `tier_label: 'incomplete'` (fresh-init scaffolding has placeholders), `readiness < 0.1`.
+- The plan-pasted smoke-test command pipes JSON inline into `emit-manifest` then runs `score`. If it includes apostrophes in the JSON, **the apostrophe rule applies** — write the JSON to `/tmp/manifest-stdin.json` and `cat | brand-cli emit-manifest` it.
+
+**If Task 18 surfaces real issues (failing test, broken CLI, missing feature):**
+
+- Treat as a Task-18 sub-task. Dispatch implementer + reviews per the standard protocol (in the section above this one — see "Per-task dispatch protocol for Tasks 1–17").
+- Most likely surface: the Node-18 compat question. If it fails, bump `engines.node` (one-line edit to `package.json`), re-run, commit. No need for a full implementer dispatch for a one-line config bump.
+
+**After Task 18's checklist + final review pass:**
+
+- Move to "Final-stage handoff" below. Tasks `docs/tasks.md` updates ALREADY landed in Task 17 (#2+#6 moved to Completed, #3+#4 unblocked) — handoff item 2 is done.
+
+---
+
+## Per-task dispatch protocol (for Tasks 1–17 — historical reference)
+
+For each task:
 
 1. **Open the plan** (`docs/superpowers/plans/2026-06-10-manifest-and-health.md`), find the task by number, copy the FULL task text.
 2. **Dispatch implementer** (general-purpose subagent) with:
    - Full task text inline (don't make subagent read the plan file)
-   - Context: the branch, the prior tasks landed (point at this progress doc), any relevant decisions from D1–D7 above, and known open questions
-   - Project gotchas: apostrophes break heredoc commit messages (use tempfile + `git commit -F`); branch is `feat/manifest-and-health`; ajv/ajv-formats already installed; ajv import must be `ajv/dist/2020.js` not plain `ajv` (D5)
-3. **Spec compliance review** (general-purpose subagent) — verify by reading code, don't trust report.
+   - Context: branch, prior tasks landed (point at this progress doc), relevant decisions from D1–D12, known open questions
+   - Project gotchas: apostrophes break heredoc commit messages (use tempfile + `git commit -F`); branch is `feat/manifest-and-health`; ajv import must be `ajv/dist/2020.js` not plain `ajv` (D5); plan-pasted `node -e` snippets using `require()` are broken under `"type":"module"` (D7 footnote)
+3. **Spec compliance review** (general-purpose subagent) — verify by reading code, don't trust the implementer's report.
 4. **Code quality review** (`superpowers:code-reviewer` subagent) — pass BASE_SHA (commit before this task) and HEAD_SHA.
-5. **If reviewer flags issues:** if `Critical` or `Important`, dispatch a refinement subagent; if `Minor` only, accept and proceed.
+5. **If reviewer flags issues:** if Critical or Important, dispatch a refinement subagent; if Minor only, accept and proceed (D7).
 6. **Update this file:** add the task to "Completed tasks" with the commit SHA(s) and test delta. Record any new decisions or open questions.
 7. **Mark task done** in the session task list.
 8. **Move to next task.**
 
-The implementer prompt template, spec-reviewer template, and code-reviewer template all live in the `superpowers:subagent-driven-development` skill. Read them once at the start of a fresh session if not already loaded.
+Templates for the three subagent prompts live in the `superpowers:subagent-driven-development` skill.
 
 ---
 
 ## Final-stage handoff
 
 After Task 18 completes:
-1. Run `npm test` one more time.
-2. Update `docs/tasks.md` (the repo's main backlog) to move tasks #2 + #6 to Completed and unblock #3.
-3. Open a PR from `feat/manifest-and-health` → `main` with the spec link in the body.
-4. Use the `superpowers:finishing-a-development-branch` skill if it applies.
+
+1. Run `npm test` one more time as the absolute last check. Expected: 47/47.
+2. ~~Update `docs/tasks.md` to move #2+#6 to Completed and unblock #3.~~ **Already done** in Task 17 (commit `49863af`). Skip.
+3. Open a PR from `feat/manifest-and-health` → `main`. PR body should include:
+   - Spec link: `docs/superpowers/specs/2026-06-10-manifest-and-health-design.md`
+   - Plan link: `docs/superpowers/plans/2026-06-10-manifest-and-health.md`
+   - Progress doc link (this file)
+   - Test delta (47/47 passing, +47 from baseline 0)
+   - Commit count (~25 task/code commits + ~17 progress-doc commits, depending on Task 18's emissions)
+4. Use the `superpowers:finishing-a-development-branch` skill if it applies. (Worth invoking — it has merge-readiness checks beyond what Task 18's plan covers.)
+
+**Things NOT to forget at the PR step:**
+
+- The `Branch:` line at the top of `docs/tasks.md` says `(off main at e54066f)`. After merge, that line becomes stale (the work is on main, not a branch). Either remove it from the merged-state docs/tasks.md, or accept that it'll be cleaned up by the next person editing `docs/tasks.md`.
+- The progress doc (this file) lives at `docs/superpowers/plans/`. After merge, it'll be a historical artifact. Don't delete it; future similar work benefits from the D-letter pattern as a reference.
