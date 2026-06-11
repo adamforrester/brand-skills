@@ -3,10 +3,10 @@
 Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10 — through Task 11 (+ doc commit)
-**Test status:** 35/35 passing on the branch
+**Last updated:** 2026-06-10 — through Task 12 (+ doc commit)
+**Test status:** 39/39 passing on the branch
 **HEAD:** the latest progress-doc commit on `feat/manifest-and-health`. Don't bother chasing the exact SHA in this doc — `git rev-parse HEAD` is authoritative. As of writing, it should match the most-recent `docs:` commit at the top of `git log --oneline main..HEAD`.
-**Next task:** **Task 12** — Integration test: emit-manifest end-to-end (+ golden)
+**Next task:** **Task 13** — Integration test: score emits health (+ golden)
 
 ---
 
@@ -22,7 +22,7 @@ If this conversation got cleared and you're picking up the work:
 6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline: implementer + spec review + code quality review per task).
 7. Resume at the next pending task using the dispatch protocol at the bottom of this file.
 
-### Quick state check (as of 2026-06-10 through Task 11)
+### Quick state check (as of 2026-06-10 through Task 12)
 
 Verify before continuing:
 
@@ -31,14 +31,14 @@ $ git rev-parse --abbrev-ref HEAD
 feat/manifest-and-health
 
 $ git log --oneline main..HEAD | wc -l
-25    # 17 task/code commits + 8 progress-doc commits
+27    # 18 task/code commits + 9 progress-doc commits
 
 $ git log -1 --format=%H
 <the most recent progress-doc commit on the branch — top of git log main..HEAD>
 
 $ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
-# tests 35
-# pass 35
+# tests 39
+# pass 39
 # fail 0
 ```
 
@@ -50,7 +50,7 @@ If any of those don't match, **stop and tell the user** — something diverged b
 - **Apostrophes break heredoc commit messages.** Always write the commit message to `/tmp/commit-msg.txt` and use `git commit -F`. Subagents need to be told this every time.
 - **`package-lock.json` is gitignored.** Don't try to `git add` it. (D4)
 - **Don't bump the package version. Don't touch `~/Documents/xd-toolkit`.** Durable rules from CLAUDE.md.
-- **Two-stage review per task** (spec compliance, then code quality). Don't shortcut. **6 of 11 tasks (≈55%)** have needed a refinement subagent for reviewer-flagged Critical/Important findings. Plan-pasted code has had four real bugs (D1, D2, D8, D9) and one wrong import (D5). (D7)
+- **Two-stage review per task** (spec compliance, then code quality). Don't shortcut. **6 of 12 tasks (50%)** have needed a refinement subagent for reviewer-flagged Critical/Important findings. Plan-pasted code has had four real bugs (D1, D2, D8, D9) and one wrong import (D5). (D7)
 - **Long-running implementer/refinement agents can die mid-flight on token expiration.** When the file edits are already on disk but the agent didn't commit, just run smoke-tests + commit yourself rather than re-dispatching from scratch. The Task 8 refinement died this way after editing but before committing — the diff was correct, mechanical to verify and commit. (Bare-fact, no decision letter assigned.)
 
 ---
@@ -70,8 +70,9 @@ If any of those don't match, **stop and tell the user** — something diverged b
 | 9 | score.js refactor + .health.json emit | `5025e25` | 0 (integration test in Task 13) | Code review Minor only — accepted per D7. D1 H1-strip improvement now flows through `score`. Yellow-circle line shows real status names (`placeholder`/`partial`/`defaults`) instead of the old "(exists but empty/placeholder)". `--json` flag and exit-code semantics preserved. Six Minor findings deferred (unused `weightsForTier` import, repeated `manifest?.files?.[p]?.status ?? classifyFile(...)` pattern across 4 sites, empty-string `client` footgun, brandrc-vs-manifest tier-mismatch is silently resolved by manifest, no per-task regression test until Task 13, malformed manifest is silently treated as missing). |
 | 10 | Test helpers (`tmp-brand.js`, `run-cli.js`) | `844e6b4`, `9f6cdc0` | 0 (consumed by Tasks 11–15) | Refinement (`9f6cdc0`) made `emptyBrandDir`'s `mode` independent of `tier` — plan's `mode: ${tier}` produced combos that never appear from real init (`TIER_FOR_MODE` maps pitch→minimum, standard→standard, comprehensive→comprehensive). See D9. Open question on retroactive migration of `manifest-writer.test.js` + `file-status.test.js` resolved as DON'T MIGRATE — `withTmpFile(content, fn)` and the inline mkdtempSync don't map to `withFixture(name)` / `emptyBrandDir({tier, mode, client})`. Code reviewer agreed. |
 | 11 | Test fixtures (populated/, fresh-init/, mixed/, stage-data/) | `04b3d8c` | 0 (consumed by Tasks 12–15) | Code review Minor only — accepted per D7. `fresh-init/` produced by literally running `brand-cli init --client acme --mode standard --force` (real init output, not hand-edited). `populated/` has all 12 required files classified `complete`; `mixed/` matches the 9-complete + 2-placeholder + 1-missing pattern; three JSON stage-data files match plan lines 1827–1883 byte-for-byte. 53 files / 490 insertions, all under `cli/test/fixtures/`. Four Minor findings deferred (populated `brand.md`/`design.md` still scaffold text not regenerated; static `2026-06-10` in CHANGELOG.md; `mixed/brand.md` references the deleted anti-patterns; plan prose nit on `cp -r` portability). |
+| 12 | Integration test: emit-manifest + golden | `1efef26` | +4 | Code review Minor only — accepted per D7. First integration test on the branch. Plan's Step 2 bash had a typo (`| \ > file`) — implementer used a corrected pipeline. Golden generated from current (post-d858b42) emit-manifest, reproduces independently. Five Minor findings deferred (volatile-field stripping is implicit; dynamic `import('node:fs')` in test 4; golden brittleness unsignalled to future editors; test 2 deep-compare opportunity; test 3 missing `tokens/colors.md.note` assertion). |
 
-**Total tests:** 35 passing.
+**Total tests:** 39 passing.
 
 ---
 
@@ -79,7 +80,6 @@ If any of those don't match, **stop and tell the user** — something diverged b
 
 In plan order. Pull the full task text from `2026-06-10-manifest-and-health.md` when dispatching.
 
-- [ ] **Task 12** — Integration test: emit-manifest end-to-end (+ golden). Plan lines ~1902-2036.
 - [ ] **Task 13** — Integration test: score emits health (+ golden). Plan lines ~2038-2140.
 - [ ] **Task 14** — Integration tests: round-trip + scan fallback. Plan lines ~2142-2272.
 - [ ] **Task 15** — SKILL fallback golden + fresh-init test. Plan lines ~2274-2360.
