@@ -15,6 +15,10 @@ Try the deterministic CLI first:
 brand-cli score --json
 ```
 
+`brand-cli score` always also writes `.brand/.health.json` — a machine-readable verdict (readiness, tier_label, gaps, downgrades) for hosts that gate on the package programmatically. Humans read the console output; hosts read the JSON.
+
+The CLI's `.health.json` and the SKILL's inline-fallback `.health.json` must share the same shape — see `schema/health.schema.json` and the field set the inline-fallback step 5 below produces.
+
 If `brand-cli` is not installed, score manually:
 
 1. Read `.brandrc.yaml` for `tier` and `mode`.
@@ -25,6 +29,7 @@ If `brand-cli` is not installed, score manually:
    - **Partial** — file has content but obvious gaps (frontmatter empty, multiple TODO markers, or sections missing)
    - **Complete** — schema sections populated with real content
 4. Compute overall completeness as % of files that are at least Partial, weighted by required-vs-optional.
+5. **Also write `.brand/.health.json`** with the per-file statuses, readiness score, and gaps. The schema is at `schema/health.schema.json` in the brand-skills repo. If `manifest.json` is also present, read it for `defaults`/`partial` statuses (a content scan can't detect those); otherwise the inline fallback only emits `complete` / `placeholder` / `missing`.
 
 ### Tier file map
 

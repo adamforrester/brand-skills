@@ -1,0 +1,4 @@
+client: acme
+tier: standard
+mode: standard
+sources: {}

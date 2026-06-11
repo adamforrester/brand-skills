@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/adamforrester/brand-skills/schemas/health.schema.json",
+  "title": "brand-skills health verdict",
+  "description": "Verdict emitted by /brand-context:check about brand-package readiness.",
+  "type": "object",
+  "required": [
+    "version", "generated_at", "generator", "tier", "readiness", "tier_label",
+    "manifest_seen", "weights", "weighted_complete", "weighted_total",
+    "confidence", "files", "gaps", "downgrades"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "_comment": { "type": "string" },
+    "version": { "const": "1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "generator": { "type": "string", "pattern": "^(brand-cli|brand-check-skill)@\\S+$" },
+    "tier": { "enum": ["minimum", "standard", "comprehensive"] },
+    "client": { "type": "string" },
+    "readiness": { "type": "number", "minimum": 0, "maximum": 1 },
+    "tier_label": {
+      "description": "Derived from readiness: >=0.95 → ready; >=0.80 → good; >=0.50 → partial; <0.50 → incomplete.",
+      "enum": ["ready", "good", "partial", "incomplete"]
+    },
+    "manifest_seen": { "type": "boolean" },
+    "manifest_generated_at": { "type": "string", "format": "date-time" },
+    "weights": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "weighted_complete": { "type": "integer", "minimum": 0 },
+    "weighted_total": { "type": "integer", "minimum": 0 },
+    "confidence": {
+      "description": "HIGH when manifest seen and no defaults; MEDIUM when manifest seen with defaults OR content-scan with >=80% complete; LOW otherwise.",
+      "enum": ["HIGH", "MEDIUM", "LOW"]
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "enum": ["complete", "partial", "placeholder", "missing", "defaults"]
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "status", "suggested_action"],
+        "additionalProperties": false,
+        "properties": {
+          "file": { "type": "string" },
+          "status": { "enum": ["partial", "placeholder", "missing"] },
+          "suggested_action": { "type": "string" }
+        }
+      }
+    },
+    "downgrades": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "file": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -69,3 +69,12 @@ Only `overview.md` loads every session (~200 tokens via CLAUDE.md reference). Ev
 | Standard | `composition/*.md` | Building new pages/views |
 | Comprehensive | `workflows/*.md` | Specific workflow tasks |
 | Comprehensive | `specs/*.spec.json` | Component implementation |
+
+## Related schemas
+
+These two schemas validate machine-readable artifacts emitted by the toolkit (one level up, at `schema/`):
+
+- [`../manifest.schema.json`](../manifest.schema.json) — `.brand/manifest.json`, emitted by `/brand-context:extract`
+- [`../health.schema.json`](../health.schema.json) — `.brand/.health.json`, emitted by `/brand-context:check`
+
+They live at `schema/` rather than `schema/brand/` because they describe toolkit-output JSON, not `.brand/*.md` source content.

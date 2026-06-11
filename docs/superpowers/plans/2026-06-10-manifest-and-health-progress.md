@@ -1,0 +1,346 @@
+# Manifest + Health — Implementation Progress
+
+Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
+
+**Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
+**Last updated:** 2026-06-10 — through Task 18 (verification + final cross-branch review)
+**Test status:** 47/47 passing on Node ≥22 (Node 18/20 fail — `node --test` glob support didn't land until Node 21; engines floor bumped accordingly in Task 18)
+**HEAD:** the latest commit on `feat/manifest-and-health`. Don't bother chasing the exact SHA in this doc — `git rev-parse HEAD` is authoritative. As of Task 18 close, it should match `docs: tighten progress doc post-Task-18` (or whatever the final progress-doc commit is) at the top of `git log --oneline main..HEAD`.
+**Next task:** **Final-stage handoff** — open PR per the section at the bottom of this doc.
+
+---
+
+## How to resume in a fresh session
+
+If this conversation got cleared and you're picking up the work:
+
+1. Read `docs/superpowers/specs/2026-06-10-manifest-and-health-design.md` — the spec we're implementing.
+2. Read `docs/superpowers/plans/2026-06-10-manifest-and-health.md` — the 18-task plan.
+3. Read THIS file to see what's done, what's next, and which decisions were made along the way that aren't in the plan.
+4. `git log --oneline main..HEAD` — verify your local branch state matches the Quick state check below.
+5. `npm test` — verify 47/47 passing.
+6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline). **Task 18 is shape-different** — it's verification, not build. Read the **"Task 18 dispatch protocol"** section near the bottom of this file (NOT the generic per-task protocol — that one assumes implementer + 2 reviewers, which doesn't fit Task 18).
+7. Resume at Task 18.
+
+### Quick state check (as of 2026-06-10 through Task 18)
+
+Verify before continuing:
+
+```
+$ git rev-parse --abbrev-ref HEAD
+feat/manifest-and-health
+
+$ git log --oneline main..HEAD | wc -l
+45    # 25 task/code commits + 18 progress-doc commits + 1 engines bump + this commit
+
+$ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
+# tests 47
+# pass 47
+# fail 0
+```
+
+If any of those don't match, **stop and tell the user** — something diverged between sessions.
+
+### Things that bite repeatedly (from D1–D12 below; read those for full context)
+
+- **`ajv/dist/2020.js`, not `ajv`.** Plan-pasted writer code uses `import Ajv from 'ajv'` which crashes at module load against draft 2020-12 schemas. Any new module that compiles these schemas must use `ajv/dist/2020.js`. Both `manifest-writer.js` and `health-writer.js` already do. (D5)
+- **Apostrophes break heredoc commit messages.** Always write to `/tmp/commit-msg.txt` and use `git commit -F`. Subagents need to be told this every time.
+- **`package-lock.json` is gitignored.** Don't `git add` it. (D4)
+- **Don't bump the package version. Don't touch `~/Documents/xd-toolkit`.** Durable rules from CLAUDE.md. **Caveat for Task 18:** if Node-18 compat fails, bumping `engines.node` to `>=20.0.0` is on the table — that's a different field from the package's `version`. Treat as scope-permitted if surfaced.
+- **Two-stage review per task** (spec compliance, then code quality). **8 of 17 tasks (47%)** have needed a refinement subagent. Plan-pasted code has had four real bugs (D1, D2, D8, D9), one wrong import (D5), an under-specified contract (D12), and an intra-document drift (Task 17 M1+M2). Don't shortcut. (D7)
+- **Plan-pasted `node -e` snippets that use `require()` are broken in this repo.** This repo is `"type":"module"`. `require` isn't defined inside `await import()` callbacks under ESM. Default to `node --input-type=module -e "..."` with named ESM imports. (D7 footnote, surfaced by Task 15)
+- **Long-running implementer/refinement agents can die mid-flight on token expiration.** If file edits are on disk but the agent didn't commit, run smoke-tests + commit yourself rather than re-dispatching. Happened on Task 8.
+- **Plan-pasted bash pipelines have had typos.** Task 12 Step 2 ended with `| \ > file` (empty pipe stage). Task 11 had `cp -r` portability concerns. Glance at any multi-line bash before pasting it into an implementer prompt; better still, tell the implementer to verify the command before relying on it.
+- **Golden files are coupled to fixture bytes.** `cli/test/golden/manifest-from-populated.json` records `bytes` for every file in `populated/.brand/`. Any edit to a populated-fixture file shifts byte counts and breaks the deepEqual. The deepEqual strips only `generated_at` + `generator` — anything else volatile must be added to the strip list. (Out of scope for Task 18 — flagged for future fixture editors.)
+- **The progress doc commit's `git log` count drifts on its own.** The `Quick state check` block names a commit count, but every progress-doc commit increments that count. After a progress-doc commit lands, the count goes from N to N+1 — the doc text edits to "N+1" *before* the commit, so it's correct only post-commit. Don't try to self-reference.
+
+---
+
+## Completed tasks
+
+| # | Task | Commits | Tests added | Notes |
+|---|---|---|---|---|
+| 1 | Add ajv deps + node:test scripts | `f3bc9f3` | 0 (harness only) | `ajv@^8.20.0`, `ajv-formats@^3.0.1`. `package-lock.json` is gitignored in this repo, so it isn't committed. |
+| 2 | tier-weights utility (TDD) | `f65d3e8`, `7949ec6` | +12 | Refinement (`7949ec6`) added JSDoc to match `exec.js` style + one `assert.throws` test for unknown tier. |
+| 3 | file-status classifier (TDD) | `0bd9ef6`, `3dff0e3` | +8 | **Two real bugs caught.** See "Decisions" below. Refinement (`3dff0e3`) fixed both. |
+| 4 | gap-actions lookup | `0e6c2e1` | 0 (covered later) | Per-prefix entries deliberately omit `partial` — see open question for Task 7. |
+| 5 | JSON Schemas + cross-link | `8c044c2`, `4ba2d42` | 0 (no test layer change) | Refinement (`4ba2d42`) tightened `generator` regex (`@` → `@\S+$`) and added `description` to `tier_label` + `confidence`. Plan's Step 4 ajv compile snippet was wrong — needs `ajv/dist/2020`, not `ajv`, since draft 2020-12 metaschema is not in the default Ajv class. See D5. |
+| 6 | manifest-writer (TDD) | `d76cc63` | +7 | Used `import Ajv from 'ajv/dist/2020.js'` per D5. Code review Minor only — flagged tempdir-helper duplication between this test file and `file-status.test.js`; fold both into Task 10's helper rather than letting `health-writer.test.js` add a third copy. |
+| 7 | health-writer (TDD) | `c0de23a`, `6a66d91` | +8 | Refinement (`6a66d91`) extracted `weightedCounts()` in tier-weights.js so the complete-or-defaults reduce lives in one place; refactored `readiness()` to delegate. Documented `scanCompleteRatio` as deliberately unweighted (per spec §3 wording) — distinct from the weighted `readiness`. See D6. |
+| 8 | emit-manifest CLI command | `ed3ede0`, `d858b42` | 0 (integration test in Task 12) | Refinement (`d858b42`) fixed three reviewer-flagged Important issues: (1) out-of-tier files on disk are now surfaced (spec §2 deviation in plan's pasted code); (2) invalid `tier` exits cleanly instead of throwing; (3) `file_overrides` for unknown paths surface rather than silently drop. See D8. Six Minor findings (JSDoc, `pkg` hoist, dead `projectDir` param, field ordering, `inventory.md` comment, brandrc-helper extraction) deferred per D7. |
+| 9 | score.js refactor + .health.json emit | `5025e25` | 0 (integration test in Task 13) | Code review Minor only — accepted per D7. D1 H1-strip improvement now flows through `score`. Yellow-circle line shows real status names (`placeholder`/`partial`/`defaults`) instead of the old "(exists but empty/placeholder)". `--json` flag and exit-code semantics preserved. Six Minor findings deferred (unused `weightsForTier` import, repeated `manifest?.files?.[p]?.status ?? classifyFile(...)` pattern across 4 sites, empty-string `client` footgun, brandrc-vs-manifest tier-mismatch is silently resolved by manifest, no per-task regression test until Task 13, malformed manifest is silently treated as missing). |
+| 10 | Test helpers (`tmp-brand.js`, `run-cli.js`) | `844e6b4`, `9f6cdc0` | 0 (consumed by Tasks 11–15) | Refinement (`9f6cdc0`) made `emptyBrandDir`'s `mode` independent of `tier` — plan's `mode: ${tier}` produced combos that never appear from real init (`TIER_FOR_MODE` maps pitch→minimum, standard→standard, comprehensive→comprehensive). See D9. Open question on retroactive migration of `manifest-writer.test.js` + `file-status.test.js` resolved as DON'T MIGRATE — `withTmpFile(content, fn)` and the inline mkdtempSync don't map to `withFixture(name)` / `emptyBrandDir({tier, mode, client})`. Code reviewer agreed. |
+| 11 | Test fixtures (populated/, fresh-init/, mixed/, stage-data/) | `04b3d8c` | 0 (consumed by Tasks 12–15) | Code review Minor only — accepted per D7. `fresh-init/` produced by literally running `brand-cli init --client acme --mode standard --force` (real init output, not hand-edited). `populated/` has all 12 required files classified `complete`; `mixed/` matches the 9-complete + 2-placeholder + 1-missing pattern; three JSON stage-data files match plan lines 1827–1883 byte-for-byte. 53 files / 490 insertions, all under `cli/test/fixtures/`. Four Minor findings deferred (populated `brand.md`/`design.md` still scaffold text not regenerated; static `2026-06-10` in CHANGELOG.md; `mixed/brand.md` references the deleted anti-patterns; plan prose nit on `cp -r` portability). |
+| 12 | Integration test: emit-manifest + golden | `1efef26` | +4 | Code review Minor only — accepted per D7. First integration test on the branch. Plan's Step 2 bash had a typo (`| \ > file`) — implementer used a corrected pipeline. Golden generated from current (post-d858b42) emit-manifest, reproduces independently. Five Minor findings deferred (volatile-field stripping is implicit; dynamic `import('node:fs')` in test 4; golden brittleness unsignalled to future editors; test 2 deep-compare opportunity; test 3 missing `tokens/colors.md.note` assertion). |
+| 13 | Integration test: score emits health + golden | `853e825` | +3 | Code review Minor only — accepted per D7. Sister test to Task 12, mirrors `emit-manifest.test.js` shape. Golden generated cleanly from populated fixture; eyeball-verified `version:'1'`, `manifest_seen:false`, `tier:'standard'`, `confidence:'MEDIUM'` (no manifest + 100% complete by scan ≥ 80% caps at MEDIUM per spec §3), `readiness:1`, `tier_label:'ready'`, weighted 14/14, `client:'acme'`, flat `{path:status}` files map per spec §3 line 186. Plan's Step 2 bash ran cleanly. Volatile strip list (`generated_at`, `generator`) sufficient for this golden — `manifest_generated_at` only emits when `manifest_seen:true`, so absent here. Seven Minor findings deferred (golden↔fixture coupling unsignalled in test code; strip list could be centralized in a helper; populated-fixture setup duplicated across two integration files; `readiness < 0.1` could tighten to `=== 0`; `tier_label` literal — agreed leave; test naming distinct enough; cleanup reliable). See D10. |
+| 14 | Integration tests: round-trip + scan fallback | `b1e3690` | +4 | Code review Minor only — accepted per D7. Implementer DONE on first run, no plan deviations. Verified manifest+health coupling: `populated + full-pipeline.json` (no overrides) → `confidence:HIGH` + `downgrades:[]`; `populated + partial-pipeline.json` (overrides `voice.md` + `tokens/colors.md` to `defaults`) → `confidence:MEDIUM` + 2 downgrades; `mixed` (no manifest) → all statuses ∈ `{complete,placeholder,missing}`, no `partial`/`defaults`; `populated` no manifest → MEDIUM cap (D10). Spec compliance reviewer confirmed `health-writer.js:65,117` echoes `manifest.generated_at` and downgrades source from `status === 'defaults'`. Five Minor findings deferred (inconsistent exit-code asserts in round-trip — only first `emit.exitCode` checked; partial-pipeline coupling unsignalled in deepEqual; some duplication of `manifest_seen:false` between Task 13 + Task 14 score-without-manifest test 2; no intermediate manifest-shape sanity check between emit and score; helper-extraction opportunity not yet a smell at 4 integration files). |
+| 15 | SKILL fallback golden + fresh-init test | `20b08be` | +1 | Code review Minor/Note only — accepted per D7. Implementer DONE on first run; one bash deviation: plan-pasted node `-e` snippet mixed `import()` with `require()`, which fails under `"type":"module"`. Implementer used pure-ESM equivalent (`node --input-type=module -e`); schema validation printed `OK`. Golden differs from `manifest-from-populated.json` by exactly one line (`generator` swap, version 0.4.0). Seven Minor/Note findings deferred (overlap with Task 13 test 3 undocumented; SKILL golden not exercised by any test; `--force` flag noise on empty mkdtempSync dir; goldens hard-code 0.4.0 and aren't in CLAUDE.md "three places" list; no drift-detection between the two goldens; `_comment` in skill golden inherited from CLI golden saying "Generated by brand-cli" — contradictory; minor test-name overpromise "all in gaps" vs `length > 0`). See D11 for Task 17 carry-forwards. |
+| 16 | SKILL updates: brand-extract Section 10b + brand-check Step 1 | `6315795`, `957c05f` | 0 (doc-only) | **Spec reviewer flagged a real gap; refinement landed.** Initial commit `6315795` inserted Section 10b verbatim from plan + brand-check Step 1 rewrite. Implementer self-flagged `DONE_WITH_CONCERNS` — inline-fallback prose under-specified `files` map structure (CLAUDE.md "same output shape" contract gap). Spec reviewer agreed: ⚠ PASS-WITH-TIGHTENING. Refinement (`957c05f`) replaced single-sentence inline-fallback paragraph with a 6-bullet list enumerating non-derivable fields (`version:"1"`, `generated_at` ISO-8601, `generator` literal, `tier`/`client` from .brandrc, `stages`/`mcps` from run, `files` map shape with all five status enums + bytes + "every file under .brand/, not just file_overrides"). Spec re-review ✅ PASS. Code review APPROVED-WITH-MINOR (5 Minor + 2 Note). See D12 for Task 17 carry-forwards (M3: README pipeline table missing manifest emission row/footnote; M5: brand-check parity statement for `.health.json` absent). |
+| 18 | Final verification + cross-branch code review + engines bump | `95d1b7d` (+ this progress doc commit) | 0 (verification only) | **Verification-only task; no implementer.** Four checklist steps executed by controller: (1) `npm test` 47/47 ✅; (2) end-to-end smoke test `init→emit-manifest→score` against tempdir, both `manifest.json` + `.health.json` emit valid JSON with expected shape (`manifest_seen:true`, `confidence:HIGH`, `tier_label:incomplete`, `readiness:0` on smoketest fresh-init); (3) `git status` clean; (4) spec coverage skim — every requirement maps to landed tasks. **One Task-18 sub-task surfaced:** `node --test 'cli/test/**/*.test.js'` glob support didn't land until Node 21 (Task 1's reviewer flagged this; Task 18 confirmed empirically — Node 18 + Node 20 both fail with "Could not find ..."; Node 21 works). Bumped `engines.node` from `>=18.0.0` to `>=22.0.0` (commit `95d1b7d`) — aligns with active LTS line and testing baseline. See D13. **Final cross-branch code-reviewer subagent (`superpowers:code-reviewer`, BASE=`e54066f`..HEAD=`95d1b7d`):** **READY TO MERGE.** All 9 spec sections covered; status vocabulary, `generator` strings, version pins consistent across all 85 changed files; no real bugs; no out-of-scope creep. Three Note-level follow-ups deferred (none blocking): (a) README pipeline table at lines 120-127 enumerates Stages 1–8 including Stage 7, but SKILL says no Stage 7 (collapsed; `8_brand_md` covers both regens) — pre-existing drift at base SHA `e54066f`, not introduced by this branch; (b) `_comment` divergence between the two goldens is intentional per CF-3 but spec line says "differ ONLY by generator" — spec wording technically out of date, acceptable; (c) `brand-check/SKILL.md` Step 5 is lighter on field enumeration than `brand-extract/SKILL.md` §10b — adequate per Task 17 judgment, room for follow-up tightening. |
+| 17 | Repo docs: CLAUDE.md + README + tasks.md (+ D11 + D12 carry-forwards) | `49863af`, `b05551e` | 0 (doc-only) | **Carry-forwards from D11 + D12 folded in.** Initial commit `49863af` did Task 17 plan steps 1–6 (CLAUDE.md file-write rows + arch diagram; README footnote; tasks.md state transition: #2+#6 to Completed, "In progress" removed, #3+#4 promoted from Blocked, #5 retained — its blocker is #4 unrelated to this branch) PLUS three carry-forwards (CF-1: CLAUDE.md "Versioning + release" mentions test goldens; CF-2: brand-check Step 1 parity statement for `.health.json`; CF-3: manifest-from-skill.json `_comment` reframed). Spec compliance ✅ PASS — reviewer confirmed both judgment calls (#5 keeping non-#2/#6 blocker, #4 promoted alongside #3) were sound. Code review APPROVED-WITH-MINOR (7 Minor + 2 Note). Refinement (`b05551e`) addressed M1+M2 — CLAUDE.md "Versioning + release" prose flow restructured (3-place lede with goldens demoted to sub-bullet) + editing-checklist item 5 updated to mention goldens (closed an intra-document drift inside the file that warns against drift). Five remaining Minor findings deferred per D7 (M3 lexical "every run" vs "every regen"; M4 tasks.md #2/#6 entries under-linked; M5 `[*]` JSONPath notation could read as array; M6 manifest-from-populated.json `_comment` not symmetric to skill golden's; M7 Last-updated parenthetical removed — judgment call accepted). |
+
+**Total tests:** 47 passing on Node ≥22.
+
+---
+
+## Pending tasks
+
+None — all 18 tasks landed. Move to "Final-stage handoff" at the bottom of this doc.
+
+---
+
+## Decisions made during implementation (not in the original plan)
+
+These deviated from or extended the plan; capture the reasoning so future-you doesn't relitigate.
+
+### D1 — `file-status.js` H1-strip regex needed `.trimStart()` (Task 3)
+
+**Bug:** Plan's pasted code in Task 3 used `body.replace(/^#\s+[^\n]+\n+/, '')` to strip a leading H1. After frontmatter is stripped, `body` begins with `\n\n# Title…`, so the anchored regex never fires. The H1 line then counts toward the 50-char body threshold, mis-classifying populated files with short bodies as `placeholder`.
+
+**Fix:** Insert `.trimStart()` before the H1 strip in the chained `.replace().replace().trim()`.
+
+**Implication:** Improves over current `score.js` `hasContent()` behavior — files like a populated `overview.md` with a short body now correctly classify as `complete`. Task 9 (score.js refactor) inherits this improvement.
+
+### D2 — `file-status.js` flat YAML frontmatter detection (Task 3)
+
+**Bug:** Plan's value-line filter `/^\s+/.test(l)` only matched lines starting with whitespace (nested keys). A flat frontmatter:
+```yaml
+---
+title: Foo
+client: Bar
+---
+```
+produced zero "value lines," so the file was misclassified as `placeholder`.
+
+**Fix:** Redefine value lines as "non-blank, contains `:`, not commented, AND has non-whitespace content after the colon." This handles flat AND nested AND mixed shapes uniformly. The trailing condition (non-empty after the colon) is critical — it preserves the existing test 3 behavior where `colors:` with all children commented should remain `placeholder` (a bare header line is not a value).
+
+**Final predicate** (`cli/src/utils/file-status.js:57-62`):
+```javascript
+const uncommentedValueLines = fmLines.filter((l) => {
+  if (/^\s*#/.test(l)) return false;
+  const idx = l.indexOf(':');
+  if (idx === -1) return false;
+  return l.slice(idx + 1).trim().length > 0;
+});
+if (uncommentedValueLines.length > 0) return 'complete';
+```
+
+The two old branches (`allCommented && body.length < 50` and `hasUncommentedValue`) collapsed into one cleaner check.
+
+### D3 — JSDoc convention established in Task 2
+
+All new files under `cli/src/utils/` get:
+- A 2–4 line file-header `/** … */` block with purpose + spec pointer
+- A one-line JSDoc above each export
+
+Style mirrors `cli/src/utils/exec.js`. No `@param`/`@returns` tags. Don't add JSDoc to module-private constants.
+
+Task 4 (gap-actions) followed this. Future utility tasks should too.
+
+### D7 — Reviewers consistently catch real issues; budget for refinement subagents (meta)
+
+**Pattern:** Across Tasks 2, 3, 5, 7, 8 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had three real bugs (D1, D2, D8), one wrong import (D5), and an unhandled error path (D8). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. **Updated rate (post-Task 17):** 8 of 17 tasks (47%) have needed a refinement. Tasks 9, 11, 12, 13, 14, 15 came back Minor-only. Task 16 broke the streak (inline-fallback prose under-specified `files` map). Task 17 also needed a refinement — code reviewer caught CLAUDE.md prose flow degradation + intra-document checklist drift after the carry-forwards landed (the "Versioning + release" addendum buried the original sentence's punch and the editing checklist wasn't updated to match). Pattern: doc tasks with multiple in-scope edits accumulate small drift faster than test-wiring tasks — extra prose-quality eyes worthwhile when a single commit touches multiple coordinated docs.
+
+**Subtle plan-bash issue (still occurring):** Task 15's `node -e` snippet mixed `await import()` with `require()`. That works in CommonJS but throws `require is not defined` under `"type":"module"` (this repo). Implementer caught it and ran a pure-ESM equivalent. Pattern: any plan-pasted `node -e` snippet that uses `require` in this repo is broken. Going forward, default to `node --input-type=module -e "..."` with named ESM imports.
+
+### D8 — emit-manifest spec deviation in plan's pasted code (Task 8)
+
+**Bug:** Plan's `buildFilesMap` pasted code surfaced out-of-tier files only when listed in `file_overrides`. Spec §2 explicitly requires: *"Out-of-tier files that do exist also appear (so a hand-written `composition/patterns.md` at `tier: minimum` is surfaced rather than hidden)."* A practitioner-written file that no producer mentioned was silently dropped from the manifest.
+
+**Two adjacent issues caught at the same review:**
+- Invalid `tier` value threw `Error: Unknown tier: <x>` from `weightsForTier()` and exited with a Node stack trace, instead of using the file's existing `console.error(chalk.red(...)) + process.exit(1)` pattern.
+- `file_overrides` referencing a path not in the active tier (e.g., a typo, or a producer mentioning an out-of-tier path) was silently dropped rather than surfaced. Producers (the brand-extract SKILL) had no signal.
+
+**Fix (commit `d858b42`):**
+- `buildFilesMap` now walks `weightsForTier('comprehensive')` as the universe of known schema paths and surfaces any not-in-active-tier file that exists on disk. Components branch (dynamic enumeration) stays separate.
+- New `VALID_TIERS = ['minimum','standard','comprehensive']` check after the brandrc/stdin merge; invalid value exits cleanly.
+- Override application now creates an entry for unknown paths (status from disk-classification if file exists, else `'missing'`) before applying the override's status/note.
+- Removes the old "overrides-on-disk" intermediate block — its semantics are subsumed by the broader walk + override fallback.
+
+**Implication for Task 12 (integration tests):** the goldens must reflect this corrected behavior. Hand-written out-of-tier files appear with their classified status; `file_overrides` for unknown paths surface; invalid `tier` exits 1 with a chalk-red message.
+
+### D6 — `scanCompleteRatio` is unweighted by design (Task 7)
+
+**Decision:** `scanCompleteRatio` in `health-writer.buildHealth` uses an unweighted file-count ratio (`completeCount / totalCount`), NOT the weighted `weightedComplete / weightedTotal` ratio.
+
+**Why:** Spec section 3 (`docs/superpowers/specs/2026-06-10-manifest-and-health-design.md` line 185) defines the no-manifest MEDIUM threshold as "≥80% files `complete` by content scan." That phrasing reads as a file-count ratio, not a weighted-readiness ratio. The two diverge in the 0.7–0.85 band: a project missing `voice.md` (weight 2) but having all five token files (weight 1 each) scores 5/7 ≈ 0.71 unweighted vs. 5/9 ≈ 0.56 weighted.
+
+**Implication:** `readiness` and `scanCompleteRatio` are semantically different metrics — kept separate intentionally. An inline comment in `health-writer.js` documents the distinction.
+
+### D5 — ajv draft 2020-12 metaschema requires `ajv/dist/2020` import (Task 5)
+
+**Bug:** Plan's Step 4 ajv compile snippet uses `require('ajv').default`, the legacy Ajv class. Compiling a JSON Schema with `$schema: "https://json-schema.org/draft/2020-12/schema"` against that class throws `no schema with key or ref "https://json-schema.org/draft/2020-12/schema"`.
+
+**Fix:** Use `require('ajv/dist/2020').default` (CJS) or `import Ajv from 'ajv/dist/2020.js'` (ESM). This is the documented entry point in ajv@8 for draft 2020-12.
+
+**Implication for Tasks 6 + 7:** the manifest-writer and health-writer modules will compile these same schemas with ajv at module load. The plan's pasted code uses `import Ajv from 'ajv'` — update to `import Ajv from 'ajv/dist/2020.js'` in BOTH writer modules. Without this, the modules throw at import time and every test that imports them fails.
+
+### D4 — `package-lock.json` is gitignored
+
+Plan said `git add package.json package-lock.json` in Task 1. The repo's `.gitignore` excludes `package-lock.json`, so the lock file can't be committed. Deps re-resolve on each `npm install`. Not changed in this task — flagged for follow-up if reproducible installs become important.
+
+### D9 — `emptyBrandDir` `mode` is independent of `tier` (Task 10)
+
+**Bug:** Plan's pasted code in Task 10 wrote `mode: ${tier}` to `.brandrc.yaml`. But production `cli/src/commands/init.js:41-45` defines:
+```js
+const TIER_FOR_MODE = {
+  pitch: 'minimum',
+  standard: 'standard',
+  comprehensive: 'comprehensive',
+};
+```
+So `mode ∈ {pitch, standard, comprehensive}` and `tier ∈ {minimum, standard, comprehensive}` — the helper's default produced `mode: minimum`, an unreachable shape from real `init`. No CLI command currently reads `mode` from `.brandrc.yaml` (only `client` and `tier` are read), but the helper would have silently encoded the misleading shape into every integration test that consumes it.
+
+**Fix (commit `9f6cdc0`):** `emptyBrandDir({ tier = 'minimum', mode = 'standard', client = 'acme' } = {})` — `mode` is an independent third parameter defaulting to `'standard'` (production-valid for any tier). JSDoc points readers at `TIER_FOR_MODE` for the production mapping.
+
+**Implication for Tasks 11–15:** if any downstream test cares about the `mode` field's value, override it explicitly. Otherwise the `'standard'` default works.
+
+### D10 — `confidence: MEDIUM` is the cap when no `manifest.json` is present (Task 13)
+
+**Confirmed by spec + golden:** spec §3 (lines ~183–185) says no-manifest paths can never produce HIGH confidence — the cap is MEDIUM when ≥80% of files are `complete` by content scan, LOW otherwise. The Task 13 populated-fixture golden has 100% complete and lands on MEDIUM (not HIGH), confirming the cap is enforced in `health-writer.buildHealth`.
+
+**Implication for Tasks 14–15:** the round-trip test (Task 14) is the path that produces `manifest_seen: true` — that's where you'd see HIGH (or whatever confidence the manifest itself reports, possibly downgraded). The fresh-init / mixed-fixture branches in Task 14 / Task 15 should expect MEDIUM or LOW depending on `scanCompleteRatio`. Don't accidentally assert HIGH on a no-manifest path — it can never happen.
+
+**`scanCompleteRatio` is internal:** it's computed inside `health-writer.js` to gate the MEDIUM/LOW choice but is NOT surfaced as a field in the emitted `.health.json`. D6's distinction (unweighted vs. weighted) only matters internally; downstream consumers see `confidence` + `readiness` + `weighted_complete`/`weighted_total` and that's it.
+
+### D12 — SKILL→CLI fallback contract requires explicit field enumeration in inline-fallback prose (Task 16)
+
+**Lesson:** When writing SKILL prose for an inline-fallback path that must match CLI output, "construct the same JSON" + a reference golden is **insufficient on its own** for an LLM-driven SKILL. The prose must explicitly enumerate the schema-required fields the SKILL has to assemble, especially fields the CLI fills in server-side (and which therefore don't appear in the stage-input JSON example).
+
+**Specifics from Task 16:** Initial Section 10b inline-fallback paragraph said "Construct the same JSON in memory using `Read` to inspect each `.brand/` file (apply the same content-scan logic), fold in stage-execution data accumulated through the run, and `Write` to `.brand/manifest.json`." The CLI-path JSON example above it had no `files` block (CLI derives it). An LLM following only the prose could plausibly omit the `files` map entirely, or emit it as a flat array, or skip `bytes`. Refinement replaced this with a 6-bullet list explicitly listing every non-derivable field (`version:"1"`, `generated_at` ISO-8601, `generator` literal, `tier`/`client` from .brandrc, `stages`/`mcps` from run, `files` map shape with all five status enums + bytes + "every file under .brand/, not just file_overrides").
+
+**Implication for future SKILL→CLI parity prose:** When a SKILL has both a CLI-shell-out path and an inline-fallback path, audit the inline path against the schema's `required` fields list. Any field the CLI fills in server-side (and that doesn't appear in the stage-input example) needs an explicit instruction in the inline-fallback prose.
+
+**Carry-forwards for Task 17 (repo docs) consideration:**
+
+1. **M3 (README):** "How the pipeline works" table at `README.md:118-127` doesn't mention manifest emission. Stage numbering 1–8 makes a literal new row awkward (manifest is "10b", not a stage). Reviewer suggested a footnote: "Every run also writes `.brand/manifest.json`, a machine-readable manifest hosts can gate on."
+
+2. **M5 (brand-check):** Step 1 line 30 says to write `.health.json` but doesn't state the parity contract (CLI-emitted `.health.json` and SKILL-fallback `.health.json` must share a shape — same as the brand-extract Section 10b refinement). One-line addition would close the symmetric gap.
+
+These are pure-doc additions (not new code/tests). Worth folding into Task 17's existing scope.
+
+### D11 — Test goldens are version-coupled but not declared in CLAUDE.md (Task 15 follow-ups, deferred to Task 17)
+
+**Surfaced by Task 15 code reviewer:** Both `cli/test/golden/manifest-from-populated.json` and `cli/test/golden/manifest-from-skill.json` hard-code `generator: brand-cli@0.4.0` / `brand-extract-skill@0.4.0`. CLAUDE.md "Versioning + release" lists three places version must match (`package.json`, `marketplace.json` ×2, `brand-cli.js`) — these two goldens are a fourth/fifth, undocumented. Tests strip `generator` before comparison so staleness doesn't break CI, but readers using the goldens as documentation see stale version strings.
+
+**Also raised:** `manifest-from-skill.json` has no drift-detection against `manifest-from-populated.json`. The two are intended to differ ONLY by the `generator` line. A 10-line `golden-drift.test.js` could enforce that invariant on every CI run and tangentially exercise `validateManifest` against the SKILL-fallback shape (currently a manual one-shot per Task 15 Step 2).
+
+**Carry-forwards for Task 17 (repo docs) consideration:**
+1. Add `cli/test/golden/manifest-from-{populated,skill}.json` to CLAUDE.md's "Versioning + release" version-coupled list. Bumps that touch package.json should bump these too.
+2. Optional: add `cli/test/unit/golden-drift.test.js` asserting `manifest-from-skill === manifest-from-populated` modulo `generator`. ~10 lines, prevents silent drift.
+3. Optional: fix the `_comment` in `manifest-from-skill.json` (currently inherited "Generated by brand-cli", contradicts the `generator: brand-extract-skill@0.4.0` value).
+
+These are Minor enhancements; Task 17 already has a docs scope, but adding code (item 2) would extend it. Don't expand Task 17's scope beyond the plan unless straightforward.
+
+### D13 — Node 18 + Node 20 fail `node --test` glob; engines floor bumped to `>=22.0.0` (Task 18)
+
+**Open question from D7 era resolved by empirical test in Task 18:** the test harness `node --test 'cli/test/**/*.test.js'` does not work on the previous floor `>=18.0.0`. Tested via nvm:
+
+- Node 18.20.8 → `Could not find '/Users/aforrester/Documents/brand-skills/cli/test/**/*.test.js'`
+- Node 20.20.2 → same failure
+- Node 21.7.3 → 47/47 pass
+- Node 22.17.1 → 47/47 pass (active LTS)
+
+Glob support in `node --test` actually solidified at Node 21+ (the progress-doc-prep note hinted at this; Task 1's reviewer noted it; verified live in Task 18). Bumped `engines.node` to `>=22.0.0` (commit `95d1b7d`) rather than `>=21.0.0` because Node 21 is non-LTS / EOL'd; Node 22 is the active LTS at the time of this branch. This is a different field from `package.json` `version` — not blocked by the "don't bump version proactively" CLAUDE.md rule. Resolution path was anticipated in the Task 18 dispatch protocol section above.
+
+**Implication for downstream:** if anyone consumes `brand-skills` as a CLI on Node 18 or Node 20, they'll be denied at `npm install`. The package isn't on npm yet, so blast radius is the GitHub-direct install path (Claude Code plugin marketplace). If the floor needs to be lower, the alternative is dropping the glob: explicitly enumerate test files in the `test` script. Not pursued — the LTS-aligned floor is cleaner.
+
+---
+
+## Open questions surfaced for upcoming tasks
+
+### For Task 7 (health-writer) — RESOLVED
+
+**Q:** Should `gap-actions.js` per-prefix entries (`tokens/`, `composition/`, `workflows/`) include `partial` keys?
+
+**Resolution:** No. Task 7's plan-test for `gaps` only asserts `suggested_action` matches `/\S/` (non-empty). No per-status text assertions for `partial` in those prefixes. The generic `Populate <path> per schema/brand/<dashed>.schema.md` fallthrough is acceptable.
+
+A follow-up (separate, optional) could add a one-line `// partial intentionally omitted — falls through to generic` comment in `gap-actions.js`. Not blocking Task 7.
+
+### For Task 10 (test helpers) — RESOLVED
+
+**Q:** Fold the tempdir setup pattern from `manifest-writer.test.js` and the `withTmpFile` helper from `file-status.test.js` into `tmp-brand.js`?
+
+**Resolution:** Don't migrate. The new helpers are integration-test-focused (`withFixture(name)` copies a committed fixture; `emptyBrandDir({tier, mode, client})` scaffolds a `.brand/` + `.brandrc.yaml`). Neither maps to `withTmpFile(content, fn)` (generic-tmpdir-with-arbitrary-string-content) or to `manifest-writer.test.js`'s inlined `mkdtempSync`-then-write-JSON pattern. Forcing a migration would require committing string-content fixtures the existing tests inline cleanly. Code reviewer agreed during Task 10 review.
+
+### For Task 18 (final verification) — RESOLVED
+
+**Q:** Does `npm test` run cleanly on the lowest supported Node version (`engines.node: >=18.0.0`)?
+
+**Resolution:** No — Node 18 fails AND Node 20 fails. Glob support in `node --test` lands at Node 21. Bumped `engines.node` to `>=22.0.0` (active LTS) in commit `95d1b7d`. See D13 above for the full empirical write-up.
+
+---
+
+## Task 18 dispatch protocol (THIS task — different shape from prior tasks)
+
+**Task 18 is verification, not build.** No implementer subagent needed (there's nothing to implement). The plan defines four checklist steps the controller (you) executes, ending with a single final code-reviewer subagent across the entire branch diff.
+
+The plan's Task 18 section is at lines ~2572+ of `2026-06-10-manifest-and-health.md`. Four checklist steps:
+
+1. **`npm test`** — run the full suite. Expected: 47/47 passing. (Note count for spec coverage.)
+2. **End-to-end smoke test** — manually run `init → emit-manifest → score` against a tempdir, verify `manifest.json` and `.health.json` are written with sensible shape. Plan-pasted bash includes `head -30 .brand/manifest.json` style sanity checks.
+3. **`git status`** — confirm working tree clean (no untracked or modified files left behind).
+4. **Spec coverage skim** — open the design spec and verify every requirement maps to a landed task. File a follow-up if anything's uncovered.
+
+**Then** dispatch a single **final code-reviewer subagent** across the entire branch:
+
+- BASE_SHA: `e54066f` (the `main` branch tip the feature branched off, per top-of-doc)
+- HEAD_SHA: post-Task-18 final commit (or `feat/manifest-and-health` HEAD if no Task 18 commits land)
+- Scope: full branch review (every commit, every file changed). Different from per-task reviews — this one is asking "is the whole feature ready to merge?"
+- Use `superpowers:code-reviewer` subagent.
+
+**Things to verify in the smoke test that the plan doesn't spell out:**
+
+- `.brand/manifest.json` should have `manifest_seen` is a property of `.health.json`, NOT `manifest.json`. Don't confuse the shapes (intentionally different per spec §3 — manifest's `files` is nested `{path: {status, bytes, note}}`; health's `files` is flat `{path: status}`).
+- `.health.json` after a round-trip should have `manifest_seen: true`, `confidence: HIGH` (no defaults from the smoke-test stdin), `tier_label: 'incomplete'` (fresh-init scaffolding has placeholders), `readiness < 0.1`.
+- The plan-pasted smoke-test command pipes JSON inline into `emit-manifest` then runs `score`. If it includes apostrophes in the JSON, **the apostrophe rule applies** — write the JSON to `/tmp/manifest-stdin.json` and `cat | brand-cli emit-manifest` it.
+
+**If Task 18 surfaces real issues (failing test, broken CLI, missing feature):**
+
+- Treat as a Task-18 sub-task. Dispatch implementer + reviews per the standard protocol (in the section above this one — see "Per-task dispatch protocol for Tasks 1–17").
+- Most likely surface: the Node-18 compat question. If it fails, bump `engines.node` (one-line edit to `package.json`), re-run, commit. No need for a full implementer dispatch for a one-line config bump.
+
+**After Task 18's checklist + final review pass:**
+
+- Move to "Final-stage handoff" below. Tasks `docs/tasks.md` updates ALREADY landed in Task 17 (#2+#6 moved to Completed, #3+#4 unblocked) — handoff item 2 is done.
+
+---
+
+## Per-task dispatch protocol (for Tasks 1–17 — historical reference)
+
+For each task:
+
+1. **Open the plan** (`docs/superpowers/plans/2026-06-10-manifest-and-health.md`), find the task by number, copy the FULL task text.
+2. **Dispatch implementer** (general-purpose subagent) with:
+   - Full task text inline (don't make subagent read the plan file)
+   - Context: branch, prior tasks landed (point at this progress doc), relevant decisions from D1–D12, known open questions
+   - Project gotchas: apostrophes break heredoc commit messages (use tempfile + `git commit -F`); branch is `feat/manifest-and-health`; ajv import must be `ajv/dist/2020.js` not plain `ajv` (D5); plan-pasted `node -e` snippets using `require()` are broken under `"type":"module"` (D7 footnote)
+3. **Spec compliance review** (general-purpose subagent) — verify by reading code, don't trust the implementer's report.
+4. **Code quality review** (`superpowers:code-reviewer` subagent) — pass BASE_SHA (commit before this task) and HEAD_SHA.
+5. **If reviewer flags issues:** if Critical or Important, dispatch a refinement subagent; if Minor only, accept and proceed (D7).
+6. **Update this file:** add the task to "Completed tasks" with the commit SHA(s) and test delta. Record any new decisions or open questions.
+7. **Mark task done** in the session task list.
+8. **Move to next task.**
+
+Templates for the three subagent prompts live in the `superpowers:subagent-driven-development` skill.
+
+---
+
+## Final-stage handoff
+
+After Task 18 completes:
+
+1. Run `npm test` one more time as the absolute last check. Expected: 47/47.
+2. ~~Update `docs/tasks.md` to move #2+#6 to Completed and unblock #3.~~ **Already done** in Task 17 (commit `49863af`). Skip.
+3. Open a PR from `feat/manifest-and-health` → `main`. PR body should include:
+   - Spec link: `docs/superpowers/specs/2026-06-10-manifest-and-health-design.md`
+   - Plan link: `docs/superpowers/plans/2026-06-10-manifest-and-health.md`
+   - Progress doc link (this file)
+   - Test delta (47/47 passing, +47 from baseline 0)
+   - Commit count (~25 task/code commits + ~17 progress-doc commits, depending on Task 18's emissions)
+4. Use the `superpowers:finishing-a-development-branch` skill if it applies. (Worth invoking — it has merge-readiness checks beyond what Task 18's plan covers.)
+
+**Things NOT to forget at the PR step:**
+
+- The `Branch:` line at the top of `docs/tasks.md` says `(off main at e54066f)`. After merge, that line becomes stale (the work is on main, not a branch). Either remove it from the merged-state docs/tasks.md, or accept that it'll be cleaned up by the next person editing `docs/tasks.md`.
+- The progress doc (this file) lives at `docs/superpowers/plans/`. After merge, it'll be a historical artifact. Don't delete it; future similar work benefits from the D-letter pattern as a reference.

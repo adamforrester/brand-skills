@@ -715,6 +715,54 @@ That writes the same content to both `brand.md` and `.impeccable.md`. Detect Imp
 
 After Stages 7 (design.md) and 8 (brand.md) run, the project's interop surface reflects the latest extraction.
 
+## 10b. Emit `.brand/manifest.json`
+
+After Stages 1–8 complete and before the final summary, emit a machine-readable manifest of what just ran. Hosts gate on it; humans don't read it.
+
+**CLI path:**
+
+Build the stage payload from what just ran. Pass via stdin:
+
+```bash
+cat <<'JSON' | brand-cli emit-manifest
+{
+  "tier": "{tier}",
+  "client": "{client}",
+  "stages": {
+    "1_figma":     {"ran": <bool>, "wrote": [<paths>], "reason": "<if skipped>"},
+    "2_web":       {"ran": <bool>, "wrote": [<paths>], "confidence": "<HIGH|MEDIUM|LOW>"},
+    "3_voice":     {"ran": <bool>, "wrote": ["voice.md"], "samples": <n>, "confidence": "<...>"},
+    "4_overview":  {"ran": <bool>, "wrote": ["overview.md"], "sources": [<sources>]},
+    "5_conflicts": {"ran": <bool>, "wrote": ["conflicts.md"], "active": <n>},
+    "6_components":{"ran": <bool>, "wrote": [<paths>], "reason": "<if skipped>"},
+    "8_brand_md":  {"ran": true, "wrote": ["../brand.md","../design.md"]}
+  },
+  "mcps": {
+    "playwright":    {"available": <bool>, "used": [<stage_keys>]},
+    "figma_console": {"available": <bool>, "used": [<stage_keys>]}
+  },
+  "file_overrides": {
+    "<path>": {"status": "defaults", "note": "<reason>"}
+  }
+}
+JSON
+```
+
+Use `file_overrides` to mark any file `defaults` (low-confidence inferred content) or `partial` (sections missing). Without overrides, the CLI scans `.brand/` and reports `complete` / `placeholder` / `missing` from content alone.
+
+**Inline fallback (CLI absent):**
+
+Construct the manifest in memory and `Write` to `.brand/manifest.json`. The reference shape — including every required field with a concrete example value — is at `cli/test/golden/manifest-from-skill.json` in the brand-skills repo. Mirror that shape exactly.
+
+The non-derivable fields the SKILL must set itself:
+
+- `version`: `"1"` (literal — schema enforces a const)
+- `generated_at`: ISO-8601 datetime (e.g. `"2026-06-10T15:30:00Z"`)
+- `generator`: `brand-extract-skill@<plugin-version>`
+- `tier`, `client`: from `.brandrc.yaml`
+- `stages`, `mcps`: from stage-execution data accumulated through the run (use the keys shown in the CLI-path JSON example above)
+- `files`: an object keyed by relative path under `.brand/`, with each entry `{"status": "<enum>", "bytes": <integer>}` (and an optional `"note": "<reason>"` for `defaults`/`partial` statuses). Apply the same content-scan logic the CLI uses — placeholder marker, frontmatter inspection, body length — to assign one of `complete | partial | placeholder | missing | defaults`. Include every file under `.brand/`, not just the ones listed in `file_overrides`.
+
 ## 11. Final summary
 
 Post a message to the user with:
@@ -772,6 +820,7 @@ Implemented (complete pipeline):
 - Stage 6: Design-system repo scan → components/*.md + components/inventory.md (comprehensive tier only)
 - Stage 8: `brand.md` regeneration (always runs)
 - design.md regeneration
+- Manifest emission (Section 10b) — every extract run now writes `.brand/manifest.json`
 
 There is no further Stage 7 — the numbering preserves the historical pipeline plan. Stage 6 covers what an earlier draft called Stage 7.
 

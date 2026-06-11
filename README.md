@@ -126,6 +126,11 @@ The skill walks you through scope confirmation, runs the pipeline, surfaces conf
 | 7 | Regenerate `design.md` | `brand-cli refresh-design` (or inline fallback) |
 | 8 | Regenerate `brand.md` | `brand-cli refresh-context` (or inline fallback) |
 
+**Always also emitted:**
+
+- `.brand/manifest.json` — machine-readable record of what extract just did (per-file status, per-stage outcome, MCP availability). Hosts gate on it.
+- `.brand/.health.json` — readiness verdict written every time `brand-cli score` (or `/brand-context:check`) runs.
+
 Each stage is independently skippable. The skill degrades gracefully — if a source or tool is missing, that stage is skipped or falls back to a simpler method, and the rest of the pipeline runs.
 
 ---

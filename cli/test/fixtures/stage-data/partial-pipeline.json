@@ -1,0 +1,16 @@
+{
+  "tier": "minimum",
+  "client": "acme",
+  "stages": {
+    "2_web":   { "ran": true,  "wrote": ["tokens/colors.md"], "confidence": "LOW" },
+    "3_voice": { "ran": true,  "wrote": ["voice.md"], "samples": 6, "confidence": "LOW" },
+    "4_overview": { "ran": false, "reason": "skipped: no PDF, no screenshots, no Stage 2 captures" }
+  },
+  "mcps": {
+    "playwright": { "available": true, "used": ["2_web","3_voice"] }
+  },
+  "file_overrides": {
+    "voice.md":           { "status": "defaults", "note": "<10 samples; LOW confidence" },
+    "tokens/colors.md":   { "status": "defaults", "note": "single-page sample" }
+  }
+}

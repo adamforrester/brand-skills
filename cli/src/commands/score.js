@@ -1,71 +1,57 @@
 import chalk from 'chalk';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { parse as yamlParse } from 'yaml';
+import { weightsForTier } from '../utils/tier-weights.js';
+import { classifyFile } from '../utils/file-status.js';
+import { buildHealth, writeHealth } from '../utils/health-writer.js';
 
-const TIER_FILES = {
-  minimum: [
-    { path: 'overview.md', label: 'Brand overview' },
-    { path: 'voice.md', label: 'Voice & tone' },
-    { path: 'tokens/colors.md', label: 'Color tokens' },
-    { path: 'tokens/typography.md', label: 'Typography tokens' },
-    { path: 'tokens/spacing.md', label: 'Spacing tokens' },
-    { path: 'tokens/motion.md', label: 'Motion tokens' },
-    { path: 'tokens/surfaces.md', label: 'Surface tokens' },
-  ],
-  standard: [
-    { path: 'composition/page-types.md', label: 'Page types' },
-    { path: 'composition/patterns.md', label: 'Composition patterns' },
-    { path: 'composition/anti-patterns.md', label: 'Anti-patterns' },
-    { path: 'CHANGELOG.md', label: 'Changelog' },
-  ],
-  comprehensive: [
-    { path: 'workflows/figma-to-code.md', label: 'Figma-to-code workflow' },
-    { path: 'workflows/code-standards.md', label: 'Code standards' },
-    { path: 'workflows/deploy.md', label: 'Deploy workflow' },
-    { path: 'workflows/qa-checklist.md', label: 'QA checklist' },
-  ],
+function readBrandrc(projectDir) {
+  const path = join(projectDir, '.brandrc.yaml');
+  if (!existsSync(path)) return {};
+  try {
+    return yamlParse(readFileSync(path, 'utf-8')) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function readManifest(brandDir) {
+  const path = join(brandDir, 'manifest.json');
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
+
+const TIER_DISPLAY = {
+  minimum: ['overview.md', 'voice.md', 'tokens/colors.md', 'tokens/typography.md', 'tokens/spacing.md', 'tokens/motion.md', 'tokens/surfaces.md'],
+  standard: ['composition/page-types.md', 'composition/patterns.md', 'composition/anti-patterns.md', 'CHANGELOG.md', 'conflicts.md'],
+  comprehensive: ['workflows/figma-to-code.md', 'workflows/code-standards.md', 'workflows/deploy.md', 'workflows/qa-checklist.md'],
 };
 
-// Detect whether a brand file has real content vs. just init-scaffolded placeholders.
-// A placeholder file has the marker `<!-- Fill this file following the schema...`
-// and/or commented-out (#) frontmatter values. Real content has body prose and
-// uncommented frontmatter values.
-function hasContent(filePath) {
-  if (!existsSync(filePath)) return false;
-  const raw = readFileSync(filePath, 'utf-8');
-
-  // The init scaffolder writes this exact placeholder marker into every fresh file.
-  // If it's still present, the file hasn't been edited.
-  if (raw.includes('<!-- Fill this file following the schema')) return false;
-
-  // Strip frontmatter and inspect what's left.
-  let body = raw;
-  const trimmed = body.trimStart();
-  if (trimmed.startsWith('---')) {
-    const rest = trimmed.slice(3);
-    const end = rest.indexOf('\n---');
-    if (end !== -1) body = rest.slice(end + 4);
-  }
-
-  // Strip leading H1 ("# Title\n"), HTML comments, and blank lines.
-  body = body
-    .replace(/^#\s+[^\n]+\n+/, '')
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .trim();
-
-  // For token files, also check whether the YAML frontmatter has any uncommented
-  // entries beyond the top-level key. If every value line starts with `#`, it's
-  // still a placeholder regardless of body length.
-  const fm = raw.match(/^---\n([\s\S]*?)\n---/);
-  if (fm) {
-    const fmLines = fm[1].split('\n').filter(l => l.trim());
-    const valueLines = fmLines.filter(l => /^\s+/.test(l));
-    const allCommented = valueLines.length > 0 && valueLines.every(l => /^\s*#/.test(l));
-    if (allCommented && body.length < 50) return false;
-  }
-
-  // Real content: substantial body or uncommented frontmatter values.
-  return body.length >= 50;
+function labelForFile(path) {
+  const labels = {
+    'overview.md': 'Brand overview',
+    'voice.md': 'Voice & tone',
+    'tokens/colors.md': 'Color tokens',
+    'tokens/typography.md': 'Typography tokens',
+    'tokens/spacing.md': 'Spacing tokens',
+    'tokens/motion.md': 'Motion tokens',
+    'tokens/surfaces.md': 'Surface tokens',
+    'composition/page-types.md': 'Page types',
+    'composition/patterns.md': 'Composition patterns',
+    'composition/anti-patterns.md': 'Anti-patterns',
+    'CHANGELOG.md': 'Changelog',
+    'conflicts.md': 'Conflicts',
+    'workflows/figma-to-code.md': 'Figma-to-code workflow',
+    'workflows/code-standards.md': 'Code standards',
+    'workflows/deploy.md': 'Deploy workflow',
+    'workflows/qa-checklist.md': 'QA checklist',
+  };
+  return labels[path] ?? path;
 }
 
 export async function scoreCommand(opts) {
@@ -87,40 +73,44 @@ export async function scoreCommand(opts) {
   console.log(chalk.bold('  brand-skills — Brand Package Score'));
   console.log('');
 
+  const brandrc = readBrandrc(projectDir);
+  const tier = brandrc.tier ?? 'standard';
+  const client = brandrc.client ?? '';
+  const manifest = readManifest(brandDir);
+
+  // Console output: unchanged tier-by-tier listing, but driven by classifyFile.
   const results = { tier: 'none', completeness: 0, files: {}, gaps: [] };
   let totalFiles = 0;
   let populatedFiles = 0;
 
-  for (const [tier, files] of Object.entries(TIER_FILES)) {
-    console.log(chalk.bold(`  ${tier.charAt(0).toUpperCase() + tier.slice(1)} tier`));
+  for (const [tierName, paths] of Object.entries(TIER_DISPLAY)) {
+    console.log(chalk.bold(`  ${tierName.charAt(0).toUpperCase() + tierName.slice(1)} tier`));
 
-    for (const file of files) {
+    for (const path of paths) {
       totalFiles++;
-      const fullPath = join(brandDir, file.path);
-      const exists = existsSync(fullPath);
-      const populated = exists && hasContent(fullPath);
+      const abs = join(brandDir, path);
+      const status = manifest?.files?.[path]?.status ?? classifyFile(abs);
 
-      if (populated) {
-        console.log(chalk.green(`    ✓ ${file.label}`));
+      if (status === 'complete' || status === 'defaults') {
+        const tag = status === 'defaults' ? chalk.dim(' (defaults — low confidence)') : '';
+        console.log(chalk.green(`    ✓ ${labelForFile(path)}${tag}`));
         populatedFiles++;
-        results.files[file.path] = 'populated';
-      } else if (exists) {
-        console.log(chalk.yellow(`    ◐ ${file.label} ${chalk.dim('(exists but empty/placeholder)')}`));
-        results.files[file.path] = 'placeholder';
-        results.gaps.push(file.path);
+        results.files[path] = status;
+      } else if (status === 'partial' || status === 'placeholder') {
+        console.log(chalk.yellow(`    ◐ ${labelForFile(path)} ${chalk.dim(`(${status})`)}`));
+        results.files[path] = status;
+        results.gaps.push(path);
       } else {
-        console.log(chalk.dim(`    ○ ${file.label}`));
-        results.files[file.path] = 'missing';
-        results.gaps.push(file.path);
+        console.log(chalk.dim(`    ○ ${labelForFile(path)}`));
+        results.files[path] = 'missing';
+        results.gaps.push(path);
       }
     }
 
-    // Check for component files (standard+ tier)
-    if (tier === 'standard') {
+    if (tierName === 'standard') {
       const componentsDir = join(brandDir, 'components');
       if (existsSync(componentsDir)) {
-        const components = (await import('node:fs')).readdirSync(componentsDir)
-          .filter(f => f.endsWith('.md'));
+        const components = readdirSync(componentsDir).filter((f) => f.endsWith('.md'));
         if (components.length > 0) {
           console.log(chalk.green(`    ✓ ${components.length} component files`));
         } else {
@@ -133,10 +123,18 @@ export async function scoreCommand(opts) {
     console.log('');
   }
 
-  // Determine achieved tier
-  const minimumComplete = TIER_FILES.minimum.every(f => hasContent(join(brandDir, f.path)));
-  const standardComplete = minimumComplete && TIER_FILES.standard.every(f => hasContent(join(brandDir, f.path)));
-  const comprehensiveComplete = standardComplete && TIER_FILES.comprehensive.every(f => hasContent(join(brandDir, f.path)));
+  const minimumComplete = TIER_DISPLAY.minimum.every((p) => {
+    const s = manifest?.files?.[p]?.status ?? classifyFile(join(brandDir, p));
+    return s === 'complete' || s === 'defaults';
+  });
+  const standardComplete = minimumComplete && TIER_DISPLAY.standard.every((p) => {
+    const s = manifest?.files?.[p]?.status ?? classifyFile(join(brandDir, p));
+    return s === 'complete' || s === 'defaults';
+  });
+  const comprehensiveComplete = standardComplete && TIER_DISPLAY.comprehensive.every((p) => {
+    const s = manifest?.files?.[p]?.status ?? classifyFile(join(brandDir, p));
+    return s === 'complete' || s === 'defaults';
+  });
 
   if (comprehensiveComplete) results.tier = 'comprehensive';
   else if (standardComplete) results.tier = 'standard';
@@ -145,16 +143,18 @@ export async function scoreCommand(opts) {
 
   results.completeness = Math.round((populatedFiles / totalFiles) * 100);
 
-  // Summary
   const tierColor = results.tier === 'incomplete' ? chalk.red : chalk.green;
   console.log(chalk.bold('  Summary'));
   console.log(`    Tier: ${tierColor(results.tier)}`);
   console.log(`    Completeness: ${results.completeness}% (${populatedFiles}/${totalFiles} files populated)`);
-
   if (results.gaps.length > 0) {
     console.log(`    Gaps: ${results.gaps.length} files need content`);
   }
   console.log('');
+
+  // Always emit .health.json.
+  const health = buildHealth({ manifest, brandDir, tier, client });
+  writeHealth(join(brandDir, '.health.json'), health);
 
   if (opts.json) {
     console.log(JSON.stringify(results, null, 2));
