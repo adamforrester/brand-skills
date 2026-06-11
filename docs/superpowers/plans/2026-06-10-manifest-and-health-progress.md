@@ -3,10 +3,10 @@
 Companion to [`2026-06-10-manifest-and-health.md`](2026-06-10-manifest-and-health.md). Survives context clears. Update after every task completes (or after every refinement).
 
 **Branch:** `feat/manifest-and-health` (off `main` at `e54066f`)
-**Last updated:** 2026-06-10 — through Task 14 (+ doc commit)
-**Test status:** 46/46 passing on the branch
+**Last updated:** 2026-06-10 — through Task 15 (+ doc commit)
+**Test status:** 47/47 passing on the branch
 **HEAD:** the latest progress-doc commit on `feat/manifest-and-health`. Don't bother chasing the exact SHA in this doc — `git rev-parse HEAD` is authoritative. As of writing, it should match the most-recent `docs:` commit at the top of `git log --oneline main..HEAD`.
-**Next task:** **Task 15** — SKILL fallback golden + fresh-init test
+**Next task:** **Task 16** — SKILL updates (brand-extract Section 10b, brand-check Step 1)
 
 ---
 
@@ -22,7 +22,7 @@ If this conversation got cleared and you're picking up the work:
 6. Invoke `superpowers:subagent-driven-development` (the user expects full discipline: implementer + spec review + code quality review per task).
 7. Resume at the next pending task using the dispatch protocol at the bottom of this file.
 
-### Quick state check (as of 2026-06-10 through Task 14)
+### Quick state check (as of 2026-06-10 through Task 15)
 
 Verify before continuing:
 
@@ -31,14 +31,14 @@ $ git rev-parse --abbrev-ref HEAD
 feat/manifest-and-health
 
 $ git log --oneline main..HEAD | wc -l
-33    # 20 task/code commits + 13 progress-doc commits (post this update)
+35    # 21 task/code commits + 14 progress-doc commits (post this update)
 
 $ git log -1 --format=%H
 <the most recent progress-doc commit on the branch — top of git log main..HEAD>
 
 $ npm test 2>&1 | grep '^# tests\|^# pass\|^# fail'
-# tests 46
-# pass 46
+# tests 47
+# pass 47
 # fail 0
 ```
 
@@ -76,8 +76,9 @@ If any of those don't match, **stop and tell the user** — something diverged b
 | 12 | Integration test: emit-manifest + golden | `1efef26` | +4 | Code review Minor only — accepted per D7. First integration test on the branch. Plan's Step 2 bash had a typo (`| \ > file`) — implementer used a corrected pipeline. Golden generated from current (post-d858b42) emit-manifest, reproduces independently. Five Minor findings deferred (volatile-field stripping is implicit; dynamic `import('node:fs')` in test 4; golden brittleness unsignalled to future editors; test 2 deep-compare opportunity; test 3 missing `tokens/colors.md.note` assertion). |
 | 13 | Integration test: score emits health + golden | `853e825` | +3 | Code review Minor only — accepted per D7. Sister test to Task 12, mirrors `emit-manifest.test.js` shape. Golden generated cleanly from populated fixture; eyeball-verified `version:'1'`, `manifest_seen:false`, `tier:'standard'`, `confidence:'MEDIUM'` (no manifest + 100% complete by scan ≥ 80% caps at MEDIUM per spec §3), `readiness:1`, `tier_label:'ready'`, weighted 14/14, `client:'acme'`, flat `{path:status}` files map per spec §3 line 186. Plan's Step 2 bash ran cleanly. Volatile strip list (`generated_at`, `generator`) sufficient for this golden — `manifest_generated_at` only emits when `manifest_seen:true`, so absent here. Seven Minor findings deferred (golden↔fixture coupling unsignalled in test code; strip list could be centralized in a helper; populated-fixture setup duplicated across two integration files; `readiness < 0.1` could tighten to `=== 0`; `tier_label` literal — agreed leave; test naming distinct enough; cleanup reliable). See D10. |
 | 14 | Integration tests: round-trip + scan fallback | `b1e3690` | +4 | Code review Minor only — accepted per D7. Implementer DONE on first run, no plan deviations. Verified manifest+health coupling: `populated + full-pipeline.json` (no overrides) → `confidence:HIGH` + `downgrades:[]`; `populated + partial-pipeline.json` (overrides `voice.md` + `tokens/colors.md` to `defaults`) → `confidence:MEDIUM` + 2 downgrades; `mixed` (no manifest) → all statuses ∈ `{complete,placeholder,missing}`, no `partial`/`defaults`; `populated` no manifest → MEDIUM cap (D10). Spec compliance reviewer confirmed `health-writer.js:65,117` echoes `manifest.generated_at` and downgrades source from `status === 'defaults'`. Five Minor findings deferred (inconsistent exit-code asserts in round-trip — only first `emit.exitCode` checked; partial-pipeline coupling unsignalled in deepEqual; some duplication of `manifest_seen:false` between Task 13 + Task 14 score-without-manifest test 2; no intermediate manifest-shape sanity check between emit and score; helper-extraction opportunity not yet a smell at 4 integration files). |
+| 15 | SKILL fallback golden + fresh-init test | `20b08be` | +1 | Code review Minor/Note only — accepted per D7. Implementer DONE on first run; one bash deviation: plan-pasted node `-e` snippet mixed `import()` with `require()`, which fails under `"type":"module"`. Implementer used pure-ESM equivalent (`node --input-type=module -e`); schema validation printed `OK`. Golden differs from `manifest-from-populated.json` by exactly one line (`generator` swap, version 0.4.0). Seven Minor/Note findings deferred (overlap with Task 13 test 3 undocumented; SKILL golden not exercised by any test; `--force` flag noise on empty mkdtempSync dir; goldens hard-code 0.4.0 and aren't in CLAUDE.md "three places" list; no drift-detection between the two goldens; `_comment` in skill golden inherited from CLI golden saying "Generated by brand-cli" — contradictory; minor test-name overpromise "all in gaps" vs `length > 0`). See D11 for Task 17 carry-forwards. |
 
-**Total tests:** 46 passing.
+**Total tests:** 47 passing.
 
 ---
 
@@ -85,7 +86,6 @@ If any of those don't match, **stop and tell the user** — something diverged b
 
 In plan order. Pull the full task text from `2026-06-10-manifest-and-health.md` when dispatching.
 
-- [ ] **Task 15** — SKILL fallback golden + fresh-init test. Plan lines ~2274-2360.
 - [ ] **Task 16** — SKILL updates (brand-extract Section 10b, brand-check Step 1). Plan lines ~2362-2480.
 - [ ] **Task 17** — Repo docs (CLAUDE.md, README, tasks.md). Plan lines ~2482-2570.
 - [ ] **Task 18** — Final verification + final code-reviewer subagent across the branch. Plan lines ~2572+.
@@ -142,7 +142,9 @@ Task 4 (gap-actions) followed this. Future utility tasks should too.
 
 ### D7 — Reviewers consistently catch real issues; budget for refinement subagents (meta)
 
-**Pattern:** Across Tasks 2, 3, 5, 7, 8 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had three real bugs (D1, D2, D8), one wrong import (D5), and an unhandled error path (D8). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. **Updated rate (post-Task 14):** 6 of 14 tasks (≈43%) have needed a refinement. Tasks 9, 11, 12, 13, 14 (score refactor + four integration test files) all came back Minor-only. Pasted code has stabilized as the build moves out of new-utility territory and into test wiring against existing utilities.
+**Pattern:** Across Tasks 2, 3, 5, 7, 8 the code reviewer surfaced Important findings worth a refinement subagent. The plan's pasted code has had three real bugs (D1, D2, D8), one wrong import (D5), and an unhandled error path (D8). Spec/code reviewers earn their keep here — don't shortcut review for "simple" tasks. **Updated rate (post-Task 15):** 6 of 15 tasks (40%) have needed a refinement. Tasks 9, 11, 12, 13, 14, 15 (score refactor + five integration files) all came back Minor-only. Pasted code has stabilized as the build moves out of new-utility territory and into test wiring against existing utilities.
+
+**Subtle plan-bash issue (still occurring):** Task 15's `node -e` snippet mixed `await import()` with `require()`. That works in CommonJS but throws `require is not defined` under `"type":"module"` (this repo). Implementer caught it and ran a pure-ESM equivalent. Pattern: any plan-pasted `node -e` snippet that uses `require` in this repo is broken. Going forward, default to `node --input-type=module -e "..."` with named ESM imports.
 
 ### D8 — emit-manifest spec deviation in plan's pasted code (Task 8)
 
@@ -203,6 +205,19 @@ So `mode ∈ {pitch, standard, comprehensive}` and `tier ∈ {minimum, standard,
 **Implication for Tasks 14–15:** the round-trip test (Task 14) is the path that produces `manifest_seen: true` — that's where you'd see HIGH (or whatever confidence the manifest itself reports, possibly downgraded). The fresh-init / mixed-fixture branches in Task 14 / Task 15 should expect MEDIUM or LOW depending on `scanCompleteRatio`. Don't accidentally assert HIGH on a no-manifest path — it can never happen.
 
 **`scanCompleteRatio` is internal:** it's computed inside `health-writer.js` to gate the MEDIUM/LOW choice but is NOT surfaced as a field in the emitted `.health.json`. D6's distinction (unweighted vs. weighted) only matters internally; downstream consumers see `confidence` + `readiness` + `weighted_complete`/`weighted_total` and that's it.
+
+### D11 — Test goldens are version-coupled but not declared in CLAUDE.md (Task 15 follow-ups, deferred to Task 17)
+
+**Surfaced by Task 15 code reviewer:** Both `cli/test/golden/manifest-from-populated.json` and `cli/test/golden/manifest-from-skill.json` hard-code `generator: brand-cli@0.4.0` / `brand-extract-skill@0.4.0`. CLAUDE.md "Versioning + release" lists three places version must match (`package.json`, `marketplace.json` ×2, `brand-cli.js`) — these two goldens are a fourth/fifth, undocumented. Tests strip `generator` before comparison so staleness doesn't break CI, but readers using the goldens as documentation see stale version strings.
+
+**Also raised:** `manifest-from-skill.json` has no drift-detection against `manifest-from-populated.json`. The two are intended to differ ONLY by the `generator` line. A 10-line `golden-drift.test.js` could enforce that invariant on every CI run and tangentially exercise `validateManifest` against the SKILL-fallback shape (currently a manual one-shot per Task 15 Step 2).
+
+**Carry-forwards for Task 17 (repo docs) consideration:**
+1. Add `cli/test/golden/manifest-from-{populated,skill}.json` to CLAUDE.md's "Versioning + release" version-coupled list. Bumps that touch package.json should bump these too.
+2. Optional: add `cli/test/unit/golden-drift.test.js` asserting `manifest-from-skill === manifest-from-populated` modulo `generator`. ~10 lines, prevents silent drift.
+3. Optional: fix the `_comment` in `manifest-from-skill.json` (currently inherited "Generated by brand-cli", contradicts the `generator: brand-extract-skill@0.4.0` value).
+
+These are Minor enhancements; Task 17 already has a docs scope, but adding code (item 2) would extend it. Don't expand Task 17's scope beyond the plan unless straightforward.
 
 ---
 
