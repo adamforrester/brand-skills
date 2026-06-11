@@ -31,7 +31,7 @@ $ git rev-parse --abbrev-ref HEAD
 feat/manifest-and-health
 
 $ git log --oneline main..HEAD | wc -l
-27    # 18 task/code commits + 9 progress-doc commits
+29    # 18 task/code commits + 11 progress-doc commits
 
 $ git log -1 --format=%H
 <the most recent progress-doc commit on the branch — top of git log main..HEAD>
