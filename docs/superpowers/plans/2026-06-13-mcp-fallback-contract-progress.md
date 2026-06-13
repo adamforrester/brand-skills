@@ -14,6 +14,9 @@ Companion to [`2026-06-13-mcp-fallback-contract.md`](2026-06-13-mcp-fallback-con
 
 ```
 $ git log --oneline main..HEAD
+ee0aaa3 fix(cli): finish v1 to v2 migration in health-writer test fixture + add score v1-reject coverage
+52d1f77 feat(cli): migrate tests + goldens to manifest version: "2"
+22a1236 docs: progress doc through Task 6
 4e17ef0 feat(cli): emit-manifest writes manifest version: "2"
 2c981da docs: progress doc through Task 5
 981be4a feat(schema)!: bump manifest to version: "2" with dependencies + fallback fields
@@ -27,9 +30,9 @@ d796b3d docs: progress doc through Task 2
 c312c97 docs: spec for #3 — MCP fallback contract
 
 $ npm test 2>&1 | tail -5
-# tests 55
-# pass 50
-# fail 5     # mid-migration — Task 7 finishes the repair
+# tests 56
+# pass 56
+# fail 0
 ```
 
 ---
@@ -50,12 +53,13 @@ See the "Things to know that aren't obvious from the codebase" section in the pl
 | 4 | `cli/src/utils/contract-loader.js` (TDD) | `5c9b5d2` | +8 (47 → 55) | DONE first-pass. TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected before implementation. Three exports (`loadContract`, `getStageContract`, `getDependency`); cached singleton at module scope; ajv `strict: true` + `ajv/dist/2020.js` matching manifest-writer/health-writer precedent; lookup helpers return `undefined` for unknown keys (no throws). Spec reviewer ✅ all 6 checks pass; cached identity verified (`assert.equal(a, b)`). Code reviewer **Approve**, six Minor accepted per D7: (a) `addFormats(ajv)` is unused by the contract schema (no `format` keywords) but kept for precedent/insurance; (b) `SCHEMA_PATH`/`CONTRACT_PATH` use column-aligned spaces (cosmetic); (c) cross-link tests intentionally placed with the loader (revisit only if integrity surface triples); (d) no explicit test for validation-failure-throws path (hard-coded paths; refactor would add unwanted configurability); (e) `chain[0]` indexing in test 3 is order-coupled but spec says order is meaningful; (f) reviewer noted this loader is *better* than precedent in one way — Ajv constructed inside `loadContract` rather than at import time, so import is zero-cost (deliberate, justified drift since this loader is rarely called). Reviewer flagged Task 15 will likely want a separate parity-test file; don't bundle it into `contract-loader.test.js`. |
 | 5 | Bump `manifest.schema.json` to version `"2"` | `981be4a` | +0, but **breaks 8** intentionally (55 → 47 pass / 8 fail) | DONE first-pass. Wholesale schema replacement: `version` const `"1"` → `"2"`; `mcps` → `dependencies`; per-stage `fallback_decision` (required) + `chain_entry_used` (oneOf null|object) + `required_dependencies` + `available_dependencies` added; per-dependency `kind` required, `used` → `used_by`; new `$defs/kind` + `$defs/fallbackDecision` enums; `expected_path_glob` optional on dependency entries. **Schema compiles strict-mode-clean** (no Task-2-style if/then issue this time — the new conditionals use `oneOf` which doesn't trip `strictRequired`). Spec reviewer ✅ all 10 checks pass (top-level shape, per-stage required, chain_entry_used oneOf order, per-dependency required, no `used` leakage, `$defs` complete, patternProperties preserved, additionalProperties: false at top, npm test 47/8 split confirmed, v1→v2 negative-test ajv probe rejects v1 + accepts v2-minimal). **Tests fail as designed** in `manifest-writer.test.js` (3), `emit-manifest.test.js` (3), `round-trip.test.js` (2) — repaired in Tasks 6 + 7. Code-quality findings (Minor only, accepted per D7): (a) `$defs/kind` + `$defs/fallbackDecision` lack `description` strings while `confidence` has one; (b) per-stage property ordering puts `confidence` before `fallback_decision` while `required` lists them in opposite order — reading-order mismatch only. No separate `superpowers:code-reviewer` dispatch this task: schema-only commit, all findings already covered Minor by spec reviewer. |
 | 6 | Update fixtures + emit-manifest to v2 | `4e17ef0` | +0, **3 of 8 broken tests pass** mid-migration (47 → 50 pass / 5 fail) | **Implementer subagent died on token expiration mid-flight (footgun [D3]).** All 4 file edits were on disk; controller verified each against the plan byte-for-byte, ran smoke test (printed `version: "2"` + `dependencies` + decorated `kind` per dep), confirmed test-count direction (8 → 5 fail), and committed. New: `loadContract` + `getDependency` imports; `rejectV1` (fires on `version:"1"` literal OR `mcps`-without-`dependencies`); `validateDependencyNames` (rejects unknown deps with valid-list); decoration loop adds `kind` (and `expected_path_glob` for `user_artifact`) from contract — SKILL doesn't send these. Stages passed through verbatim — CLI does NOT compute fallback_decision. Three fixtures (`full-pipeline`, `partial-pipeline`, `no-mcps`) wholesale-replaced with v2 shape. Spec reviewer ✅ all 8 checks pass (rejectV1 wired before tier processing; validateDependencyNames before decoration; decoration handles all four kinds; smoke output correct; v1 reject probe exits 1 with actionable message). Code reviewer **Approve, ready for Task 7**. Six Minor accepted per D7: (a) helpers' `string | null` pattern is fine but JSDoc would help readers; (b) `validateDependencyNames` triggers `loadContract` even on empty deps (cache makes this trivial); (c) extra dep fields silently dropped — defensible since manifest schema is closed; (d) one-sided spec link in second rejectV1 message; (e) hand-aligned fixture formatting now harder to scan after the v2 fields ballooned entries — defer reformat to a separate PR after migration completes; (f) decorator output field order will land as `kind, available, used_by, expected_path_glob` due to conditional assignment — reproducible, harmless. See [D3] for the implementer-died-mid-flight playbook. |
+| 7 | Migrate tests + goldens to v2 (+ refinement [D4]) | `52d1f77`, `ee0aaa3` | +1 (55 → 56) | DONE first-pass (52d1f77) brought tests from 50/5 → 55/0: `score.js` `readManifest` now hard-rejects v1 manifests on disk; `manifest-writer.test.js` `validPayload()` updated to v2; `emit-manifest.test.js` assertions flipped (and extended with `fallback_decision`/`chain_entry_used.name`/`dependencies.playwright.{available,kind}`); both goldens regenerated with `generated_at`/`generator` hand-pinned. Spec reviewer ✅ all 8 checks. **Code reviewer flagged TWO Important findings the plan missed** — refinement (`ee0aaa3`) addressed both: (1) `cli/test/unit/health-writer.test.js` `makeManifest()` was still v1-shape inline (tests passed only because health-writer doesn't read `version`/`mcps`, but contradicted the new score.js v1-reject); (2) the new score.js v1-reject branch had zero coverage — added one integration test in `score-emits-health.test.js`. See [D4] for the lesson on cascading-migration-completeness audits. Two unrelated test files genuinely needed no changes: `round-trip.test.js` (no v1 literals) and `health.version === '1'` in `score-emits-health.test.js` (separate health schema, unchanged). Five Minor findings accepted per D7: (a) §4 in error message is unclear without parenthetical; (b) `process.exit(1)` inside the `readManifest` reader is a control-flow surprise but matches `rejectV1` precedent; (c) version-pinned goldens not yet on CLAUDE.md "three places" list (carry-forward to Task 14); (d) golden field ordering puts `client` last after `dependencies`; (e) `validPayload` over-specifies optional stage fields, but documents producer shape — useful as copy-paste starting point. |
 
 ---
 
 ## Pending tasks
 
-Tasks 7–16 pending. Picking up at Task 7.
+Tasks 8–16 pending. Picking up at Task 8.
 
 ---
 
@@ -84,6 +88,22 @@ strict mode: required property "install_hint" is not defined at "...#/allOf/0/th
 **Why not relax to `strict: false`:** Would diverge from the manifest+health schema precedent. The `properties` mirror is the canonical strict-mode-compatible workaround and adds ~12 lines total across four clauses.
 
 **Implication for Task 4:** `contract-loader.js` should compile with the same `strict: true` config (consistent with peer writers).
+
+### D4 — Cascading-migration audits must scan the FULL test suite, not just plan-listed files (Task 7)
+
+**Lesson:** The Task 7 plan listed five test files to update during the v1 → v2 manifest migration. The implementer followed the plan exactly and hit 55/0 tests passing. But the code reviewer caught that `cli/test/unit/health-writer.test.js` had a v1-shape inline fixture in its `makeManifest()` helper. Tests passed only because `health-writer.js` doesn't read `manifest.version` or `manifest.mcps` — they were dead literals.
+
+**Why it matters:** the new `score.js` `readManifest` v1-reject (added in the same Task 7 commit) means the codebase is now claiming "v1 manifests are not supported." A v1 fixture inside the test suite contradicts that claim and would mislead any future contributor grepping for v1 references.
+
+**Pattern for future migrations:** when a schema bumps, after the plan-listed files are migrated, do one extra grep across the full test suite for the legacy field names + version literals, even if tests are green. Specifically:
+
+```bash
+grep -rn "version, '1'\|version: '1'\|\bmcps\b" cli/test/ | grep -v node_modules
+```
+
+This is a 5-second sanity check that doesn't require new tests — green tests with stale fixtures are a documentation-debt smell that will bite the next contributor.
+
+**Refinement applied (`ee0aaa3`):** bumped `health-writer.test.js` `makeManifest()` to v2 shape (`version: '2'`, `dependencies` with `kind` + `used_by`, per-stage `fallback_decision: 'none'`), AND added a missing integration test for the new `score.js` v1-reject branch (`score-emits-health.test.js`: writes a v1 manifest, runs score, asserts non-zero exit + migration message in stderr). Tests went 55 → 56.
 
 ### D3 — Implementer-died-mid-flight playbook (Task 6)
 
