@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/adamforrester/brand-skills/schemas/mcp-fallback-contract.schema.json",
+  "title": "brand-skills MCP fallback contract",
+  "description": "Per-stage fallback chains and dependency metadata consumed by /brand-context:extract pre-flight + manifest emission. Spec: docs/superpowers/specs/2026-06-13-mcp-fallback-contract-design.md.",
+  "type": "object",
+  "required": ["version", "stages", "dependencies"],
+  "additionalProperties": false,
+  "properties": {
+    "_comment": { "type": "string" },
+    "version": { "const": "1" },
+    "stages": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[1-8]_[a-z_]+$": { "$ref": "#/$defs/stageEntry" }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/dependencyEntry" }
+    }
+  },
+  "$defs": {
+    "kind": { "enum": ["mcp", "http", "user_artifact", "native_tool"] },
+    "qualityLabel": { "enum": ["full", "degraded"] },
+    "stageEntry": {
+      "type": "object",
+      "required": ["purpose", "preconditions", "chain", "skip_behavior"],
+      "additionalProperties": false,
+      "properties": {
+        "purpose": { "type": "string", "minLength": 1 },
+        "preconditions": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["type", "key", "required"],
+                "additionalProperties": false,
+                "properties": {
+                  "type": { "const": "source" },
+                  "key": { "type": "string", "pattern": "^[a-z_]+(\\.[a-z_]+)*$" },
+                  "required": { "type": "boolean" }
+                }
+              },
+              {
+                "type": "object",
+                "required": ["type", "min", "required"],
+                "additionalProperties": false,
+                "properties": {
+                  "type": { "const": "tier" },
+                  "min": { "enum": ["minimum", "standard", "comprehensive"] },
+                  "required": { "type": "boolean" }
+                }
+              }
+            ]
+          }
+        },
+        "chain": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["kind", "name", "quality_label", "fidelity_note"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "$ref": "#/$defs/kind" },
+              "name": { "type": "string", "minLength": 1 },
+              "quality_label": { "$ref": "#/$defs/qualityLabel" },
+              "fidelity_note": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "skip_behavior": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["writes_files", "files_left_as", "downstream_impact"],
+              "additionalProperties": false,
+              "properties": {
+                "writes_files": { "type": "array", "items": { "type": "string" } },
+                "files_left_as": { "enum": ["complete", "partial", "placeholder", "missing", "defaults"] },
+                "downstream_impact": { "type": "string", "minLength": 1 }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "dependencyEntry": {
+      "type": "object",
+      "required": ["kind", "enables_stages"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/kind" },
+        "enables_stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[1-8]_[a-z_]+$" }
+        },
+        "homepage": { "type": ["string", "null"] },
+        "install_hint": { "type": "string" },
+        "install_caveat": { "type": ["string", "null"] },
+        "endpoint": { "type": "string" },
+        "auth": { "enum": ["none", "key"] },
+        "rate_limit_hint": { "type": "string" },
+        "expected_path_glob": { "type": "string" },
+        "format": { "type": "string" },
+        "user_action_hint": { "type": "string" },
+        "always_available": { "const": true }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "mcp" } }, "required": ["kind"] },
+          "then": {
+            "properties": { "install_hint": { "type": "string" } },
+            "required": ["install_hint"]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "http" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "endpoint": { "type": "string" },
+              "auth": { "enum": ["none", "key"] }
+            },
+            "required": ["endpoint", "auth"]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "user_artifact" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "expected_path_glob": { "type": "string" },
+              "user_action_hint": { "type": "string" }
+            },
+            "required": ["expected_path_glob", "user_action_hint"]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "native_tool" } }, "required": ["kind"] },
+          "then": {
+            "properties": { "always_available": { "const": true } },
+            "required": ["always_available"]
+          }
+        }
+      ]
+    }
+  }
+}
