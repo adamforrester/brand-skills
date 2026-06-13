@@ -21,11 +21,14 @@ test('emit-manifest writes a schema-valid manifest from populated fixture', asyn
     assert.equal(existsSync(manifestPath), true);
 
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-    assert.equal(manifest.version, '1');
+    assert.equal(manifest.version, '2');
     assert.equal(manifest.tier, 'standard');
     assert.equal(manifest.client, 'acme');
     assert.equal(manifest.stages['2_web'].ran, true);
-    assert.equal(manifest.mcps.playwright.available, true);
+    assert.equal(manifest.stages['2_web'].fallback_decision, 'none');
+    assert.equal(manifest.stages['2_web'].chain_entry_used.name, 'playwright');
+    assert.equal(manifest.dependencies.playwright.available, true);
+    assert.equal(manifest.dependencies.playwright.kind, 'mcp');
 
     // Compare to golden, excluding generated_at + generator (volatile).
     const golden = JSON.parse(readFileSync(join(GOLDEN, 'manifest-from-populated.json'), 'utf-8'));
@@ -47,7 +50,7 @@ test('emit-manifest --dry-run prints to stdout instead of writing', async () => 
     assert.equal(result.exitCode, 0);
     assert.equal(existsSync(join(brandDir, 'manifest.json')), false);
     const parsed = JSON.parse(result.stdout);
-    assert.equal(parsed.version, '1');
+    assert.equal(parsed.version, '2');
   } finally {
     cleanup();
   }

@@ -7,7 +7,7 @@ import { writeManifest, validateManifest } from '../../src/utils/manifest-writer
 
 function validPayload() {
   return {
-    version: '1',
+    version: '2',
     generated_at: '2026-06-10T14:23:11Z',
     generator: 'brand-cli@0.4.0',
     tier: 'minimum',
@@ -16,10 +16,17 @@ function validPayload() {
       'overview.md': { status: 'complete', bytes: 1000 },
     },
     stages: {
-      '4_overview': { ran: true, wrote: ['overview.md'] },
+      '4_overview': {
+        ran: true,
+        wrote: ['overview.md'],
+        fallback_decision: 'none',
+        chain_entry_used: { kind: 'native_tool', name: 'read', quality_label: 'full' },
+        required_dependencies: [],
+        available_dependencies: ['read'],
+      },
     },
-    mcps: {
-      playwright: { available: false, used: [] },
+    dependencies: {
+      playwright: { kind: 'mcp', available: false, used_by: [] },
     },
   };
 }
@@ -66,7 +73,7 @@ test('writeManifest writes valid JSON to disk and pretty-prints', () => {
     writeManifest(path, validPayload());
     const raw = readFileSync(path, 'utf-8');
     const parsed = JSON.parse(raw);
-    assert.equal(parsed.version, '1');
+    assert.equal(parsed.version, '2');
     // 2-space indent
     assert.match(raw, /\n {2}"version"/);
     // trailing newline
