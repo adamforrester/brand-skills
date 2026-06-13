@@ -14,16 +14,16 @@ Companion to [`2026-06-13-mcp-fallback-contract.md`](2026-06-13-mcp-fallback-con
 
 ```
 $ git log --oneline main..HEAD | head -5
+b7387e3 fix(test): preflight stage-key set assertion + cross-task tripwire comment
+cafc9e7 test(integration): preflight contract decision-math fixtures + tests
+5c6d786 docs: progress doc through Task 10 + refinement
 c3675b4 fix(cli): import-tokens absolute-path test + deterministic file ordering + empty-DTCG test
 038a326 feat(cli): brand-cli import-tokens subcommand
-96ea9e9 docs: progress doc through Task 9
-dd31e34 feat(cli): jina-fetch utility for Stage 3 Tier 2 fallback
-e9eb3fb docs: progress doc through Task 8 + refinement
-…(18 commits ahead of main as of Task 10 refinement)
+…(20 commits ahead of main as of Task 11 refinement)
 
 $ npm test 2>&1 | tail -5
-# tests 75
-# pass 75
+# tests 80
+# pass 80
 # fail 0
 ```
 
@@ -49,12 +49,13 @@ See the "Things to know that aren't obvious from the codebase" section in the pl
 | 8 | dtcg-import.js TDD (+ refinement [D5]) | `48b612f`, `a8df1f3` | +6 first-pass, +2 refinement (56 → 64) | **TDD first-pass (48b612f) caught a real bug in plan-pasted code:** Step 4's `flatName = pathParts.slice(1).join('-')` contradicted Step 2's tests (which asserted `size-body`/`weight-regular` — top-level group preserved as semantic prefix). Implementer DONE_WITH_CONCERNS, fixed by introducing `REDUNDANT_TOP_GROUPS = new Set(['color', 'font', 'typography'])` + `flattenName()` helper that drops only redundant top-level groups (so `color.primary`→`primary` AND `font.family-base`→`family-base`, but `size.body`→`size-body`, `weight.regular`→`weight-regular`, `gradient.hero`→`gradient.hero`). Spec reviewer ✅ deviation is principled, all 9 checks pass. Code reviewer **Approve with three Important findings before SKILL integration in Tasks 12-13** — refinement (a8df1f3) addressed all three: (1) `JSON.parse` now wrapped to re-throw with file path (fail-loud-with-context, matches manifest-writer precedent); (2) `REDUNDANT_TOP_GROUPS` + `$type: dimension` heuristic comments extended with extension hints for future contributors (don't add 'size'/'weight' — those are semantic prefixes); (3) added `nested.tokens.json` fixture + depth-3 test (`color.brand.primary` → `brand-primary` under colors bucket) locking in recursion behavior. Tests 56 → 62 (first-pass) → 64 (refinement). See [D5] for the lesson on plan-test-vs-plan-code contradictions. |
 | 9 | jina-fetch.js (TDD) | `dd31e34` | +5 (64 → 69) | DONE first-pass — implementer used unique tempfile path `/tmp/commit-msg-task9.txt` to sidestep the stale-tempfile footgun (carry-forward [CF-2]: applies to all future tasks; document in CLAUDE.md or progress-doc footguns). Two named exports (`fetchViaJina`, `JinaFetchError`); URL concatenation raw (no encoding — Jina expects unencoded); 429 check fires BEFORE generic non-2xx (otherwise `ok: false` would catch 429 as `http_error`); empty-url throws plain `Error` (input validation, not network); `opts.fetch` injection for tests; no real network. Spec reviewer ✅ all 8 checks pass — manual edge-case probe confirmed `network → JinaFetchError network_error undefined` (no status when fetch itself failed) and `empty → Error` (plain, not JinaFetchError). Code reviewer **Approve as-is**, eleven Minor observations accepted per D7: (1) object-options constructor is the right call vs positional; (2) `??` treats null/undefined the same — fine; (3) 429-before-!ok order is load-bearing — could add a one-line comment for future contributors; (4) no-encoding policy is undocumented — could add a comment; (5) no timeout — defer; (6) `response.text()` errors not caught (would leak as raw Error not JinaFetchError) — defer; (7) empty-string vs falsy URL — broader than necessary but harmless; (8) test coverage gap on body-read errors; (9) test coverage gap on empty-body 200 — Stage 3 prose (Task 13) must check `markdown.trim().length`; (10) error-message wording is good as-is; (11) JSDoc style matches peer convention. None blocking. |
 | 10 | brand-cli import-tokens (+ refinement) | `038a326`, `c3675b4` | +4 first-pass, +2 refinement (69 → 75) | DONE first-pass (038a326) — pure-projection subcommand: scans `./assets/*.tokens.json`, merges via `importDtcgFiles`, emits JSON to stdout. `--file <path>` for explicit single-file mode (handles abs + relative). Failure modes: empty assets dir (clear error + Token Press install hint), file-not-found, parse error (bubbles dtcg-import file-context). Spec reviewer ✅ all 8 checks; manual probe verified merged JSON, no-files error, file-not-found path. Code reviewer **Approve with two findings** — refinement (c3675b4) closed both: (I1) only relative-path `--file` was tested; added an absolute-path test using `join(dir, 'assets', 'colors.tokens.json')`. (M7) `findTokenFiles` relied on OS-dependent `readdirSync` order — added `.sort()` for deterministic merge when two files define the same token name. Plus a cheap M4: added `empty.tokens.json` fixture (`{}`) + test that locks in the empty-state contract for downstream consumers. Five other Minor deferred per D7: I2 (`..` traversal silently accepted) — reviewer recommended leave as-is; M1 (resolved-path in error msg) — UX polish; M3 (no JSDoc on entry) — repo convention is mixed; M5 (sequential reads) — out of scope; M6 (Token Press brand naming) — already says "e.g.", future doc-audit candidate. Tests 69 → 73 (first-pass) → 75 (refinement). |
+| 11 | preflight integration test (+ refinement) | `cafc9e7`, `b7387e3` | +5 first-pass, +0 refinement (75 → 80) | DONE first-pass (cafc9e7) — the most important integration test on this branch. Three new stage-data fixtures (`all-mcps-available`, `no-mcps-jina-available`, `dtcg-only`) exercise the three distinct chain shapes (mcp top-tier, http middle-tier, user_artifact fallback). Five tests via `emitWith()` helper + two negative cases (unknown dep + v1 reject). Cross-task tripwire: test 3 asserts `expected_path_glob === 'assets/*.tokens.json'` verbatim — single-source glob that flows through contract data, manifest schema, SKILL prose, and CLI. Spec reviewer ✅ all 7 checks pass. Code reviewer **Approve as-is**, two Important findings recommended (not blocking) — refinement (b7387e3) picked up both: (I-1) test 1's iteration could vacuously pass if a fixture dropped a stage key; added a `deepEqual` on the sorted stage-key set as the first assertion. (I-2) the cross-task-glob assertion needed an in-file note pointing at the propagation list (contract data, schema, SKILL prose, CLI) so future contributors don't "fix" the test instead of the broken upstream. Five Minor deferred per D7: M-1 (extract `emitWith` to helpers — defer to Task 15 if it wants it); M-2 (`_comment` in fixtures — needs schema check first); M-3 (assert valid-list in unknown-dep stderr — low priority); M-4 (`client` precedence between brandrc and stdin — documented elsewhere); M-5 (sequential subprocess perf — fine at 80 tests / 2.5s). |
 
 ---
 
 ## Pending tasks
 
-Tasks 11–16 pending. Picking up at Task 11.
+Tasks 12–16 pending. Picking up at Task 12.
 
 ---
 
