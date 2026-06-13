@@ -1,0 +1,5 @@
+{
+  "gradient": {
+    "hero": { "$value": "linear-gradient(...)", "$type": "gradient" }
+  }
+}
