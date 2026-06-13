@@ -214,9 +214,23 @@ If they decline, stop. Don't proceed without explicit confirmation.
 
 ## 2. Stage 1 — Figma variable extraction
 
-Skip this stage if `sources.figma` is empty or `figma-console` MCP is unavailable. Log "Stage 1 skipped: no Figma source" and move to Stage 2.
+Stage 1's fallback chain is declared in `schema/mcp-fallback-contract.json` `stages.1_figma`: `figma-console` MCP (full) → `dtcg-tokens-file` (degraded) → SKIP. Pre-flight (§0.5) resolves which entry fires.
 
-For each Figma file ID in `sources.figma`:
+**If `figma-console` MCP fired** (Tier 1, `quality_label: full`): proceed with the steps below.
+
+**If `dtcg-tokens-file` fired** (Tier 2, `quality_label: degraded`): the SKILL has already detected `assets/*.tokens.json`. Use the CLI:
+
+```bash
+brand-cli import-tokens > /tmp/dtcg-tokens.json
+```
+
+Or, when `brand-cli` is absent, invoke the same logic inline by reading each `assets/*.tokens.json` and applying the DTCG normalization documented at `cli/src/utils/dtcg-import.js` (per-token `$value` + `$type` shape; `$type` ∈ `color | dimension | fontFamily | fontWeight | lineHeight | letterSpacing | duration | cubicBezier | shadow`; unknown types preserved verbatim under `unknown[]`).
+
+In either case, hold the resulting token state in memory exactly as you would the `figma-console`-derived state — the bucket shape is the same. Skip the rest of this section's `figma-console` API steps.
+
+**If `fallback_decision: SKIP` resolved** (no figma-console MCP AND no DTCG file): the pre-flight notice (§0.5a Stage 1) has already prompted the practitioner. Honor their choice. Move to Stage 2.
+
+For each Figma file ID in `sources.figma` (figma-console path only):
 
 1. Call `mcp__figma-console__figma_browse_tokens` (or `figma_get_variables` if the file is opened — try `figma_list_open_files` first to see what's accessible).
 2. Filter to the collections in `sources.figma_variable_collections` if specified; otherwise extract all collections.
@@ -230,11 +244,15 @@ For each Figma file ID in `sources.figma`:
 
 **Hold these results in memory** for Stage 4 (token file writing). Do not write yet.
 
-## 3. Stage 2 — Web token extraction (when Playwright is available)
+## 3. Stage 2 — Web token extraction
 
-**Skip this stage entirely if Playwright MCP is not available.** Token extraction needs computed CSS, which WebFetch can't provide. Note the skip in the summary and rely on Stage 1 (Figma) tokens, or — if Stage 1 was also skipped — leave the token files as placeholders with a comment pointing the user at `brand-cli setup` to install Playwright.
+Stage 2's fallback chain is declared in `schema/mcp-fallback-contract.json` `stages.2_web`: `playwright` MCP (full) → SKIP. There is no usable middle tier — computed CSS sampling needs a real browser.
 
-When Playwright is available, this stage always runs alongside Stage 1. Treat as supplementary to Stage 1 (or primary if Stage 1 was skipped).
+**If `playwright` fired**: proceed with the steps below alongside Stage 1.
+
+**If `fallback_decision: SKIP` resolved**: the pre-flight notice (§0.5a Stage 2) has already prompted the practitioner. Honor their choice — leave token files reflecting Stage 1 only, or as placeholders if Stage 1 also skipped.
+
+When Stage 2 runs, treat it as supplementary to Stage 1 (or primary if Stage 1 was skipped).
 
 1. Use Playwright MCP to navigate to `sources.website`. Take screenshots at desktop (1280px) and mobile (390px) widths.
 2. Inject `getComputedStyle` queries via `mcp__playwright__browser_evaluate`. Sample these elements:
@@ -273,12 +291,18 @@ If `sources.website` is missing, you should already have prompted for it in Stag
 
 Use the best available tool — Playwright when present, native `WebFetch` as the fallback. Quality differs; surface the difference in the summary.
 
-**Playwright path (preferred — full quality):**
+**Playwright path (Tier 1 — full quality):**
 1. `mcp__playwright__browser_navigate` to the URL
 2. `mcp__playwright__browser_snapshot` to get the accessibility tree (preferred — gives semantic structure with role labels)
 3. If snapshot is sparse, fall back to `mcp__playwright__browser_evaluate` with a script that walks `document.querySelectorAll('h1, h2, h3, [role="heading"], button, a, .cta, [aria-label], [class*="error"], nav a, footer a, .toast, .notice')` and returns `{tag, role, textContent, ariaLabel, className}` for each.
 
-**WebFetch path (fallback when Playwright is missing — degraded quality):**
+**Jina Reader path (Tier 2 — degraded; fires when Playwright MCP is absent and Jina is reachable):**
+1. `GET https://r.jina.ai/<url>` (no auth, no API key). The SKILL fetches this directly from its own runtime (Bash `curl` or, if `Bash` isn't available, native `WebFetch` against the `r.jina.ai/<url>` URL). The CLI utility at `cli/src/utils/jina-fetch.js` is the canonical Node implementation — read it for the exact rate-limit handling, but the SKILL prose path doesn't import code; it just makes the request.
+2. Jina returns rendered Markdown with hierarchical headings preserved. You don't get the accessibility tree, so role labels (`button`, `[aria-live]`, etc.) aren't available — sample classification falls back to heuristics (heading levels for `headline`; line shape + verb cues for `cta`; bullets/`-`/`>` patterns for `nav`).
+3. Cap confidence at MEDIUM regardless of sample count — this is the contract's `quality_label: degraded` for jina-reader.
+4. On `429` rate-limit or any other non-2xx (including network unreachable), fall through to WebFetch automatically. Update the manifest's `chain_entry_used` to whichever entry actually succeeded.
+
+**WebFetch path (Tier 3 — degraded; fires when Playwright AND Jina are both unavailable):**
 1. Call the native `WebFetch` tool with the URL and a prompt asking for "all visible text content grouped by document position."
 2. Parse the returned text into samples — without the accessibility tree, you'll need to make heuristic calls about classification (headline vs body vs CTA). Mark each sample's confidence accordingly.
 3. App-store and social-platform fallbacks: WebFetch handles plain marketing pages well. JS-heavy SPAs may return sparse content; note that as a limitation in the summary.
@@ -820,17 +844,24 @@ cat <<'JSON' | brand-cli emit-manifest
   "tier": "{tier}",
   "client": "{client}",
   "stages": {
-    "1_figma":     {"ran": <bool>, "wrote": [<paths>], "reason": "<if skipped>"},
-    "2_web":       {"ran": <bool>, "wrote": [<paths>], "confidence": "<HIGH|MEDIUM|LOW>"},
-    "3_voice":     {"ran": <bool>, "wrote": ["voice.md"], "samples": <n>, "confidence": "<...>"},
-    "4_overview":  {"ran": <bool>, "wrote": ["overview.md"], "sources": [<sources>]},
-    "5_conflicts": {"ran": <bool>, "wrote": ["conflicts.md"], "active": <n>},
-    "6_components":{"ran": <bool>, "wrote": [<paths>], "reason": "<if skipped>"},
-    "8_brand_md":  {"ran": true, "wrote": ["../brand.md","../design.md"]}
+    "1_figma":     { "ran": <bool>, "wrote": [<paths>], "reason": "<if skipped>",
+                     "fallback_decision": "<none|DOWNGRADE|SKIP>",
+                     "chain_entry_used": { "kind": "<kind>", "name": "<dep-name>", "quality_label": "<full|degraded>" },
+                     "required_dependencies": [<names>], "available_dependencies": [<names>] },
+    "2_web":       { ... same shape, plus "confidence": "<HIGH|MEDIUM|LOW>" when ran },
+    "3_voice":     { ... plus "samples": <n>, "confidence": "..." },
+    "4_overview":  { ... plus "sources": [<sources>] },
+    "5_conflicts": { ... plus "active": <n> },
+    "6_components":{ ... },
+    "8_brand_md":  { ... }
   },
-  "mcps": {
-    "playwright":    {"available": <bool>, "used": [<stage_keys>]},
-    "figma_console": {"available": <bool>, "used": [<stage_keys>]}
+  "dependencies": {
+    "figma-console":    { "available": <bool>, "used_by": [<stage_keys>] },
+    "playwright":       { "available": <bool>, "used_by": [<stage_keys>] },
+    "jina-reader":      { "available": <bool>, "used_by": [<stage_keys>] },
+    "dtcg-tokens-file": { "available": <bool>, "used_by": [<stage_keys>] },
+    "webfetch":         { "available": <bool>, "used_by": [<stage_keys>] },
+    "read":             { "available": <bool>, "used_by": [<stage_keys>] }
   },
   "file_overrides": {
     "<path>": {"status": "defaults", "note": "<reason>"}
@@ -839,20 +870,21 @@ cat <<'JSON' | brand-cli emit-manifest
 JSON
 ```
 
-Use `file_overrides` to mark any file `defaults` (low-confidence inferred content) or `partial` (sections missing). Without overrides, the CLI scans `.brand/` and reports `complete` / `placeholder` / `missing` from content alone.
+The CLI decorates each emitted `dependencies[name]` entry with `kind` (and `expected_path_glob` for `user_artifact` entries) from the contract — the SKILL doesn't need to send those fields. Dependency names are validated against `schema/mcp-fallback-contract.json`; an unknown name (typo, or a dep not in the contract) hard-rejects with exit 1.
 
 **Inline fallback (CLI absent):**
 
 Construct the manifest in memory and `Write` to `.brand/manifest.json`. The reference shape — including every required field with a concrete example value — is at `cli/test/golden/manifest-from-skill.json` in the brand-skills repo. Mirror that shape exactly.
 
-The non-derivable fields the SKILL must set itself:
+The non-derivable fields the SKILL must set itself (manifest schema `version: "2"`):
 
-- `version`: `"1"` (literal — schema enforces a const)
-- `generated_at`: ISO-8601 datetime (e.g. `"2026-06-10T15:30:00Z"`)
+- `version`: `"2"` (literal — schema enforces a const)
+- `generated_at`: ISO-8601 datetime (e.g. `"2026-06-13T15:30:00Z"`)
 - `generator`: `brand-extract-skill@<plugin-version>`
 - `tier`, `client`: from `.brandrc.yaml`
-- `stages`, `mcps`: from stage-execution data accumulated through the run (use the keys shown in the CLI-path JSON example above)
-- `files`: an object keyed by relative path under `.brand/`, with each entry `{"status": "<enum>", "bytes": <integer>}` (and an optional `"note": "<reason>"` for `defaults`/`partial` statuses). Apply the same content-scan logic the CLI uses — placeholder marker, frontmatter inspection, body length — to assign one of `complete | partial | placeholder | missing | defaults`. Include every file under `.brand/`, not just the ones listed in `file_overrides`.
+- `stages`: per-stage object keyed by stage key (`1_figma` … `8_brand_md`, no `7_*`). Every entry has `ran` (bool) and `fallback_decision` (one of `"none" | "DOWNGRADE" | "SKIP" | "HALT"`). When `ran: true`, also include `chain_entry_used: { kind, name, quality_label }`. When `fallback_decision: "SKIP"`, set `chain_entry_used: null`. Always include `required_dependencies` (names from the contract chain marked `quality_label: "full"`) and `available_dependencies` (names you detected as available in §0.5). Stage-specific extras (`wrote`, `samples`, `confidence`, `sources`, `active`) are unchanged from `version: "1"`.
+- `dependencies`: object keyed by dependency name (must match a name in `schema/mcp-fallback-contract.json` `dependencies` — typos hard-reject the manifest at validation). Each entry has `kind` (must equal the contract's `kind` for that name), `available` (bool), `used_by` (array of stage keys that consumed this dependency). For `user_artifact` entries, also include `expected_path_glob` mirroring the contract.
+- `files`: object keyed by relative path under `.brand/`, with each entry `{ "status": "<enum>", "bytes": <integer> }` (and an optional `"note": "<reason>"` for `defaults`/`partial`). Apply the same content-scan logic the CLI uses — placeholder marker, frontmatter inspection, body length — to assign one of `complete | partial | placeholder | missing | defaults`. Include every file under `.brand/`, not just the ones listed in `file_overrides`.
 
 ## 11. Final summary
 
