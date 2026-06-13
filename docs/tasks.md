@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-13 — #3 ready for merge on `feat/mcp-fallback-contract`.
+**Last updated:** 2026-06-13 — #3 merged to `main` via local merge commit `4383a94` (no PR — `--no-ff` merged from `feat/mcp-fallback-contract`; the feature branch is preserved on origin for history).
 
 ---
 
