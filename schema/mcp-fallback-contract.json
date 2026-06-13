@@ -1,0 +1,123 @@
+{
+  "_comment": "Source of truth for MCP-fallback contract. Read by SKILL prose (mirrored as a markdown table) and by brand-cli. See schema/mcp-fallback-contract.schema.json for validation. Spec: docs/superpowers/specs/2026-06-13-mcp-fallback-contract-design.md.",
+  "version": "1",
+  "stages": {
+    "1_figma": {
+      "purpose": "Figma variable extraction — populates tokens/{colors,typography,spacing,surfaces}.md.",
+      "preconditions": [
+        { "type": "source", "key": "sources.figma", "required": false }
+      ],
+      "chain": [
+        { "kind": "mcp",           "name": "figma-console",     "quality_label": "full",     "fidelity_note": "Full file walk; collections, modes, alias chains preserved" },
+        { "kind": "user_artifact", "name": "dtcg-tokens-file",  "quality_label": "degraded", "fidelity_note": "DTCG export from a Figma plugin; modes captured if exporter included them, alias chains usually flattened" }
+      ],
+      "skip_behavior": {
+        "writes_files": [],
+        "files_left_as": "placeholder",
+        "downstream_impact": "Figma-derived tokens absent; Stage 2 (web tokens) becomes sole token source if available"
+      }
+    },
+    "2_web": {
+      "purpose": "Web token extraction (computed CSS) — populates tokens/{colors,typography,spacing,surfaces}.md alongside Stage 1.",
+      "preconditions": [
+        { "type": "source", "key": "sources.website", "required": false }
+      ],
+      "chain": [
+        { "kind": "mcp", "name": "playwright", "quality_label": "full", "fidelity_note": "Headless browser + computed CSS sampling" }
+      ],
+      "skip_behavior": {
+        "writes_files": [],
+        "files_left_as": "placeholder",
+        "downstream_impact": "Web-derived tokens absent; if Stage 1 also skipped, token files stay as placeholders"
+      }
+    },
+    "3_voice": {
+      "purpose": "Voice extraction from live channels — populates voice.md observed-voice section.",
+      "preconditions": [
+        { "type": "source", "key": "sources.website", "required": true }
+      ],
+      "chain": [
+        { "kind": "mcp",         "name": "playwright",  "quality_label": "full",     "fidelity_note": "Accessibility tree + DOM evaluation" },
+        { "kind": "http",        "name": "jina-reader", "quality_label": "degraded", "fidelity_note": "JS-rendered markdown via r.jina.ai; loses accessibility tree" },
+        { "kind": "native_tool", "name": "webfetch",    "quality_label": "degraded", "fidelity_note": "SSR sites only; SPAs return sparse content" }
+      ],
+      "skip_behavior": null
+    },
+    "4_overview": {
+      "purpose": "Multimodal analysis — populates overview.md from PDFs and screenshots.",
+      "preconditions": [],
+      "chain": [
+        { "kind": "native_tool", "name": "read", "quality_label": "full", "fidelity_note": "Native Read tool handles PDFs and images" }
+      ],
+      "skip_behavior": null
+    },
+    "5_conflicts": {
+      "purpose": "Cross-source conflict detection — populates conflicts.md.",
+      "preconditions": [],
+      "chain": [
+        { "kind": "native_tool", "name": "read", "quality_label": "full", "fidelity_note": "Native Read tool over .brand/ files" }
+      ],
+      "skip_behavior": null
+    },
+    "6_components": {
+      "purpose": "Design-system repo scan (comprehensive tier only) — populates components/*.md.",
+      "preconditions": [
+        { "type": "tier",   "min": "comprehensive",                "required": true },
+        { "type": "source", "key": "sources.design_system_repo",   "required": true }
+      ],
+      "chain": [
+        { "kind": "native_tool", "name": "read", "quality_label": "full", "fidelity_note": "Native Read tool over the cloned/local repo" }
+      ],
+      "skip_behavior": null
+    },
+    "8_brand_md": {
+      "purpose": "Regenerate brand.md and design.md at project root from .brand/.",
+      "preconditions": [],
+      "chain": [
+        { "kind": "native_tool", "name": "read", "quality_label": "full", "fidelity_note": "Native Read + Write" }
+      ],
+      "skip_behavior": null
+    }
+  },
+  "dependencies": {
+    "figma-console": {
+      "kind": "mcp",
+      "homepage": null,
+      "install_hint": "claude mcp add figma-console -s user -- npx -y @figma-console/mcp@latest",
+      "install_caveat": "Originally distributed with the XD-toolkit. Outside that ecosystem, install separately. Note: the official Figma MCP (Dev Mode) is a different package — its read-only variable extraction is per-selection only, not file-wide; not a substitute.",
+      "enables_stages": ["1_figma"]
+    },
+    "playwright": {
+      "kind": "mcp",
+      "homepage": "https://github.com/microsoft/playwright-mcp",
+      "install_hint": "claude mcp add playwright -s user -- npx -y @playwright/mcp@latest",
+      "install_caveat": null,
+      "enables_stages": ["2_web", "3_voice"]
+    },
+    "jina-reader": {
+      "kind": "http",
+      "endpoint": "https://r.jina.ai/<URL>",
+      "auth": "none",
+      "rate_limit_hint": "20 RPM keyless; 10000 req/60s global IP cap",
+      "homepage": "https://jina.ai/reader",
+      "enables_stages": ["3_voice"]
+    },
+    "dtcg-tokens-file": {
+      "kind": "user_artifact",
+      "expected_path_glob": "assets/*.tokens.json",
+      "format": "W3C Design Tokens Community Group (DTCG)",
+      "user_action_hint": "Export tokens from Figma using any DTCG-compatible plugin (Token Press is one validated option: https://www.figma.com/community/plugin/1560757977662930693/token-press-dtcg-exporter) and save the JSON into ./assets/.",
+      "enables_stages": ["1_figma"]
+    },
+    "webfetch": {
+      "kind": "native_tool",
+      "always_available": true,
+      "enables_stages": ["3_voice"]
+    },
+    "read": {
+      "kind": "native_tool",
+      "always_available": true,
+      "enables_stages": ["4_overview", "5_conflicts", "6_components", "8_brand_md"]
+    }
+  }
+}
