@@ -24,6 +24,12 @@ async function emitWith(stageDataName) {
 
 test('preflight: all MCPs available — every stage fallback_decision: none', async () => {
   const m = await emitWith('all-mcps-available.json');
+  // Lock the stage-key set so a silently-dropped stage in the fixture would
+  // fail loudly here rather than producing a vacuously-true loop pass.
+  assert.deepEqual(
+    Object.keys(m.stages).sort(),
+    ['1_figma', '2_web', '3_voice', '8_brand_md'],
+  );
   for (const [stageKey, stage] of Object.entries(m.stages)) {
     assert.equal(stage.fallback_decision, 'none', `${stageKey} should be 'none'`);
     assert.notEqual(stage.chain_entry_used, null);
@@ -52,6 +58,10 @@ test('preflight: dtcg-only — Stage 1 DOWNGRADE via user_artifact', async () =>
   assert.equal(m.stages['1_figma'].chain_entry_used.kind, 'user_artifact');
   assert.equal(m.stages['1_figma'].chain_entry_used.name, 'dtcg-tokens-file');
   assert.equal(m.dependencies['dtcg-tokens-file'].kind, 'user_artifact');
+  // Cross-task tripwire: 'assets/*.tokens.json' is the single-source glob for
+  // the dtcg-tokens-file user_artifact. If this fails, also check the contract
+  // data (schema/mcp-fallback-contract.json), manifest schema, SKILL prose
+  // (brand-extract §0.5 + Stage 1), and CLI default before "fixing" the test.
   assert.equal(m.dependencies['dtcg-tokens-file'].expected_path_glob, 'assets/*.tokens.json');
 });
 
