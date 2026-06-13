@@ -14,16 +14,16 @@ Companion to [`2026-06-13-mcp-fallback-contract.md`](2026-06-13-mcp-fallback-con
 
 ```
 $ git log --oneline main..HEAD | head -5
+b4e57dd test(unit): SKILL <-> contract parity
+35e5c93 docs: progress doc through Task 14
 3d37a4d fix(docs): drop stale Stage 7 reference in README Decoupling notes
 6ceafd1 docs: propagate MCP-fallback-contract to repo-level docs
 5b2df16 docs: progress doc through Task 13
-c0c6ded feat(skill): wire Stages 1/2/3/10b to the MCP-fallback contract
-26d29ea docs: progress doc through Task 12
-…(27 commits ahead of main as of Task 14 + fix)
+…(29 commits ahead of main as of Task 15)
 
 $ npm test 2>&1 | tail -5
-# tests 80
-# pass 80
+# tests 85
+# pass 85
 # fail 0
 ```
 
@@ -53,12 +53,13 @@ See the "Things to know that aren't obvious from the codebase" section in the pl
 | 12 | SKILL §0.5 Pre-flight dependency check | `18ee4d7` | +0 tests (80 → 80; SKILL prose isn't covered until Task 15) | DONE first-pass — wholesale `### 0f` block replaced with a 3-line pointer (no detection-logic duplication) + new `## 0.5` top-level section inserted. Two questions documented: per-dependency availability check by `kind` (mcp/http/user_artifact/native_tool); per-stage `fallback_decision` resolution rules (`none`/`DOWNGRADE`/`SKIP`/`HALT` — HALT reserved-but-unused). `### 0.5a` carries three notice templates (Stage 1 SKIP with all three options + XD-toolkit caveat + official-Figma-MCP-not-a-substitute warning + Token Press URL verbatim; Stage 2 SKIP with playwright install + `brand-cli setup`; Stage 3 DOWNGRADE with Jina URL + "MEDIUM, not HIGH" cap + WebFetch fallthrough addendum). `### 0.5b` covers embedded mode (`interactive_preflight: false` AND `BRAND_SKILLS_NONINTERACTIVE=1`). DTCG glob `assets/*.tokens.json` verbatim. Stage 7 absent (numbering `3 / 4 / 5 / 6 / 8` preserved). Heading delta: `## ` 23 → 24, `### ` 39 → 41. Line count 827 → 918 (+91, within 80-100 expected). Spec reviewer ✅ all 14 checks pass. No code-quality dispatch — prose-only, all findings already covered by spec reviewer. |
 | 13 | SKILL Stages 1/2/3/10b updates | `c0c6ded` | +0 tests (80 → 80; Task 15 parity test will catch SKILL drift) | DONE first-pass — Stage 1 (`§2`) prose now references `stages.1_figma` chain with three branches (figma-console fired / dtcg-tokens-file fired / SKIP); DTCG fallback path mentions `brand-cli import-tokens` + lists all 9 `$type` values. Stage 2 (`§3`) heading de-qualified ("when Playwright is available" dropped); prose collapsed to contract pointer (no middle tier). Stage 3 (`§4b`) gains a NEW Tier 2 Jina Reader path between Playwright (now relabeled Tier 1) and WebFetch (now Tier 3) — covers Jina URL, `cli/src/utils/jina-fetch.js` reference, classification heuristics for headline/cta/nav, MEDIUM confidence cap, 429 fall-through to WebFetch with manifest `chain_entry_used` update. Stage 10b CLI-path JSON heredoc updated to v2 shape: per-stage `fallback_decision` + `chain_entry_used` + `required_dependencies` + `available_dependencies`; top-level `dependencies` (NOT `mcps`) with all 6 names; CLI decorates `kind` + `expected_path_glob` from contract; unknown names hard-reject. Stage 10b Inline fallback prose enumerates all 4 new per-stage fields + `version: "2"` literal + `kind`-must-match-contract rule (closes the D12 gap from manifest+health precedent: SKILL inline-fallback prose audited against schema's `required` fields list). Heading delta: 63 → 65 (+2, two new bold path-tier headings inside Stage 3). Line count 905 → 950 (+45). Diff stat: 55 insertions, 23 deletions. Spec reviewer ✅ all 16 checks pass; no leftover `mcps` references anywhere in the file. No code-quality dispatch — prose-only. |
 | 14 | Repo docs propagation (+ Stage 7 fix) | `6ceafd1`, `3d37a4d` | +0 tests (80 → 80; doc-only) | DONE first-pass (6ceafd1) — five files updated: CLAUDE.md (arch diagram + manifest v2 row + versioning sub-bullet + editing checklist item 1); README.md (pipeline table rebuilt with fallback chains, Stage 7 row dropped → 7 rows total, fallback-chains-as-data paragraph); schema/brand/README.md (2 cross-link bullets); docs/DESIGN.md ("No required MCP installs" expanded with three chain sub-bullets + native floor); docs/tasks.md (#3 → Completed with `### #3 ✅` heading; Last updated bumped). Spec reviewer ✅ all 13 checks pass. **One Minor outside the Task 14 spec** — `README.md:143` "Decoupling notes" paragraph still listed "Stages 4, 5, 6, 7, 8" (stale Stage-7 reference inside the same file Task 14 had just collapsed). Picked up inline via `3d37a4d` — one-char fix removing `7,`. CF-1 carry-forward (spec §3 Voice fidelity_note wording) deliberately deferred to a post-merge cleanup PR per plan. |
+| 15 | SKILL ↔ contract parity test | `b4e57dd` | +5 (80 → 85) | DONE first-pass — 47-line unit test guarding SKILL/contract drift across five dimensions: every dependency name, every stage key, all four `fallback_decision` verbs, the DTCG glob (read from the contract — not hardcoded), and the `version: "2"` reference. All 5 tests passed first run, confirming Tasks 12 + 13 left no SKILL/contract drift. The test reads SKILL.md once at module load via `readFileSync`, imports `loadContract` from the Task 4 utility. Tests 1+2 use the `missing[]` accumulator + `assert.deepEqual(missing, [], <name-the-missing>)` pattern so failures self-report the bad string. Spec reviewer ✅ all 11 checks pass — sanity probe printed 18 OK lines (6 deps + 7 stages + 1 glob + 4 verbs). |
 
 ---
 
 ## Pending tasks
 
-Tasks 15–16 pending. Picking up at Task 15.
+Task 16 pending — final verification + cross-branch review + branch handoff.
 
 ---
 
