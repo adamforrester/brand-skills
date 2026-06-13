@@ -58,3 +58,19 @@ test('importDtcgFile preserves unknown $type entries verbatim', () => {
   assert.equal(result.unknown[0].$type, 'gradient');
   assert.equal(result.unknown[0].path, 'gradient.hero');
 });
+
+test('importDtcgFile throws with file context on invalid JSON', () => {
+  assert.throws(
+    () => importDtcgFile(resolve(FIXTURES, 'invalid-json.tokens.json')),
+    /not valid JSON/
+  );
+});
+
+test('importDtcgFile handles depth-3 nesting (e.g., color.brand.primary)', () => {
+  const result = importDtcgFile(resolve(FIXTURES, 'nested.tokens.json'));
+  // Top-level 'color' is dropped (REDUNDANT_TOP_GROUPS); rest joins with -
+  assert.equal(result.colors['brand-primary'],   '#E2231A');
+  assert.equal(result.colors['brand-secondary'], '#FFB81C');
+  assert.equal(result.colors['neutral-50'],      '#F8F8F8');
+  assert.equal(result.colors['neutral-900'],     '#1A1A1A');
+});

@@ -48,6 +48,11 @@ function walkGroup(node, pathParts, state) {
 // (the bucket is 'colors'); font.family-base → 'family-base' (typography).
 // size.body / weight.regular / spacing.lg keep their top-level prefix because
 // it carries semantic meaning within the bucket.
+//
+// To extend: add a new top-level group name here when a real-world DTCG
+// export uses it as a bucket-redundant container (e.g., 'colors' plural,
+// 'palette', 'text'). Don't add 'size' or 'weight' — those are semantic
+// prefixes within typography.
 const REDUNDANT_TOP_GROUPS = new Set(['color', 'font', 'typography']);
 
 function flattenName(pathParts) {
@@ -71,7 +76,10 @@ function placeToken(node, pathParts, state) {
   }
   if ($type === 'dimension') {
     // Heuristic: top-level group 'font' / 'typography' / 'size' is typography
-    // sizing; everything else (spacing, space, etc.) is spacing.
+    // sizing; everything else (spacing, space, etc.) is spacing. To extend
+    // for new typography-sizing layouts, add the group name to this conditional.
+    // The SKILL surfaces uncertainty via unknown[] only for unknown $type
+    // values — ambiguous dimension placement is silently bucketed per this rule.
     const top = pathParts[0];
     if (top === 'font' || top === 'typography' || top === 'size') {
       state.typography[flatName] = $value;
@@ -94,7 +102,12 @@ function placeToken(node, pathParts, state) {
  */
 export function importDtcgFile(absPath) {
   const raw = readFileSync(absPath, 'utf-8');
-  const parsed = JSON.parse(raw);
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`DTCG file ${absPath} is not valid JSON: ${err.message}`);
+  }
   const state = emptyState();
   walkGroup(parsed, [], state);
   return state;
