@@ -104,14 +104,105 @@ After writing, show the final `sources:` block to the practitioner so they can c
 
 ### 0f. Detect available tools
 
-Now check MCP availability — warn, don't block:
+Tool detection is now driven by the MCP-fallback contract — see §0.5 below.
+This subsection is preserved as a pointer so the §0a–§0e numbering still
+follows on naturally; do not duplicate the detection logic here.
 
-- Run `claude mcp list`. Note whether `playwright` and `figma-console` are listed and connected.
-- **No MCPs detected at all.** Fine — Stages 4, 5, 6, 7, 8 run native. Stage 2 (web tokens) will be skipped, Stage 3 (voice) falls back to native `WebFetch`. Surface this in the scope-confirmation message.
-- **Playwright missing.** Stage 2 skipped, Stage 3 degrades to WebFetch. Suggest `brand-cli setup` (one-command install, no signup) or `claude mcp add playwright -s user -- npx -y @playwright/mcp@latest`.
-- **Figma Console missing AND `sources.figma` is set.** Stage 1 skipped. Surface a note. Continue with Stage 2.
+## 0.5 Pre-flight dependency check (contract-driven)
 
-Stop only when no useful input is available at all (no website, no PDFs, no screenshots, no Figma) — and even then, surface a clear "I have nothing to extract from. Drop assets into `./assets/` or paste a URL, then re-run" message rather than crashing.
+The contract at `schema/mcp-fallback-contract.json` declares per-stage fallback
+chains. Pre-flight check answers two questions before the pipeline runs:
+
+1. **Per dependency: is it available?** Passive checks only (no active prompting):
+   - `kind: mcp` — run `claude mcp list`; treat as available if name appears AND status is `connected`.
+   - `kind: http` — best-effort GET against the endpoint root (Jina: `GET https://r.jina.ai/`); treat 2xx/3xx as available, anything else (including network unreachable) as unavailable. Skip the probe if the user is offline; record `available: false` silently.
+   - `kind: user_artifact` — check the `expected_path_glob` (e.g., `assets/*.tokens.json`) on disk. Available if at least one matching file exists.
+   - `kind: native_tool` — always available.
+
+2. **Per stage: what's the resolved `fallback_decision`?** Walk the stage's `chain` top-to-bottom; the first available entry fires. Apply this rule to set the manifest fields the stage will emit:
+   - **Pre-conditions fail** (e.g., `sources.figma` empty AND `dtcg-tokens-file` not present): `fallback_decision: "SKIP"`, `chain_entry_used: null`, `reason: "<which precondition unmet>"`. The chain itself was never asked to fire.
+   - **Top-of-chain entry fired**: `fallback_decision: "none"`, `chain_entry_used: { kind, name, quality_label: "full" }`.
+   - **Lower entry fired**: `fallback_decision: "DOWNGRADE"`, `chain_entry_used: { kind, name, quality_label: "degraded" }`.
+   - **Chain exhausted, no native floor** (only stages 1 + 2 today): `fallback_decision: "SKIP"`, `chain_entry_used: null`.
+   - **Chain has a `native_tool` floor** (stages 3 / 4 / 5 / 6 / 8): always reaches at least the native floor; never SKIP at chain-floor. Reserved verb `HALT` is not used by any stage today; it remains in the contract vocabulary for future stages that cannot proceed at all without a specific dependency.
+
+Hold the resolved per-stage decisions in memory. They flow into the Section 10b manifest emission alongside `required_dependencies` (names from contract chain marked `quality_label: full`) and `available_dependencies` (names actually detected as available).
+
+### 0.5a. Surface notices to the practitioner
+
+For each stage where `fallback_decision ∈ {"SKIP", "DOWNGRADE"}` AND the stage's preconditions are met, surface a notice **before** asking "ready to proceed?" in §1 (scope confirmation). Templates use the contract's `install_hint`, `install_caveat`, `fidelity_note`, and `user_action_hint` fields.
+
+**Stage 1 (figma-console missing AND no DTCG file, but `sources.figma` set):**
+
+```
+⚠ Stage 1 — Figma variable extraction will SKIP
+
+Reason: Neither figma-console MCP nor a DTCG token export is available.
+You provided sources.figma=<URL>, so without one of these, Figma extraction can't run.
+
+Options before we proceed:
+  a) Install figma-console MCP (originally distributed with XD-toolkit; install separately):
+     claude mcp add figma-console -s user -- npx -y @figma-console/mcp@latest
+     Note: the official Figma MCP (Dev Mode) is a different package — its variable
+     extraction is per-selection, not file-wide; not a substitute.
+  b) Export your Figma variables as DTCG JSON and drop the file into ./assets/.
+     Any DTCG-compatible Figma plugin works; we've validated Token Press:
+     https://www.figma.com/community/plugin/1560757977662930693/token-press-dtcg-exporter
+  c) Proceed without Figma variables — token files will stay as placeholders;
+     Stage 2 (web token extraction) will still run if Playwright is available.
+
+Which? (a / b / c)
+```
+
+**Stage 1 (figma-console missing, DTCG file present):** No SKIP — fallback fires. Surface a one-line DOWNGRADE note inline in the §1 scope confirmation rather than a full notice block: "Stage 1 will use your DTCG export (`{filename}`) instead of figma-console; quality is comparable for primitive values, alias chains may flatten."
+
+**Stage 2 (Playwright missing, but `sources.website` set):**
+
+```
+⚠ Stage 2 — Web token extraction will SKIP
+
+Reason: Playwright MCP not available. There's no usable middle tier — token
+extraction needs computed CSS, which keyless HTTP services don't expose.
+
+Options before we proceed:
+  a) Install Playwright MCP for full quality (recommended):
+     claude mcp add playwright -s user -- npx -y @playwright/mcp@latest
+     Or run `brand-cli setup` for the same one-line install.
+  b) Proceed without web tokens — Stage 1 (Figma or DTCG) tokens will be
+     primary; if Stage 1 also can't run, token files stay as placeholders.
+
+Which? (a / b)
+```
+
+**Stage 3 (Playwright missing, but `sources.website` set):**
+
+```
+⚠ Stage 3 — Voice extraction will DOWNGRADE
+
+Reason: Playwright MCP not available.
+Falling back to Jina Reader (https://r.jina.ai/, keyless) — captures rendered text
+on JS-heavy SPAs. Quality is comparable for voice samples; you lose the
+accessibility tree (semantic role labels), so confidence will be MEDIUM, not HIGH.
+
+Continue with Jina, or:
+  a) Install Playwright MCP for full quality:
+     claude mcp add playwright -s user -- npx -y @playwright/mcp@latest
+
+Continue with Jina? (yes / a)
+```
+
+If Jina is also unreachable, the SKILL falls through to WebFetch automatically — adjust the notice to read "Falling back to native WebFetch (SSR sites only; SPAs return sparse content)" before proceeding. If WebFetch also fails at runtime (page returns 404), that's a runtime error not a fallback decision; let Stage 3 surface it normally.
+
+**No notice when:**
+- `fallback_decision: "none"` (top-tier dependency available)
+- The stage's pre-condition was not met (e.g., `sources.figma` empty AND no DTCG file → no notice; that's a configuration choice, not a fallback)
+- `interactive_preflight: false` is set in `.brandrc.yaml` — embedded mode; record the decisions silently for the manifest, do not prompt
+
+### 0.5b. Embedded mode
+
+If `.brandrc.yaml` has `interactive_preflight: false` (or the env var `BRAND_SKILLS_NONINTERACTIVE=1` is set), skip §0.5a entirely. Decisions still resolve and flow to the manifest, but the SKILL does not prompt. Hosts read `manifest.json` `stages[*].fallback_decision` + `chain_entry_used` and decide what to do.
+
+Stop only when no useful input is available at all (no website, no PDFs, no screenshots, no Figma, no DTCG file) — and even then, surface a clear "I have nothing to extract from. Drop assets into `./assets/` or paste a URL, then re-run" message rather than crashing.
 
 ## 1. Confirm scope with the practitioner
 
