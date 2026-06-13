@@ -1,0 +1,34 @@
+{
+  "tier": "minimum",
+  "client": "acme",
+  "stages": {
+    "1_figma":   { "ran": true, "wrote": ["tokens/colors.md"],
+                   "fallback_decision": "none",
+                   "chain_entry_used": { "kind": "mcp", "name": "figma-console", "quality_label": "full" },
+                   "required_dependencies": ["figma-console"],
+                   "available_dependencies": ["figma-console", "playwright"] },
+    "2_web":     { "ran": true, "wrote": ["tokens/typography.md"], "confidence": "HIGH",
+                   "fallback_decision": "none",
+                   "chain_entry_used": { "kind": "mcp", "name": "playwright", "quality_label": "full" },
+                   "required_dependencies": ["playwright"],
+                   "available_dependencies": ["playwright"] },
+    "3_voice":   { "ran": true, "wrote": ["voice.md"], "samples": 30, "confidence": "HIGH",
+                   "fallback_decision": "none",
+                   "chain_entry_used": { "kind": "mcp", "name": "playwright", "quality_label": "full" },
+                   "required_dependencies": ["playwright"],
+                   "available_dependencies": ["playwright", "jina-reader", "webfetch"] },
+    "8_brand_md":{ "ran": true, "wrote": ["../brand.md"],
+                   "fallback_decision": "none",
+                   "chain_entry_used": { "kind": "native_tool", "name": "read", "quality_label": "full" },
+                   "required_dependencies": [],
+                   "available_dependencies": ["read"] }
+  },
+  "dependencies": {
+    "figma-console":    { "available": true,  "used_by": ["1_figma"] },
+    "playwright":       { "available": true,  "used_by": ["2_web", "3_voice"] },
+    "jina-reader":      { "available": true,  "used_by": [] },
+    "webfetch":         { "available": true,  "used_by": [] },
+    "read":             { "available": true,  "used_by": ["8_brand_md"] },
+    "dtcg-tokens-file": { "available": false, "used_by": [] }
+  }
+}

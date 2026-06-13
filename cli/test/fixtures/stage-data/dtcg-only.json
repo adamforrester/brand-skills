@@ -1,0 +1,21 @@
+{
+  "tier": "minimum",
+  "client": "acme",
+  "stages": {
+    "1_figma":   { "ran": true, "wrote": ["tokens/colors.md", "tokens/typography.md"],
+                   "fallback_decision": "DOWNGRADE",
+                   "chain_entry_used": { "kind": "user_artifact", "name": "dtcg-tokens-file", "quality_label": "degraded" },
+                   "required_dependencies": ["figma-console"],
+                   "available_dependencies": ["dtcg-tokens-file"] },
+    "8_brand_md":{ "ran": true, "wrote": ["../brand.md"],
+                   "fallback_decision": "none",
+                   "chain_entry_used": { "kind": "native_tool", "name": "read", "quality_label": "full" },
+                   "required_dependencies": [],
+                   "available_dependencies": ["read"] }
+  },
+  "dependencies": {
+    "figma-console":    { "available": false, "used_by": [] },
+    "dtcg-tokens-file": { "available": true,  "used_by": ["1_figma"] },
+    "read":             { "available": true,  "used_by": ["8_brand_md"] }
+  }
+}

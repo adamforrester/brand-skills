@@ -1,0 +1,12 @@
+{
+  "color": {
+    "brand": {
+      "primary":   { "$value": "#E2231A", "$type": "color" },
+      "secondary": { "$value": "#FFB81C", "$type": "color" }
+    },
+    "neutral": {
+      "50":  { "$value": "#F8F8F8", "$type": "color" },
+      "900": { "$value": "#1A1A1A", "$type": "color" }
+    }
+  }
+}

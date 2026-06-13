@@ -7,7 +7,7 @@ import { buildHealth, writeHealth, validateHealth } from '../../src/utils/health
 
 function makeManifest() {
   return {
-    version: '1',
+    version: '2',
     generated_at: '2026-06-10T14:23:11Z',
     generator: 'brand-cli@0.4.0',
     tier: 'minimum',
@@ -21,8 +21,8 @@ function makeManifest() {
       'tokens/motion.md': { status: 'missing' },
       'tokens/surfaces.md': { status: 'complete' },
     },
-    stages: { '2_web': { ran: true, wrote: [] } },
-    mcps: { playwright: { available: true, used: ['2_web'] } },
+    stages: { '2_web': { ran: true, wrote: [], fallback_decision: 'none' } },
+    dependencies: { playwright: { kind: 'mcp', available: true, used_by: ['2_web'] } },
   };
 }
 

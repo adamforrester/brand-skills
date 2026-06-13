@@ -2,13 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/adamforrester/brand-skills/schemas/manifest.schema.json",
   "title": "brand-skills manifest",
-  "description": "Facts emitted by /brand-context:extract about the .brand/ package state.",
+  "description": "Facts emitted by /brand-context:extract about the .brand/ package state. Spec: docs/superpowers/specs/2026-06-13-mcp-fallback-contract-design.md §4.",
   "type": "object",
-  "required": ["version", "generated_at", "generator", "tier", "files", "stages", "mcps"],
+  "required": ["version", "generated_at", "generator", "tier", "files", "stages", "dependencies"],
   "additionalProperties": false,
   "properties": {
     "_comment": { "type": "string" },
-    "version": { "const": "1" },
+    "version": { "const": "2" },
     "generated_at": { "type": "string", "format": "date-time" },
     "generator": { "type": "string", "pattern": "^(brand-cli|brand-extract-skill)@\\S+$" },
     "tier": { "enum": ["minimum", "standard", "comprehensive"] },
@@ -32,7 +32,7 @@
       "patternProperties": {
         "^[1-8]_[a-z_]+$": {
           "type": "object",
-          "required": ["ran"],
+          "required": ["ran", "fallback_decision"],
           "additionalProperties": false,
           "properties": {
             "ran": { "type": "boolean" },
@@ -41,20 +41,40 @@
             "confidence": { "$ref": "#/$defs/confidence" },
             "samples": { "type": "integer", "minimum": 0 },
             "active": { "type": "integer", "minimum": 0 },
-            "sources": { "type": "array", "items": { "type": "string" } }
+            "sources": { "type": "array", "items": { "type": "string" } },
+            "fallback_decision": { "$ref": "#/$defs/fallbackDecision" },
+            "chain_entry_used": {
+              "oneOf": [
+                { "type": "null" },
+                {
+                  "type": "object",
+                  "required": ["kind", "name", "quality_label"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": { "$ref": "#/$defs/kind" },
+                    "name": { "type": "string", "minLength": 1 },
+                    "quality_label": { "enum": ["full", "degraded"] }
+                  }
+                }
+              ]
+            },
+            "required_dependencies": { "type": "array", "items": { "type": "string" } },
+            "available_dependencies": { "type": "array", "items": { "type": "string" } }
           }
         }
       }
     },
-    "mcps": {
+    "dependencies": {
       "type": "object",
       "additionalProperties": {
         "type": "object",
-        "required": ["available", "used"],
+        "required": ["kind", "available", "used_by"],
         "additionalProperties": false,
         "properties": {
+          "kind": { "$ref": "#/$defs/kind" },
           "available": { "type": "boolean" },
-          "used": { "type": "array", "items": { "type": "string" } }
+          "used_by": { "type": "array", "items": { "type": "string" } },
+          "expected_path_glob": { "type": "string" }
         }
       }
     }
@@ -64,6 +84,8 @@
     "confidence": {
       "description": "Per-stage confidence reported by the writing stage at emit time.",
       "enum": ["HIGH", "MEDIUM", "LOW"]
-    }
+    },
+    "kind": { "enum": ["mcp", "http", "user_artifact", "native_tool"] },
+    "fallbackDecision": { "enum": ["none", "DOWNGRADE", "SKIP", "HALT"] }
   }
 }

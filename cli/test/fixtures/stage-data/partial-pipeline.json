@@ -2,15 +2,27 @@
   "tier": "minimum",
   "client": "acme",
   "stages": {
-    "2_web":   { "ran": true,  "wrote": ["tokens/colors.md"], "confidence": "LOW" },
-    "3_voice": { "ran": true,  "wrote": ["voice.md"], "samples": 6, "confidence": "LOW" },
-    "4_overview": { "ran": false, "reason": "skipped: no PDF, no screenshots, no Stage 2 captures" }
+    "2_web":      { "ran": true,  "wrote": ["tokens/colors.md"], "confidence": "LOW",
+                    "fallback_decision": "none",
+                    "chain_entry_used": { "kind": "mcp", "name": "playwright", "quality_label": "full" },
+                    "required_dependencies": ["playwright"],
+                    "available_dependencies": ["playwright"] },
+    "3_voice":    { "ran": true,  "wrote": ["voice.md"], "samples": 6, "confidence": "LOW",
+                    "fallback_decision": "none",
+                    "chain_entry_used": { "kind": "mcp", "name": "playwright", "quality_label": "full" },
+                    "required_dependencies": ["playwright"],
+                    "available_dependencies": ["playwright", "webfetch"] },
+    "4_overview": { "ran": false, "reason": "skipped: no PDF, no screenshots, no Stage 2 captures",
+                    "fallback_decision": "SKIP", "chain_entry_used": null,
+                    "required_dependencies": [],
+                    "available_dependencies": ["read"] }
   },
-  "mcps": {
-    "playwright": { "available": true, "used": ["2_web","3_voice"] }
+  "dependencies": {
+    "playwright": { "available": true, "used_by": ["2_web", "3_voice"] },
+    "read":       { "available": true, "used_by": [] }
   },
   "file_overrides": {
-    "voice.md":           { "status": "defaults", "note": "<10 samples; LOW confidence" },
-    "tokens/colors.md":   { "status": "defaults", "note": "single-page sample" }
+    "voice.md":         { "status": "defaults", "note": "<10 samples; LOW confidence" },
+    "tokens/colors.md": { "status": "defaults", "note": "single-page sample" }
   }
 }

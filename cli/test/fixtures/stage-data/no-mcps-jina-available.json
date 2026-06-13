@@ -1,0 +1,32 @@
+{
+  "tier": "minimum",
+  "client": "acme",
+  "stages": {
+    "1_figma":   { "ran": false, "reason": "skipped: no figma-console MCP, no DTCG file",
+                   "fallback_decision": "SKIP", "chain_entry_used": null,
+                   "required_dependencies": ["figma-console"],
+                   "available_dependencies": [] },
+    "2_web":     { "ran": false, "reason": "skipped: no playwright MCP",
+                   "fallback_decision": "SKIP", "chain_entry_used": null,
+                   "required_dependencies": ["playwright"],
+                   "available_dependencies": [] },
+    "3_voice":   { "ran": true, "wrote": ["voice.md"], "samples": 12, "confidence": "MEDIUM",
+                   "fallback_decision": "DOWNGRADE",
+                   "chain_entry_used": { "kind": "http", "name": "jina-reader", "quality_label": "degraded" },
+                   "required_dependencies": ["playwright"],
+                   "available_dependencies": ["jina-reader", "webfetch"] },
+    "8_brand_md":{ "ran": true, "wrote": ["../brand.md"],
+                   "fallback_decision": "none",
+                   "chain_entry_used": { "kind": "native_tool", "name": "read", "quality_label": "full" },
+                   "required_dependencies": [],
+                   "available_dependencies": ["read"] }
+  },
+  "dependencies": {
+    "figma-console":    { "available": false, "used_by": [] },
+    "playwright":       { "available": false, "used_by": [] },
+    "jina-reader":      { "available": true,  "used_by": ["3_voice"] },
+    "webfetch":         { "available": true,  "used_by": [] },
+    "read":             { "available": true,  "used_by": ["8_brand_md"] },
+    "dtcg-tokens-file": { "available": false, "used_by": [] }
+  }
+}

@@ -19,11 +19,21 @@ function readBrandrc(projectDir) {
 function readManifest(brandDir) {
   const path = join(brandDir, 'manifest.json');
   if (!existsSync(path)) return null;
+  let parsed;
   try {
-    return JSON.parse(readFileSync(path, 'utf-8'));
+    parsed = JSON.parse(readFileSync(path, 'utf-8'));
   } catch {
     return null;
   }
+  if (parsed.version === '1') {
+    console.error(chalk.red(
+      'Found .brand/manifest.json with version: "1"; the contract is now version "2". '
+      + 'Re-run /brand-context:extract (or brand-cli emit-manifest with the v2 stdin shape) '
+      + 'to regenerate. See docs/superpowers/specs/2026-06-13-mcp-fallback-contract-design.md §4.'
+    ));
+    process.exit(1);
+  }
+  return parsed;
 }
 
 const TIER_DISPLAY = {
