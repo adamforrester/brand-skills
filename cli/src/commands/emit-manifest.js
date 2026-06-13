@@ -5,6 +5,7 @@ import { parse as yamlParse } from 'yaml';
 import { writeManifest, validateManifest } from '../utils/manifest-writer.js';
 import { weightsForTier } from '../utils/tier-weights.js';
 import { classifyFile } from '../utils/file-status.js';
+import { loadContract, getDependency } from '../utils/contract-loader.js';
 
 function readStdin() {
   return new Promise((resolve, reject) => {
@@ -26,9 +27,7 @@ function readBrandrc(projectDir) {
   }
 }
 
-function generatorString(projectDir) {
-  // Reuse the CLI's package version. fileURLToPath is not stable from a tmp cwd,
-  // so resolve via the package this module ships in.
+function generatorString() {
   const pkgPath = new URL('../../../package.json', import.meta.url);
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
   return `brand-cli@${pkg.version}`;
@@ -56,20 +55,14 @@ function buildFilesMap({ brandDir, tier, stageOverrides }) {
     files[path] = entry;
   }
 
-  // Out-of-tier files that exist on disk: surface them, regardless of
-  // whether a producer mentioned them in file_overrides. Spec §2: a
-  // hand-written composition/patterns.md at tier: minimum is surfaced
-  // rather than hidden. The 'comprehensive' weights table is the universe
-  // of all known schema paths; walk paths not already in the active tier.
   const universe = weightsForTier('comprehensive');
   for (const path of Object.keys(universe)) {
-    if (files[path]) continue; // already in-tier
+    if (files[path]) continue;
     const abs = join(brandDir, path);
     if (!existsSync(abs)) continue;
     files[path] = { status: classifyFile(abs), bytes: statSync(abs).size };
   }
 
-  // Components (comprehensive only): surface each file.
   if (tier === 'comprehensive') {
     for (const path of listExistingComponentFiles(brandDir)) {
       const abs = join(brandDir, path);
@@ -77,10 +70,6 @@ function buildFilesMap({ brandDir, tier, stageOverrides }) {
     }
   }
 
-  // Apply per-file overrides from stdin (status, note) — producer can mark
-  // 'partial' or 'defaults' here. Overrides are producer-authoritative: if
-  // an override targets a path not yet in the files map (out-of-tier and
-  // not-on-disk, or a typo'd path), surface it rather than silently drop.
   for (const [path, override] of Object.entries(stageOverrides ?? {})) {
     if (!files[path]) {
       const abs = join(brandDir, path);
@@ -96,6 +85,30 @@ function buildFilesMap({ brandDir, tier, stageOverrides }) {
 }
 
 const VALID_TIERS = ['minimum', 'standard', 'comprehensive'];
+
+function rejectV1(input) {
+  if (input.version === '1') {
+    return 'manifest input uses version "1" shape — the contract is now version "2" '
+      + '(see docs/superpowers/specs/2026-06-13-mcp-fallback-contract-design.md §4). '
+      + 'Rename mcps -> dependencies and add per-stage fallback_decision before retrying.';
+  }
+  if (input.mcps !== undefined && input.dependencies === undefined) {
+    return 'manifest input has top-level "mcps" but no "dependencies" — the contract is now '
+      + 'version "2"; rename mcps -> dependencies and add a kind field to each entry.';
+  }
+  return null;
+}
+
+function validateDependencyNames(dependencies) {
+  const contract = loadContract();
+  for (const name of Object.keys(dependencies)) {
+    if (!contract.dependencies[name]) {
+      const valid = Object.keys(contract.dependencies).join(', ');
+      return `unknown dependency '${name}'; valid: [${valid}]`;
+    }
+  }
+  return null;
+}
 
 export async function emitManifestCommand(opts) {
   const projectDir = process.cwd();
@@ -117,6 +130,12 @@ export async function emitManifestCommand(opts) {
     }
   }
 
+  const v1Reason = rejectV1(input);
+  if (v1Reason) {
+    console.error(chalk.red(v1Reason));
+    process.exit(1);
+  }
+
   const brandrc = readBrandrc(projectDir);
   const tier = input.tier ?? brandrc.tier ?? 'minimum';
   const client = input.client ?? brandrc.client ?? '';
@@ -128,6 +147,29 @@ export async function emitManifestCommand(opts) {
     process.exit(1);
   }
 
+  const dependencies = input.dependencies ?? {};
+  const depErr = validateDependencyNames(dependencies);
+  if (depErr) {
+    console.error(chalk.red(depErr));
+    process.exit(1);
+  }
+
+  // Decorate dependency entries with kind from the contract (so consumers
+  // don't have to cross-reference). expected_path_glob also propagated for
+  // user_artifact entries.
+  const decoratedDependencies = {};
+  for (const [name, entry] of Object.entries(dependencies)) {
+    const contractDep = getDependency(name);
+    decoratedDependencies[name] = {
+      kind: contractDep.kind,
+      available: entry.available ?? false,
+      used_by: entry.used_by ?? [],
+    };
+    if (contractDep.kind === 'user_artifact' && contractDep.expected_path_glob) {
+      decoratedDependencies[name].expected_path_glob = contractDep.expected_path_glob;
+    }
+  }
+
   const files = buildFilesMap({
     brandDir,
     tier,
@@ -136,13 +178,13 @@ export async function emitManifestCommand(opts) {
 
   const payload = {
     _comment: 'Generated by brand-cli. Do not hand-edit — overwritten on every /brand-context:extract run.',
-    version: '1',
+    version: '2',
     generated_at: input.generated_at ?? new Date().toISOString(),
-    generator: generatorString(projectDir),
+    generator: generatorString(),
     tier,
     files,
     stages: input.stages ?? {},
-    mcps: input.mcps ?? {},
+    dependencies: decoratedDependencies,
   };
   if (client) payload.client = client;
 
