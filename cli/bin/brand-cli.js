@@ -7,6 +7,7 @@ import { refreshDesignCommand } from '../src/commands/refresh-design.js';
 import { refreshContextCommand } from '../src/commands/refresh-context.js';
 import { scoreCommand } from '../src/commands/score.js';
 import { emitManifestCommand } from '../src/commands/emit-manifest.js';
+import { importTokensCommand } from '../src/commands/import-tokens.js';
 
 program
   .name('brand-cli')
@@ -55,5 +56,11 @@ program
   .option('--dry-run', 'Print manifest to stdout instead of writing to disk')
   .option('--json', 'Output result as JSON')
   .action(emitManifestCommand);
+
+program
+  .command('import-tokens')
+  .description('Ingest DTCG token files (assets/*.tokens.json) and print merged token state as JSON. Stage 1 fallback when figma-console MCP is absent.')
+  .option('--file <path>', 'Read exactly this file instead of scanning assets/')
+  .action(importTokensCommand);
 
 program.parse();
