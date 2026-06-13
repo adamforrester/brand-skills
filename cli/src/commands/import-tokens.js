@@ -21,6 +21,7 @@ function findTokenFiles(projectDir) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
     .filter((f) => f.endsWith(TOKEN_GLOB_SUFFIX))
+    .sort()
     .map((f) => join(dir, f));
 }
 

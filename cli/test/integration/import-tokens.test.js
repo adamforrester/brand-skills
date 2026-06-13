@@ -60,6 +60,39 @@ test('import-tokens --file <path> reads exactly that file', async () => {
   }
 });
 
+test('import-tokens --file <absolute-path> reads that file', async () => {
+  const { dir, cleanup } = tmpProjectWith(['colors.tokens.json']);
+  try {
+    const abs = join(dir, 'assets', 'colors.tokens.json');
+    const result = await runCli(['import-tokens', '--file', abs], { cwd: dir });
+    assert.equal(result.exitCode, 0, `stderr: ${result.stderr}`);
+    const out = JSON.parse(result.stdout);
+    assert.equal(out.colors.primary, '#E2231A');
+    assert.deepEqual(out.typography, {});
+  } finally {
+    cleanup();
+  }
+});
+
+test('import-tokens emits empty-state shape for {} DTCG file', async () => {
+  const { dir, cleanup } = tmpProjectWith(['empty.tokens.json']);
+  try {
+    const result = await runCli(['import-tokens'], { cwd: dir });
+    assert.equal(result.exitCode, 0, `stderr: ${result.stderr}`);
+    const out = JSON.parse(result.stdout);
+    assert.deepEqual(out, {
+      colors: {},
+      typography: {},
+      spacing: {},
+      surfaces: {},
+      motion: {},
+      unknown: [],
+    });
+  } finally {
+    cleanup();
+  }
+});
+
 test('import-tokens fails with parse error on malformed DTCG', async () => {
   const { dir, cleanup } = tmpProjectWith(['malformed.tokens.json']);
   try {
