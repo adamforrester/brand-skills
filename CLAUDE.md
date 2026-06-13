@@ -23,12 +23,13 @@ The plugin was renamed from `brand-skills` to `brand-context` in v0.2.0; the rep
 ## Architecture — three layers, edit them together
 
 ```
-schema/brand/*.schema.md      ← source of truth for .brand/ file shapes
-schema/{manifest,health}.schema.json ← machine-validation contracts (NEW)
+schema/brand/*.schema.md                        ← source of truth for .brand/ file shapes
+schema/{manifest,health}.schema.json            ← machine-validation contracts
+schema/mcp-fallback-contract.{json,schema.json} ← per-stage fallback contract data + validator
        ↓
 brand-context/skills/*/SKILL.md   ← AI agent instructions (what to write)
        ↓
-cli/src/                      ← deterministic regen (init scaffolding, refresh-design, refresh-context, score, emit-manifest)
+cli/src/                      ← deterministic regen (init scaffolding, refresh-design, refresh-context, score, emit-manifest, import-tokens)
 ```
 
 Editing one layer almost always means touching the others:
@@ -66,7 +67,7 @@ This is the easiest thing to get wrong. Each `.brand/` file has a specific polic
 | `conflicts.md` | **Additive** — Active Conflicts can be rebuilt; Intentional Adaptations and Resolved Conflicts Archive are *never* deleted | Practitioner-resolved entries are the audit trail |
 | `components/*.md` | **Overwrite per-file** if provenance marker present; prompt if hand-edited | Auto-generated from repo scan; hand edits go to a sibling file |
 | `audits/*.md` | **Additive** — never overwrite, every run is a new dated file | The directory IS the audit trail |
-| `manifest.json` | **Overwrite wholesale every run** | Generated artifact; source of truth is `.brand/*.md`. Same as `design.md`/`brand.md`. Emitted by `/brand-context:extract` end-of-pipeline. |
+| `manifest.json` | **Overwrite wholesale every run** | Generated artifact; source of truth is `.brand/*.md`. Same as `design.md`/`brand.md`. Emitted by `/brand-context:extract` end-of-pipeline. **Schema is `version: "2"` as of branch `feat/mcp-fallback-contract`** — `version: "1"` payloads/manifests are hard-rejected by both `emit-manifest` and `score`. See `docs/superpowers/specs/2026-06-13-mcp-fallback-contract-design.md` §4. |
 | `.health.json` | **Overwrite wholesale every run** | Verdict cache emitted by `/brand-context:check` (and `brand-cli score`). Reproducible from manifest + tier weights. |
 | `design.md`, `brand.md` | **Overwrite wholesale** every regen | Generated artifacts; source of truth is `.brand/` |
 
@@ -117,6 +118,7 @@ Same posture applies to design-oracle, Agent-Reach, or any peer that emerges lat
 
 - **One version, three places.** `package.json` `version`, `.claude-plugin/marketplace.json` `metadata.version` AND `plugins[0].version`, and `cli/bin/brand-cli.js` `program.version()`. All three must match. Easy to miss the CLI bin file.
   - Two test goldens also pin the version literally in their `generator` field — `cli/test/golden/manifest-from-populated.json` (`brand-cli@<version>`) and `cli/test/golden/manifest-from-skill.json` (`brand-extract-skill@<version>`). Stale goldens don't break tests (the strip list deletes `generator` before deepEqual) but mislead readers. Bump them with the others.
+  - The MCP-fallback contract at `schema/mcp-fallback-contract.json` has its own `version: "1"` field, independent from the package version. Bump it (and the corresponding `version` const in `schema/mcp-fallback-contract.schema.json`) only on breaking shape changes. The manifest's `version: "2"` is similarly independent — bump on shape changes to `manifest.schema.json`.
 - **No tests yet.** `npm test` is a TODO stub. Don't claim a change is verified by tests; manually walk the affected SKILL or CLI command end-to-end.
 - **Not yet on npm.** Install path today is GitHub-direct via `claude plugin marketplace add adamforrester/brand-skills`. The CLI is intended to publish to npm but hasn't yet (roadmap item in README).
 - **Don't bump the version proactively.** Wait for explicit instruction — release cadence is being decided.
@@ -137,7 +139,7 @@ Same posture applies to design-oracle, Agent-Reach, or any peer that emerges lat
 
 When you change anything in this repo, walk this list before declaring done:
 
-1. **Schema change?** → SKILL section that writes that file updated? `cli/src/commands/init.js` scaffold updated? Generators (`design-md-generator.js`, `brand-context-generator.js`) updated?
+1. **Schema change?** → SKILL section that writes that file updated? `cli/src/commands/init.js` scaffold updated? Generators (`design-md-generator.js`, `brand-context-generator.js`) updated? If `manifest.schema.json`: both manifest goldens regenerated AND `cli/test/fixtures/stage-data/*.json` payloads updated AND `score.js` v1-rejection still in place? If `mcp-fallback-contract.json`: contract validator schema bumped if shape changed; SKILL §0.5 + Stages 1/2/3 still mirror the chain order?
 2. **SKILL change?** → README "How the pipeline works" table or "Three slash commands" list still accurate?
 3. **CLI change?** → Inline-fallback instructions in the corresponding SKILL section still match the CLI's behavior?
 4. **New file in `.brand/`?** → Overwrite policy declared in the SKILL? Init scaffolding writes a placeholder?

@@ -115,21 +115,22 @@ The skill walks you through scope confirmation, runs the pipeline, surfaces conf
 
 ## How the pipeline works
 
-| Stage | What it does | Needs |
+| Stage | What it does | Fallback chain (top-to-bottom; first-available fires) |
 |---|---|---|
-| 1 | Figma variable extraction → tokens | Figma Console MCP + `sources.figma` |
-| 2 | Web token extraction (computed CSS) → tokens | Playwright MCP + `sources.website` |
-| 3 | Voice extraction (samples → attributes, tone, vocabulary) | Playwright (preferred) or WebFetch (fallback) + `sources.website` / social / app stores |
+| 1 | Figma variable extraction → tokens | `figma-console` MCP (full) → `assets/*.tokens.json` DTCG export (degraded) → SKIP. Pre-condition: `sources.figma` set or DTCG file present. |
+| 2 | Web token extraction (computed CSS) → tokens | `playwright` MCP (full) → SKIP. No usable middle tier. |
+| 3 | Voice extraction (samples → attributes, tone, vocabulary) | `playwright` MCP (full) → Jina Reader `r.jina.ai` (degraded, keyless HTTP) → native `WebFetch` (degraded, SSR sites only). |
 | 4 | Multimodal analysis → `overview.md` | Native `Read` tool + brand-guide PDF or screenshots |
 | 5 | Cross-source conflict detection → `conflicts.md` | Outputs from Stages 1–4 |
 | 6 | Design-system repo scan → `components/*.md` | Local path or remote git URL (comprehensive tier only) |
-| 7 | Regenerate `design.md` | `brand-cli refresh-design` (or inline fallback) |
-| 8 | Regenerate `brand.md` | `brand-cli refresh-context` (or inline fallback) |
+| 8 | Regenerate `design.md` + `brand.md` | `brand-cli refresh-design` and `refresh-context` (or inline fallback) |
 
 **Always also emitted:**
 
 - `.brand/manifest.json` — machine-readable record of what extract just did (per-file status, per-stage outcome, MCP availability). Hosts gate on it.
 - `.brand/.health.json` — readiness verdict written every time `brand-cli score` (or `/brand-context:check`) runs.
+
+The fallback chains themselves are declared as data in [`schema/mcp-fallback-contract.json`](schema/mcp-fallback-contract.json); both the SKILL prose and the CLI consume it. To audit chains or add a new fallback tier, edit the contract first.
 
 Each stage is independently skippable. The skill degrades gracefully — if a source or tool is missing, that stage is skipped or falls back to a simpler method, and the rest of the pipeline runs.
 

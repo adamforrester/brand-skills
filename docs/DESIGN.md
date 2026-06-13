@@ -139,7 +139,11 @@ The score is `100 - 10×critical - 3×major - 1×minor` (floored at 0). Reports 
 
 The project is intentionally minimal-dependency:
 
-- **No required MCP installs.** Playwright is recommended (Stage 2/3 quality), Figma Console is optional. With nothing installed, Stages 4, 5, 6, 7, 8 still run and Stage 3 falls back to native `WebFetch`.
+- **No required MCP installs.** All three MCPs (Playwright, Figma Console, Firecrawl) degrade gracefully. Per-stage fallback chains are declared in `schema/mcp-fallback-contract.json`:
+  - **Stage 1 (Figma variables):** `figma-console` MCP (full) → `assets/*.tokens.json` DTCG export (degraded, no install) → SKIP.
+  - **Stage 2 (Web tokens):** `playwright` MCP (full) → SKIP. No usable middle tier — computed CSS sampling needs a real browser.
+  - **Stage 3 (Voice):** `playwright` MCP (full) → Jina Reader `r.jina.ai` (degraded, keyless HTTP) → native `WebFetch` (degraded, SSR sites only).
+  - **Stages 4 / 5 / 6 / 8:** native `Read` tool. No external dependency.
 - **No required CLI install.** Skills include inline regeneration that produces the same artifacts, just slower.
 - **No coupling to a specific agent.** Output is plain markdown; Claude Code, Cursor, Copilot, and Cline all consume it the same way they consume `CLAUDE.md` or `.cursorrules`.
 

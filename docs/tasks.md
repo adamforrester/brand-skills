@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-13 — #2 + #6 merged via PR #1 (merge commit `3041891`); #3 spec landed on branch `feat/mcp-fallback-contract` ([2026-06-13-mcp-fallback-contract-design.md](superpowers/specs/2026-06-13-mcp-fallback-contract-design.md)).
+**Last updated:** 2026-06-13 — #3 ready for merge on `feat/mcp-fallback-contract`.
 
 ---
 
@@ -33,15 +33,24 @@ Three repos compared: dembrandt (primary, 1.9K stars), design-oracle (3 stars), 
 
 Strategic decision recorded: **borrow without dependency** (Option 3). Captured in [CLAUDE.md "Stance on dembrandt and other peer tools"](../CLAUDE.md). Adopt patterns and open specs (DTCG, design.md, MCP tool shape); don't add a runtime dependency on any peer.
 
+### #3 — Explicit MCP-fallback contract per stage in `brand-extract` ✅
+**Output:** branch `feat/mcp-fallback-contract` (PR number to be filled in post-merge).
+
+What landed:
+- Contract schema + canonical data files: `schema/mcp-fallback-contract.json` + `schema/mcp-fallback-contract.schema.json`. Per-stage chains for Stages 1, 2, 3 with `tier` / `quality` / `fidelity_note` / `pre_conditions` declared as data.
+- Manifest schema bumped to `version: "2"`: `mcps` field renamed to `dependencies`; new per-stage `fallback` fields. v1 payloads/manifests are hard-rejected by `emit-manifest` and `score`.
+- New CLI utilities: `cli/src/utils/contract-loader.js`, `cli/src/utils/dtcg-import.js`, `cli/src/utils/jina-fetch.js`.
+- New CLI subcommand: `brand-cli import-tokens` (DTCG → `.brand/tokens/*.md`, the Stage 1 degraded fallback).
+- New SKILL section: `§0.5 Pre-flight dependency check` — runs once at the top of `/brand-context:extract`, materializes the contract decision tree per-stage.
+- Stages 1 / 2 / 3 / 10b SKILL prose updated to reference the contract chains rather than inline branching.
+
+Spec: [2026-06-13-mcp-fallback-contract-design.md](superpowers/specs/2026-06-13-mcp-fallback-contract-design.md).
+
 ---
 
 ## Active backlog
 
 ### Unblocked (ready to start)
-
-#### #3 — Explicit MCP-fallback contract per stage in `brand-extract`
-Per stage, declare which dependencies (MCPs, HTTP APIs, user artifacts, native tools) are required vs available; on absence emit DOWNGRADE / SKIP / HALT. Decisions land in `manifest.json`. Adds DTCG-token-export as a Stage 1 fallback tier and Jina Reader as a Stage 3 middle tier. Source: feedback item #2.
-**Status:** Spec approved on branch `feat/mcp-fallback-contract` — see [2026-06-13-mcp-fallback-contract-design.md](superpowers/specs/2026-06-13-mcp-fallback-contract-design.md). Implementation plan next. **Manifest schema bump to `version: "2"`.**
 
 #### #8 — DTCG token export (`brand-cli refresh-design --dtcg`)
 W3C Design Tokens Community Group format. Pure spec adoption — interoperates with Style Dictionary, Tokens Studio, Figma plugins, dembrandt itself. Composes with #2 (manifest can declare `dtcg_export: true|false|<path>`). Source: dembrandt research; CLAUDE.md "borrow without dependency" stance.
