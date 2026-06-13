@@ -13,19 +13,48 @@ Companion to [`2026-06-13-mcp-fallback-contract.md`](2026-06-13-mcp-fallback-con
 ## Quick state check
 
 ```
+$ git log --oneline main..HEAD | wc -l
+35
 $ git log --oneline main..HEAD | head -5
+baf6ca2 docs: progress doc through Task 15
 b4e57dd test(unit): SKILL <-> contract parity
 35e5c93 docs: progress doc through Task 14
 3d37a4d fix(docs): drop stale Stage 7 reference in README Decoupling notes
 6ceafd1 docs: propagate MCP-fallback-contract to repo-level docs
-5b2df16 docs: progress doc through Task 13
-…(29 commits ahead of main as of Task 15)
+…(35 commits ahead of main as of Task 16)
 
 $ npm test 2>&1 | tail -5
 # tests 85
 # pass 85
 # fail 0
 ```
+
+---
+
+## Final-stage handoff
+
+Branch is **READY TO MERGE** per the cross-branch reviewer verdict above.
+
+Test count growth across the branch: **47 → 85 (+38 tests)**.
+
+Commit count: **35 commits ahead of main** (16 task commits + refinements + progress-doc commits).
+
+Schema files added: **2** (`schema/mcp-fallback-contract.{json,schema.json}`).
+Manifest schema bumped: `version: "1"` → `version: "2"` (hard-break; rejected at runtime by both `emit-manifest` and `score`).
+
+CLI utilities added: **3** (`contract-loader`, `dtcg-import`, `jina-fetch`).
+CLI subcommand added: **1** (`brand-cli import-tokens`).
+
+SKILL section added: **1** (§0.5 Pre-flight dependency check).
+SKILL stages updated: **4** (Stages 1, 2, 3, 10b).
+
+Repo docs updated: **5** (CLAUDE.md, README.md, schema/brand/README.md, docs/DESIGN.md, docs/tasks.md).
+
+D-letter decisions captured: **5** (D1-D5; see "Decisions made during implementation" section above).
+
+Carry-forwards deferred to post-merge: **2** (CF-1 spec §3 wording realignment; CF-2 unique tempfile names — convention adopted, not a code change).
+
+Next step: invoke `superpowers:finishing-a-development-branch` to push + open PR. After PR lands, update `docs/tasks.md` "Last updated" line with the merged-PR number.
 
 ---
 
@@ -54,12 +83,13 @@ See the "Things to know that aren't obvious from the codebase" section in the pl
 | 13 | SKILL Stages 1/2/3/10b updates | `c0c6ded` | +0 tests (80 → 80; Task 15 parity test will catch SKILL drift) | DONE first-pass — Stage 1 (`§2`) prose now references `stages.1_figma` chain with three branches (figma-console fired / dtcg-tokens-file fired / SKIP); DTCG fallback path mentions `brand-cli import-tokens` + lists all 9 `$type` values. Stage 2 (`§3`) heading de-qualified ("when Playwright is available" dropped); prose collapsed to contract pointer (no middle tier). Stage 3 (`§4b`) gains a NEW Tier 2 Jina Reader path between Playwright (now relabeled Tier 1) and WebFetch (now Tier 3) — covers Jina URL, `cli/src/utils/jina-fetch.js` reference, classification heuristics for headline/cta/nav, MEDIUM confidence cap, 429 fall-through to WebFetch with manifest `chain_entry_used` update. Stage 10b CLI-path JSON heredoc updated to v2 shape: per-stage `fallback_decision` + `chain_entry_used` + `required_dependencies` + `available_dependencies`; top-level `dependencies` (NOT `mcps`) with all 6 names; CLI decorates `kind` + `expected_path_glob` from contract; unknown names hard-reject. Stage 10b Inline fallback prose enumerates all 4 new per-stage fields + `version: "2"` literal + `kind`-must-match-contract rule (closes the D12 gap from manifest+health precedent: SKILL inline-fallback prose audited against schema's `required` fields list). Heading delta: 63 → 65 (+2, two new bold path-tier headings inside Stage 3). Line count 905 → 950 (+45). Diff stat: 55 insertions, 23 deletions. Spec reviewer ✅ all 16 checks pass; no leftover `mcps` references anywhere in the file. No code-quality dispatch — prose-only. |
 | 14 | Repo docs propagation (+ Stage 7 fix) | `6ceafd1`, `3d37a4d` | +0 tests (80 → 80; doc-only) | DONE first-pass (6ceafd1) — five files updated: CLAUDE.md (arch diagram + manifest v2 row + versioning sub-bullet + editing checklist item 1); README.md (pipeline table rebuilt with fallback chains, Stage 7 row dropped → 7 rows total, fallback-chains-as-data paragraph); schema/brand/README.md (2 cross-link bullets); docs/DESIGN.md ("No required MCP installs" expanded with three chain sub-bullets + native floor); docs/tasks.md (#3 → Completed with `### #3 ✅` heading; Last updated bumped). Spec reviewer ✅ all 13 checks pass. **One Minor outside the Task 14 spec** — `README.md:143` "Decoupling notes" paragraph still listed "Stages 4, 5, 6, 7, 8" (stale Stage-7 reference inside the same file Task 14 had just collapsed). Picked up inline via `3d37a4d` — one-char fix removing `7,`. CF-1 carry-forward (spec §3 Voice fidelity_note wording) deliberately deferred to a post-merge cleanup PR per plan. |
 | 15 | SKILL ↔ contract parity test | `b4e57dd` | +5 (80 → 85) | DONE first-pass — 47-line unit test guarding SKILL/contract drift across five dimensions: every dependency name, every stage key, all four `fallback_decision` verbs, the DTCG glob (read from the contract — not hardcoded), and the `version: "2"` reference. All 5 tests passed first run, confirming Tasks 12 + 13 left no SKILL/contract drift. The test reads SKILL.md once at module load via `readFileSync`, imports `loadContract` from the Task 4 utility. Tests 1+2 use the `missing[]` accumulator + `assert.deepEqual(missing, [], <name-the-missing>)` pattern so failures self-report the bad string. Spec reviewer ✅ all 11 checks pass — sanity probe printed 18 OK lines (6 deps + 7 stages + 1 glob + 4 verbs). |
+| 16 | Final verification + cross-branch review | (no implementer commit; controller-driven) | 0 (final 85/0) | **Verification-only task; no implementer.** Four checklist steps executed by controller: (1) `npm test` 85/0 ✅; (2) end-to-end smoke test `init→import-tokens→emit-manifest→score` against tempdir, all 3 assertions printed `import-tokens OK`, `manifest OK`, `health OK`; (3) `git status` clean, 35 commits ahead of main; (4) spec coverage skim — every spec §1-§7 requirement maps to landed tasks; §8 alternatives correctly rejected; §9 out-of-scope items already filed in `docs/tasks.md` as candidate tasks. **Final cross-branch code-reviewer subagent (`superpowers:code-reviewer`, BASE=`1f8ed92`..HEAD=`baf6ca2`):** **READY TO MERGE.** Strengths: disciplined three-layer propagation with no dangling pieces; cross-task contract sync mechanized in code (skill-contract-parity test); enums sourced once and referenced consistently; v1→v2 migration hard + informative (rejection paths in both emit-manifest and score; only 4 legitimate v1 literals lingering — rejection text, contract's own version, health schema, explanatory SKILL prose); CLI decoration pattern keeps SKILL fallback path simple; version triplet aligned across the standard places. No Critical or Important issues. Three Minor observations all acknowledged (CF-1 spec §3 wording deferred, CF-2 unique tempfile convention, plan-doc size). |
 
 ---
 
 ## Pending tasks
 
-Task 16 pending — final verification + cross-branch review + branch handoff.
+None — all 16 tasks complete. Move to "Final-stage handoff" below.
 
 ---
 
