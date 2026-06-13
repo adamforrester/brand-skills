@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-11 — #2 + #6 merged via PR #1 (merge commit `3041891`).
+**Last updated:** 2026-06-13 — #2 + #6 merged via PR #1 (merge commit `3041891`); #3 spec landed on branch `feat/mcp-fallback-contract` ([2026-06-13-mcp-fallback-contract-design.md](superpowers/specs/2026-06-13-mcp-fallback-contract-design.md)).
 
 ---
 
@@ -40,8 +40,8 @@ Strategic decision recorded: **borrow without dependency** (Option 3). Captured 
 ### Unblocked (ready to start)
 
 #### #3 — Explicit MCP-fallback contract per stage in `brand-extract`
-Per stage, declare which MCPs are required vs recommended; on absence emit HALT / DOWNGRADE / SKIP. Decisions land in `manifest.json`. Source: feedback item #2.
-**Status:** Unblocked — manifest schema accommodates `stages[*].reason` and `mcps[*].used`. Implementation can begin.
+Per stage, declare which dependencies (MCPs, HTTP APIs, user artifacts, native tools) are required vs available; on absence emit DOWNGRADE / SKIP / HALT. Decisions land in `manifest.json`. Adds DTCG-token-export as a Stage 1 fallback tier and Jina Reader as a Stage 3 middle tier. Source: feedback item #2.
+**Status:** Spec approved on branch `feat/mcp-fallback-contract` — see [2026-06-13-mcp-fallback-contract-design.md](superpowers/specs/2026-06-13-mcp-fallback-contract-design.md). Implementation plan next. **Manifest schema bump to `version: "2"`.**
 
 #### #8 — DTCG token export (`brand-cli refresh-design --dtcg`)
 W3C Design Tokens Community Group format. Pure spec adoption — interoperates with Style Dictionary, Tokens Studio, Figma plugins, dembrandt itself. Composes with #2 (manifest can declare `dtcg_export: true|false|<path>`). Source: dembrandt research; CLAUDE.md "borrow without dependency" stance.
@@ -70,6 +70,7 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 | C5 | `docs/install.md` agent-readable installer | Lets non-Claude-Code agents install via "Hey agent, follow this" pattern. Multi-tenant unlock. |
 | C6 | WCAG state-simulating contrast walk in `/brand-context:audit` Dimension 5 | Borrowed from dembrandt. Improves audit quality. |
 | C7 | Pluggable channel architecture for source extractors | Borrowed from Agent-Reach. Not urgent until we have a third source type asking for an alternative. |
+| C8 | Standard Figma MCP (`plugin:figma:figma`) per-node walk as Stage 1 Tier 2 | Adds `get_variable_defs` per-selection walk as a degraded path between `figma-console` (full) and DTCG-import. Loses modes/aliases. Filed during #3 brainstorm; deferred for UX scoping (which nodes to walk?). File once #3 lands. |
 
 ---
 
