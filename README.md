@@ -140,7 +140,7 @@ Each stage is independently skippable. The skill degrades gracefully — if a so
 
 This package is intentionally minimal-dependency:
 
-- **No required MCP installs.** Playwright is recommended (Stage 2/3 quality), Figma Console is optional (only when Figma is a source). Without any MCPs, the skill runs Stages 4, 5, 6, 7, 8 plus a degraded Stage 3 via native WebFetch.
+- **No required MCP installs.** Playwright is recommended (Stage 2/3 quality), Figma Console is optional (only when Figma is a source). Without any MCPs, the skill runs Stages 4, 5, 6, 8 plus a degraded Stage 3 via native WebFetch.
 - **No required CLI install.** The skill falls back to inline regeneration when `brand-cli` is absent.
 - **No tie to any specific agent toolchain.** Output files are generic markdown the skill writes via `Write`/`Edit`. Other tools (Cursor, Copilot, Cline, generic Claude Code) consume them by reading project-root `brand.md` and `design.md` — the same way they consume `CLAUDE.md` or `.cursorrules`.
 - **Impeccable interop.** If you use [Impeccable](https://github.com/pbakaus/impeccable), pass `--impeccable` to `brand-cli refresh-context` and the same content is mirrored to `.impeccable.md`.
