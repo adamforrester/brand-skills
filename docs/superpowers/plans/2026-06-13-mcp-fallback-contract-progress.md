@@ -14,16 +14,16 @@ Companion to [`2026-06-13-mcp-fallback-contract.md`](2026-06-13-mcp-fallback-con
 
 ```
 $ git log --oneline main..HEAD | head -5
+c3675b4 fix(cli): import-tokens absolute-path test + deterministic file ordering + empty-DTCG test
+038a326 feat(cli): brand-cli import-tokens subcommand
+96ea9e9 docs: progress doc through Task 9
 dd31e34 feat(cli): jina-fetch utility for Stage 3 Tier 2 fallback
 e9eb3fb docs: progress doc through Task 8 + refinement
-a8df1f3 fix(cli): tighten dtcg-import error handling + extensibility comments
-48b612f feat(cli): dtcg-import utility for Stage 1 fallback
-55a781a docs: progress doc through Task 7 + refinement
-…(15 commits ahead of main as of Task 9)
+…(18 commits ahead of main as of Task 10 refinement)
 
 $ npm test 2>&1 | tail -5
-# tests 69
-# pass 69
+# tests 75
+# pass 75
 # fail 0
 ```
 
@@ -48,12 +48,13 @@ See the "Things to know that aren't obvious from the codebase" section in the pl
 | 7 | Migrate tests + goldens to v2 (+ refinement [D4]) | `52d1f77`, `ee0aaa3` | +1 (55 → 56) | DONE first-pass (52d1f77) brought tests from 50/5 → 55/0: `score.js` `readManifest` now hard-rejects v1 manifests on disk; `manifest-writer.test.js` `validPayload()` updated to v2; `emit-manifest.test.js` assertions flipped (and extended with `fallback_decision`/`chain_entry_used.name`/`dependencies.playwright.{available,kind}`); both goldens regenerated with `generated_at`/`generator` hand-pinned. Spec reviewer ✅ all 8 checks. **Code reviewer flagged TWO Important findings the plan missed** — refinement (`ee0aaa3`) addressed both: (1) `cli/test/unit/health-writer.test.js` `makeManifest()` was still v1-shape inline (tests passed only because health-writer doesn't read `version`/`mcps`, but contradicted the new score.js v1-reject); (2) the new score.js v1-reject branch had zero coverage — added one integration test in `score-emits-health.test.js`. See [D4] for the lesson on cascading-migration-completeness audits. Two unrelated test files genuinely needed no changes: `round-trip.test.js` (no v1 literals) and `health.version === '1'` in `score-emits-health.test.js` (separate health schema, unchanged). Five Minor findings accepted per D7: (a) §4 in error message is unclear without parenthetical; (b) `process.exit(1)` inside the `readManifest` reader is a control-flow surprise but matches `rejectV1` precedent; (c) version-pinned goldens not yet on CLAUDE.md "three places" list (carry-forward to Task 14); (d) golden field ordering puts `client` last after `dependencies`; (e) `validPayload` over-specifies optional stage fields, but documents producer shape — useful as copy-paste starting point. |
 | 8 | dtcg-import.js TDD (+ refinement [D5]) | `48b612f`, `a8df1f3` | +6 first-pass, +2 refinement (56 → 64) | **TDD first-pass (48b612f) caught a real bug in plan-pasted code:** Step 4's `flatName = pathParts.slice(1).join('-')` contradicted Step 2's tests (which asserted `size-body`/`weight-regular` — top-level group preserved as semantic prefix). Implementer DONE_WITH_CONCERNS, fixed by introducing `REDUNDANT_TOP_GROUPS = new Set(['color', 'font', 'typography'])` + `flattenName()` helper that drops only redundant top-level groups (so `color.primary`→`primary` AND `font.family-base`→`family-base`, but `size.body`→`size-body`, `weight.regular`→`weight-regular`, `gradient.hero`→`gradient.hero`). Spec reviewer ✅ deviation is principled, all 9 checks pass. Code reviewer **Approve with three Important findings before SKILL integration in Tasks 12-13** — refinement (a8df1f3) addressed all three: (1) `JSON.parse` now wrapped to re-throw with file path (fail-loud-with-context, matches manifest-writer precedent); (2) `REDUNDANT_TOP_GROUPS` + `$type: dimension` heuristic comments extended with extension hints for future contributors (don't add 'size'/'weight' — those are semantic prefixes); (3) added `nested.tokens.json` fixture + depth-3 test (`color.brand.primary` → `brand-primary` under colors bucket) locking in recursion behavior. Tests 56 → 62 (first-pass) → 64 (refinement). See [D5] for the lesson on plan-test-vs-plan-code contradictions. |
 | 9 | jina-fetch.js (TDD) | `dd31e34` | +5 (64 → 69) | DONE first-pass — implementer used unique tempfile path `/tmp/commit-msg-task9.txt` to sidestep the stale-tempfile footgun (carry-forward [CF-2]: applies to all future tasks; document in CLAUDE.md or progress-doc footguns). Two named exports (`fetchViaJina`, `JinaFetchError`); URL concatenation raw (no encoding — Jina expects unencoded); 429 check fires BEFORE generic non-2xx (otherwise `ok: false` would catch 429 as `http_error`); empty-url throws plain `Error` (input validation, not network); `opts.fetch` injection for tests; no real network. Spec reviewer ✅ all 8 checks pass — manual edge-case probe confirmed `network → JinaFetchError network_error undefined` (no status when fetch itself failed) and `empty → Error` (plain, not JinaFetchError). Code reviewer **Approve as-is**, eleven Minor observations accepted per D7: (1) object-options constructor is the right call vs positional; (2) `??` treats null/undefined the same — fine; (3) 429-before-!ok order is load-bearing — could add a one-line comment for future contributors; (4) no-encoding policy is undocumented — could add a comment; (5) no timeout — defer; (6) `response.text()` errors not caught (would leak as raw Error not JinaFetchError) — defer; (7) empty-string vs falsy URL — broader than necessary but harmless; (8) test coverage gap on body-read errors; (9) test coverage gap on empty-body 200 — Stage 3 prose (Task 13) must check `markdown.trim().length`; (10) error-message wording is good as-is; (11) JSDoc style matches peer convention. None blocking. |
+| 10 | brand-cli import-tokens (+ refinement) | `038a326`, `c3675b4` | +4 first-pass, +2 refinement (69 → 75) | DONE first-pass (038a326) — pure-projection subcommand: scans `./assets/*.tokens.json`, merges via `importDtcgFiles`, emits JSON to stdout. `--file <path>` for explicit single-file mode (handles abs + relative). Failure modes: empty assets dir (clear error + Token Press install hint), file-not-found, parse error (bubbles dtcg-import file-context). Spec reviewer ✅ all 8 checks; manual probe verified merged JSON, no-files error, file-not-found path. Code reviewer **Approve with two findings** — refinement (c3675b4) closed both: (I1) only relative-path `--file` was tested; added an absolute-path test using `join(dir, 'assets', 'colors.tokens.json')`. (M7) `findTokenFiles` relied on OS-dependent `readdirSync` order — added `.sort()` for deterministic merge when two files define the same token name. Plus a cheap M4: added `empty.tokens.json` fixture (`{}`) + test that locks in the empty-state contract for downstream consumers. Five other Minor deferred per D7: I2 (`..` traversal silently accepted) — reviewer recommended leave as-is; M1 (resolved-path in error msg) — UX polish; M3 (no JSDoc on entry) — repo convention is mixed; M5 (sequential reads) — out of scope; M6 (Token Press brand naming) — already says "e.g.", future doc-audit candidate. Tests 69 → 73 (first-pass) → 75 (refinement). |
 
 ---
 
 ## Pending tasks
 
-Tasks 10–16 pending. Picking up at Task 10.
+Tasks 11–16 pending. Picking up at Task 11.
 
 ---
 
