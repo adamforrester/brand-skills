@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-13 — #3 merged to `main` via local merge commit `4383a94` (no PR — `--no-ff` merged from `feat/mcp-fallback-contract`; the feature branch is preserved on origin for history).
+**Last updated:** 2026-06-14 — #4 ready for merge on `feat/scope-json` (PR/merge SHA filled in post-merge).
 
 ---
 
@@ -46,6 +46,21 @@ What landed:
 
 Spec: [2026-06-13-mcp-fallback-contract-design.md](superpowers/specs/2026-06-13-mcp-fallback-contract-design.md).
 
+### #4 — Support `.brand/.scope.json` as alternative to conversational scope-confirmation ✅
+**Output:** branch `feat/scope-json` (PR/merge SHA filled in post-merge).
+
+What landed:
+- Scope schema: `schema/brand/scope.schema.json` (JSON Schema 2020-12, permissive at schema level — runtime requirements enforced in SKILL prose).
+- Two CLI utilities: `cli/src/utils/scope-loader.js` (read + ajv validate) and `cli/src/utils/scope-merge.js` (pure-function merge with brandrc-wins-on-conflict + per-type "empty" rule).
+- New CLI subcommand: `brand-cli scope --validate [--json]` for ahead-of-time host-side validation.
+- New SKILL section `§0a.5` in `brand-context/skills/brand-extract/SKILL.md` — read-merge-delete flow, threads `filledFromScope` set into Stage 0c-0e to skip conversational questions for pre-filled fields, bails with structured stderr JSON when `interactive_preflight: false` and required fields are missing.
+- SKILL ↔ scope parity test (`cli/test/unit/skill-scope-parity.test.js`) guards prose drift against the spec.
+- Three test fixtures + integration tests + roundtrip test covering loader → validator → merge → CLI agreement.
+
+Test count: 85 → 108 (+23). Conversational flow stays the standalone default. Two paths produce equivalent `.brandrc.yaml` state.
+
+Spec: [2026-06-14-scope-json-design.md](superpowers/specs/2026-06-14-scope-json-design.md).
+
 ---
 
 ## Active backlog
@@ -55,14 +70,12 @@ Spec: [2026-06-13-mcp-fallback-contract-design.md](superpowers/specs/2026-06-13-
 #### #8 — DTCG token export (`brand-cli refresh-design --dtcg`)
 W3C Design Tokens Community Group format. Pure spec adoption — interoperates with Style Dictionary, Tokens Studio, Figma plugins, dembrandt itself. Composes with #2 (manifest can declare `dtcg_export: true|false|<path>`). Source: dembrandt research; CLAUDE.md "borrow without dependency" stance.
 
-#### #4 — Support `.brand/.scope.json` as alternative to conversational scope-confirmation
-Structured-input path for embedded use. Conversational flow stays the standalone default. Two paths produce equivalent `.brandrc.yaml` state. Source: feedback item #3.
+#### #5 — Inject industry signal into voice + overview extraction
+`industry:` field in `.brandrc.yaml` (and/or scope payload). Stages 3 + 4 read it; bias inference transparently. Cite the prior in voice.md / overview.md prose. Source: feedback item #4. Now unblocked by the #4 merge — the scope schema's `additionalProperties: false` at the top level means adding `industry: <string>` to `scope.schema.json` will be a one-line append.
 
 ### Blocked
 
-#### #5 — Inject industry signal into voice + overview extraction
-`industry:` field in `.brandrc.yaml` (and/or scope payload). Stages 3 + 4 read it; bias inference transparently. Cite the prior in voice.md / overview.md prose. Source: feedback item #4.
-**Blocked by:** #4 (industry value may flow through `.scope.json`).
+(none currently)
 
 ---
 
@@ -94,7 +107,7 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 **Cross-task contracts to preserve:**
 - **#2 ↔ #6 status vocabulary:** must match exactly. `complete | partial | placeholder | missing | defaults`.
 - **#2 ↔ #3:** manifest schema must accommodate per-stage MCP fallback decisions.
-- **#4 ↔ #5:** industry value may flow through `.scope.json`. Decide once.
+- **#4 ↔ #5:** scope schema (`schema/brand/scope.schema.json`) has `additionalProperties: false` at the top level. #5 adds `industry: <string>` as a one-line append.
 
 **Multi-tenant constraint** (applies to all tasks): brand-skills is used both standalone (Claude Code slash commands) and embedded (host-project orchestrator dispatching the SKILL or CLI). Every task here adds artifacts/contracts that work in both modes. Conversational flows stay; structured I/O is additive, not a replacement.
 

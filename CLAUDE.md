@@ -26,6 +26,7 @@ The plugin was renamed from `brand-skills` to `brand-context` in v0.2.0; the rep
 schema/brand/*.schema.md                        ← source of truth for .brand/ file shapes
 schema/{manifest,health}.schema.json            ← machine-validation contracts
 schema/mcp-fallback-contract.{json,schema.json} ← per-stage fallback contract data + validator
+schema/brand/scope.schema.json                  ← validator for optional .brand/.scope.json pre-fill
        ↓
 brand-context/skills/*/SKILL.md   ← AI agent instructions (what to write)
        ↓
@@ -67,6 +68,7 @@ This is the easiest thing to get wrong. Each `.brand/` file has a specific polic
 | `conflicts.md` | **Additive** — Active Conflicts can be rebuilt; Intentional Adaptations and Resolved Conflicts Archive are *never* deleted | Practitioner-resolved entries are the audit trail |
 | `components/*.md` | **Overwrite per-file** if provenance marker present; prompt if hand-edited | Auto-generated from repo scan; hand edits go to a sibling file |
 | `audits/*.md` | **Additive** — never overwrite, every run is a new dated file | The directory IS the audit trail |
+| `.scope.json` | **Read-once + delete-after-merge** — the SKILL `§0a.5` reads `.brand/.scope.json` if present, merges into the in-memory brandrc state, deletes the file only after `§0e` successfully writes `.brandrc.yaml`. Failure modes (parse, validation, embedded-mode bail, brandrc-write fail) do **not** delete. | Transient pre-fill for `.brandrc.yaml`; brandrc remains the single source of truth. Embedded hosts re-author it before each invocation. |
 | `manifest.json` | **Overwrite wholesale every run** | Generated artifact; source of truth is `.brand/*.md`. Same as `design.md`/`brand.md`. Emitted by `/brand-context:extract` end-of-pipeline. **Schema is `version: "2"` as of branch `feat/mcp-fallback-contract`** — `version: "1"` payloads/manifests are hard-rejected by both `emit-manifest` and `score`. See `docs/superpowers/specs/2026-06-13-mcp-fallback-contract-design.md` §4. |
 | `.health.json` | **Overwrite wholesale every run** | Verdict cache emitted by `/brand-context:check` (and `brand-cli score`). Reproducible from manifest + tier weights. |
 | `design.md`, `brand.md` | **Overwrite wholesale** every regen | Generated artifacts; source of truth is `.brand/` |

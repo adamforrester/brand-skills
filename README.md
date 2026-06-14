@@ -132,6 +132,8 @@ The skill walks you through scope confirmation, runs the pipeline, surfaces conf
 
 The fallback chains themselves are declared as data in [`schema/mcp-fallback-contract.json`](schema/mcp-fallback-contract.json); both the SKILL prose and the CLI consume it. To audit chains or add a new fallback tier, edit the contract first.
 
+For **embedded use** (a host orchestrator dispatching the SKILL non-interactively), drop a `.brand/.scope.json` file with structured answers to Stage 0's discovery questions. The SKILL pre-fills `.brandrc.yaml` from it, skips the conversational flow for any field already populated, and deletes `.scope.json` after a successful Stage 0 completion. Standalone use is unchanged. Schema: [`schema/brand/scope.schema.json`](schema/brand/scope.schema.json). Spec: [`docs/superpowers/specs/2026-06-14-scope-json-design.md`](docs/superpowers/specs/2026-06-14-scope-json-design.md).
+
 Each stage is independently skippable. The skill degrades gracefully — if a source or tool is missing, that stage is skipped or falls back to a simpler method, and the rest of the pipeline runs.
 
 ---
