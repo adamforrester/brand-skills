@@ -13,6 +13,8 @@ Companion to [`2026-06-14-scope-json.md`](2026-06-14-scope-json.md). Tracks each
 
 ```
 $ git log --oneline main..HEAD
+5cd032a feat(skill): add §0a.5 read-merge-delete for .brand/.scope.json
+5b4bd55 docs: progress doc through Task 7
 e798702 test(integration): scope fixtures roundtrip through loader + validator + CLI + merge
 e70ed6f docs: progress doc through Task 6
 1518a18 test(integration): scope-cli covers valid / invalid / absent / --json
@@ -54,12 +56,13 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 | 5 | `brand-cli scope --validate` subcommand + fixtures | `4f3f940` | 0 (96 → 96) | Read-only lint command + three fixtures (`full`/`partial`/`invalid`). All three exit-code paths smoke-tested: full → 0; invalid → 1 with `additionalProperties` rejection; missing → 1. **Spec compliance ✅ all 10 checks PASS** with one informational note: see [D3] below for the plan-vs-spec divergence on `--json` invalid output shape. **Code review: Approve, Minors only** — accept per [D7]. M1: `--json` malformed-error leaks absolute path in `message` field (host-side hosts can ignore it; structured `path` field already carries the canonical relative path). M2: error string for missing-`--validate` could carry a spec-pointer tag-on (lint command, not stage failure — strict adherence not required). M3: `.scope.json` filename is implicit-duplicated between scope-loader's `join(brandDir, '.scope.json')` and the CLI's `SCOPE_REL_PATH` constant — defer extraction until rename happens. Cross-task contracts intact: command does not call `mergeScopeIntoBrandrc`, doesn't write any file, doesn't delete `.scope.json`, doesn't touch `.brandrc.yaml`. |
 | 6 | `scope-cli` integration tests | `1518a18` | +5 (96 → 101) | 5 integration tests against the three fixtures + an absent-file path. Tempdir-per-test isolation; `try/finally { cleanup() }`; `runCli` helper with `NO_COLOR: '1'` so chalk markers come through plain. **Spec compliance ✅ all 12 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: `__dirname` shadowing — standard ESM pattern. M2: `tmpProjectWithScope` helper duplicates shape-of-thing logic from sibling `tmp-brand.js`; promote later if a second integration test needs the same shape. M3: regex test 4's `path: '.brand/.scope.json'` assertion is POSIX-specific (Windows would emit `.brand\.scope.json`); rest of the suite makes the same assumption. |
 | 7 | Roundtrip integration test | `e798702` | +2 (101 → 103) | 2 cross-utility integration tests verifying loader → validator → merge → CLI subprocess all agree on valid/invalid for the same fixture. Test 1 (full): all four code paths return success-shaped output, merge produces expected values with `conflicts.length === 0`. Test 2 (invalid): both `validateScope` and `runCli` reject. Helper variant returns `{dir, brandDir, cleanup}` (vs Task 6's `{dir, cleanup}`) so tests can call `loadScope(brandDir)` directly. **Spec compliance ✅ all 10 checks PASS.** **Code review: Approve, Minor only** — accept per [D7]. M1: dead `readFileSync` import (plan-prescribed in the import list but never consumed in test bodies); kept verbatim to match plan; logged for plan-author follow-up. |
+| 8 | SKILL §0a.5 read-merge-delete prose | `5cd032a` | 0 (103 → 103) | New `### 0a.5.` section between `### 0a.` and `### 0b.` (44 lines added), plus leading paragraphs added to `### 0c.`, `### 0d.`, and two appended paragraphs in `### 0e.`. Total file growth: 950 → 994 lines (+44). All 6 cross-task contract grep checks pass: `.brand/.scope.json`, "brandrc wins on conflict / kept brandrc's value", `interactive_preflight`, `missing_required_fields`, `filledFromScope`, delete-after-merge phrase. Heading depth integrity preserved (`### ` count up by exactly 1; section-zero sequence is `0a, 0a.5, 0b, 0c, 0d, 0e, 0f, 0.5a, 0.5b`). All four `Edit` operations matched on first attempt. **Spec compliance ✅ all 11 checks PASS.** **Code review: Approve, two Minors** — accept per [D7]. M1: forward-looking pointer to `brand-cli scope --validate` (verified — Task 5 added this command). M2: §0a.5 phrase about "invoke `scope-merge.js` indirectly via the scope-loader" is slightly redundant; reads fine to a contributor. |
 
 ---
 
 ## Pending tasks
 
-Tasks 8-11 pending. Tasks 1-7 complete; reviews signed off; proceeding to Task 8.
+Tasks 9-11 pending. Tasks 1-8 complete; reviews signed off; proceeding to Task 9.
 
 ---
 
