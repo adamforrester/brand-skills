@@ -13,6 +13,8 @@ Companion to [`2026-06-14-scope-json.md`](2026-06-14-scope-json.md). Tracks each
 
 ```
 $ git log --oneline main..HEAD
+1518a18 test(integration): scope-cli covers valid / invalid / absent / --json
+007a69a docs: progress doc through Task 5 + log [D3]
 4f3f940 feat(cli): brand-cli scope --validate subcommand + fixtures
 2353cc4 docs: progress doc through Task 4
 918e57f feat(cli): scope-merge utility (TDD)
@@ -26,8 +28,8 @@ f36cc9a docs: progress doc through Task 3 + session-pause resume notes
 8993533 docs: spec for #4 — .brand/.scope.json structured scope input
 
 $ npm test 2>&1 | tail -5
-# tests 96
-# pass 96
+# tests 101
+# pass 101
 # fail 0
 ```
 
@@ -48,12 +50,13 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 | 3 | `cli/src/utils/scope-loader.js` (TDD) | `0ede969` | +6 (85 → 91) | TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected before implementation. Two exports (`loadScope`, `validateScope`); cached validator at module scope; ajv `strict: true` + `ajv/dist/2020.js` matching contract-loader precedent. Reviews ran in fresh session (the original session paused at the clean stopping point and resumed for the proper review pair): **Spec compliance ✅ all 12 verifiable checks PASS** (item 13, the pre-implementation `ERR_MODULE_NOT_FOUND` snapshot, is structurally plausible but unverifiable post-commit). **Code review: Approve, Minors only.** Two Minor findings, both accepted per [D7]: M1 — `errorsTextFn` closure on the validator diverges from the sibling `manifest-writer`/`contract-loader` pattern of holding `ajv` in module scope and calling `ajv.errorsText()` directly; functionally equivalent. M2 — malformed-JSON error message has a small redundancy (`.brand/.scope.json at <abs path ending in .scope.json>`); test-regex is forgiving and Task 5's chalk wrapper rewrites the user-facing string anyway. Verdict logged at `d6467f8`. |
 | 4 | `cli/src/utils/scope-merge.js` (TDD) | `918e57f` | +5 (91 → 96) | TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected. Pure function `mergeScopeIntoBrandrc(scope, brandrc)` returning `{ merged, filledFromScope, conflicts }`. Implements per-type "empty" rule from spec §1: string (missing/`""`/null), array (missing/`[]`/null), object (missing/`{}`/null + recurse leaf-by-leaf), boolean (missing only — `false` counts as set, including the `false`-beats-scope-`true` direction). Conflict comparison uses `JSON.stringify` deep-equal on leaves only (recursion exhausts plain-object cases first). `_comment` skipped during recursion at every level. **Spec compliance ✅ all 15 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: no defensive `null`/`undefined` guard at top-level entry (SKILL contract guarantees non-null). M2: arrays from scope flow through by reference (no downstream mutation in practice). M3: JSDoc could mention `_comment` skip explicitly. |
 | 5 | `brand-cli scope --validate` subcommand + fixtures | `4f3f940` | 0 (96 → 96) | Read-only lint command + three fixtures (`full`/`partial`/`invalid`). All three exit-code paths smoke-tested: full → 0; invalid → 1 with `additionalProperties` rejection; missing → 1. **Spec compliance ✅ all 10 checks PASS** with one informational note: see [D3] below for the plan-vs-spec divergence on `--json` invalid output shape. **Code review: Approve, Minors only** — accept per [D7]. M1: `--json` malformed-error leaks absolute path in `message` field (host-side hosts can ignore it; structured `path` field already carries the canonical relative path). M2: error string for missing-`--validate` could carry a spec-pointer tag-on (lint command, not stage failure — strict adherence not required). M3: `.scope.json` filename is implicit-duplicated between scope-loader's `join(brandDir, '.scope.json')` and the CLI's `SCOPE_REL_PATH` constant — defer extraction until rename happens. Cross-task contracts intact: command does not call `mergeScopeIntoBrandrc`, doesn't write any file, doesn't delete `.scope.json`, doesn't touch `.brandrc.yaml`. |
+| 6 | `scope-cli` integration tests | `1518a18` | +5 (96 → 101) | 5 integration tests against the three fixtures + an absent-file path. Tempdir-per-test isolation; `try/finally { cleanup() }`; `runCli` helper with `NO_COLOR: '1'` so chalk markers come through plain. **Spec compliance ✅ all 12 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: `__dirname` shadowing — standard ESM pattern. M2: `tmpProjectWithScope` helper duplicates shape-of-thing logic from sibling `tmp-brand.js`; promote later if a second integration test needs the same shape. M3: regex test 4's `path: '.brand/.scope.json'` assertion is POSIX-specific (Windows would emit `.brand\.scope.json`); rest of the suite makes the same assumption. |
 
 ---
 
 ## Pending tasks
 
-Tasks 6-11 pending. Tasks 1-5 complete; reviews signed off; proceeding to Task 6.
+Tasks 7-11 pending. Tasks 1-6 complete; reviews signed off; proceeding to Task 7.
 
 ---
 
