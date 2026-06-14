@@ -13,6 +13,9 @@ Companion to [`2026-06-14-scope-json.md`](2026-06-14-scope-json.md). Tracks each
 
 ```
 $ git log --oneline main..HEAD
+918e57f feat(cli): scope-merge utility (TDD)
+d6467f8 docs: record Task 3 spec + code review verdicts
+f36cc9a docs: progress doc through Task 3 + session-pause resume notes
 0ede969 feat(cli): add scope-loader utility (TDD)
 8616ac0 docs: progress doc through Task 2
 50cdb79 feat(schema): add scope.schema.json (JSON Schema 2020-12)
@@ -21,8 +24,8 @@ $ git log --oneline main..HEAD
 8993533 docs: spec for #4 — .brand/.scope.json structured scope input
 
 $ npm test 2>&1 | tail -5
-# tests 91
-# pass 91
+# tests 96
+# pass 96
 # fail 0
 ```
 
@@ -40,13 +43,14 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 |---|---|---|---|---|
 | 1 | Test harness sync + progress doc shell | `812e51f` | 0 (baseline) | Inline (no implementer subagent — same shape as Task 1 of the contract branch). 85/85 baseline confirmed. |
 | 2 | Add `schema/brand/scope.schema.json` | `50cdb79` | 0 (loader test deferred to Task 3) | Schema compiled strict-mode-clean first try (no Task-2 strict-mode trap as on the contract branch — no `if/then` conditionals). Spec reviewer ✅ all 13 checks. Code reviewer **Approve**, M1 (enum descriptions on `tier` / `mode` / `interactive_preflight`) picked up inline because it's a 3-line cheap improvement and resolves a precedent inconsistency the contract reviewer also flagged. Commit amended with M1 fix; tests stayed 85/85. M2-M5 deferred per [D7]: M3 docs `live_urls` exclusion (XD-specific Layout CLI field, deliberately omitted per de-XD posture; could be footnoted in spec §7); M5 industry-signal future-extensibility — `additionalProperties: false` at top means the future #5 task addition is a deliberate one-line append. |
-| 3 | `cli/src/utils/scope-loader.js` (TDD) | `0ede969` | +6 (85 → 91) | TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected before implementation. Two exports (`loadScope`, `validateScope`); cached validator at module scope; ajv `strict: true` + `ajv/dist/2020.js` matching contract-loader precedent. Reviews ran in fresh session (the original session paused at the clean stopping point and resumed for the proper review pair): **Spec compliance ✅ all 12 verifiable checks PASS** (item 13, the pre-implementation `ERR_MODULE_NOT_FOUND` snapshot, is structurally plausible but unverifiable post-commit). **Code review: Approve, Minors only.** Two Minor findings, both accepted per [D7]: M1 — `errorsTextFn` closure on the validator diverges from the sibling `manifest-writer`/`contract-loader` pattern of holding `ajv` in module scope and calling `ajv.errorsText()` directly; functionally equivalent. M2 — malformed-JSON error message has a small redundancy (`.brand/.scope.json at <abs path ending in .scope.json>`); test-regex is forgiving and Task 5's chalk wrapper rewrites the user-facing string anyway. |
+| 3 | `cli/src/utils/scope-loader.js` (TDD) | `0ede969` | +6 (85 → 91) | TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected before implementation. Two exports (`loadScope`, `validateScope`); cached validator at module scope; ajv `strict: true` + `ajv/dist/2020.js` matching contract-loader precedent. Reviews ran in fresh session (the original session paused at the clean stopping point and resumed for the proper review pair): **Spec compliance ✅ all 12 verifiable checks PASS** (item 13, the pre-implementation `ERR_MODULE_NOT_FOUND` snapshot, is structurally plausible but unverifiable post-commit). **Code review: Approve, Minors only.** Two Minor findings, both accepted per [D7]: M1 — `errorsTextFn` closure on the validator diverges from the sibling `manifest-writer`/`contract-loader` pattern of holding `ajv` in module scope and calling `ajv.errorsText()` directly; functionally equivalent. M2 — malformed-JSON error message has a small redundancy (`.brand/.scope.json at <abs path ending in .scope.json>`); test-regex is forgiving and Task 5's chalk wrapper rewrites the user-facing string anyway. Verdict logged at `d6467f8`. |
+| 4 | `cli/src/utils/scope-merge.js` (TDD) | `918e57f` | +5 (91 → 96) | TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected. Pure function `mergeScopeIntoBrandrc(scope, brandrc)` returning `{ merged, filledFromScope, conflicts }`. Implements per-type "empty" rule from spec §1: string (missing/`""`/null), array (missing/`[]`/null), object (missing/`{}`/null + recurse leaf-by-leaf), boolean (missing only — `false` counts as set, including the `false`-beats-scope-`true` direction). Conflict comparison uses `JSON.stringify` deep-equal on leaves only (recursion exhausts plain-object cases first). `_comment` skipped during recursion at every level. **Spec compliance ✅ all 15 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: no defensive `null`/`undefined` guard at top-level entry (SKILL contract guarantees non-null). M2: arrays from scope flow through by reference (no downstream mutation in practice). M3: JSDoc could mention `_comment` skip explicitly. |
 
 ---
 
 ## Pending tasks
 
-Tasks 4-11 pending. Task 3 review pair signed off in this session — proceeding to Task 4.
+Tasks 5-11 pending. Tasks 1-4 complete; reviews signed off; proceeding to Task 5.
 
 ---
 
