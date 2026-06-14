@@ -13,6 +13,8 @@ Companion to [`2026-06-14-scope-json.md`](2026-06-14-scope-json.md). Tracks each
 
 ```
 $ git log --oneline main..HEAD
+b8b9710 test(unit): SKILL <-> scope parity
+67fefd0 docs: progress doc through Task 8
 5cd032a feat(skill): add §0a.5 read-merge-delete for .brand/.scope.json
 5b4bd55 docs: progress doc through Task 7
 e798702 test(integration): scope fixtures roundtrip through loader + validator + CLI + merge
@@ -32,8 +34,8 @@ f36cc9a docs: progress doc through Task 3 + session-pause resume notes
 8993533 docs: spec for #4 — .brand/.scope.json structured scope input
 
 $ npm test 2>&1 | tail -5
-# tests 103
-# pass 103
+# tests 108
+# pass 108
 # fail 0
 ```
 
@@ -57,12 +59,13 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 | 6 | `scope-cli` integration tests | `1518a18` | +5 (96 → 101) | 5 integration tests against the three fixtures + an absent-file path. Tempdir-per-test isolation; `try/finally { cleanup() }`; `runCli` helper with `NO_COLOR: '1'` so chalk markers come through plain. **Spec compliance ✅ all 12 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: `__dirname` shadowing — standard ESM pattern. M2: `tmpProjectWithScope` helper duplicates shape-of-thing logic from sibling `tmp-brand.js`; promote later if a second integration test needs the same shape. M3: regex test 4's `path: '.brand/.scope.json'` assertion is POSIX-specific (Windows would emit `.brand\.scope.json`); rest of the suite makes the same assumption. |
 | 7 | Roundtrip integration test | `e798702` | +2 (101 → 103) | 2 cross-utility integration tests verifying loader → validator → merge → CLI subprocess all agree on valid/invalid for the same fixture. Test 1 (full): all four code paths return success-shaped output, merge produces expected values with `conflicts.length === 0`. Test 2 (invalid): both `validateScope` and `runCli` reject. Helper variant returns `{dir, brandDir, cleanup}` (vs Task 6's `{dir, cleanup}`) so tests can call `loadScope(brandDir)` directly. **Spec compliance ✅ all 10 checks PASS.** **Code review: Approve, Minor only** — accept per [D7]. M1: dead `readFileSync` import (plan-prescribed in the import list but never consumed in test bodies); kept verbatim to match plan; logged for plan-author follow-up. |
 | 8 | SKILL §0a.5 read-merge-delete prose | `5cd032a` | 0 (103 → 103) | New `### 0a.5.` section between `### 0a.` and `### 0b.` (44 lines added), plus leading paragraphs added to `### 0c.`, `### 0d.`, and two appended paragraphs in `### 0e.`. Total file growth: 950 → 994 lines (+44). All 6 cross-task contract grep checks pass: `.brand/.scope.json`, "brandrc wins on conflict / kept brandrc's value", `interactive_preflight`, `missing_required_fields`, `filledFromScope`, delete-after-merge phrase. Heading depth integrity preserved (`### ` count up by exactly 1; section-zero sequence is `0a, 0a.5, 0b, 0c, 0d, 0e, 0f, 0.5a, 0.5b`). All four `Edit` operations matched on first attempt. **Spec compliance ✅ all 11 checks PASS.** **Code review: Approve, two Minors** — accept per [D7]. M1: forward-looking pointer to `brand-cli scope --validate` (verified — Task 5 added this command). M2: §0a.5 phrase about "invoke `scope-merge.js` indirectly via the scope-loader" is slightly redundant; reads fine to a contributor. |
+| 9 | SKILL ↔ scope parity test | `b8b9710` | +5 (103 → 108) | 5 module-scope assertion tests reading `brand-context/skills/brand-extract/SKILL.md` once and asserting the cross-task contract phrases are present (file path, brandrc-wins-on-conflict, `interactive_preflight` + `missing_required_fields`, `filledFromScope`, delete-after-merge regex). Mirrors the contract-branch `skill-contract-parity.test.js` precedent. All 5 tests passed on first run with no SKILL prose changes needed (Task 8 wrote all phrases correctly). **Spec compliance ✅ all 10 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: path-resolution `../../../` depth is correct but fragile if test moves. M2: regex could be tighter (e.g. anchoring `.brand/.scope.json`) but loose form aligns with "forgiving as prose evolves" stance. |
 
 ---
 
 ## Pending tasks
 
-Tasks 9-11 pending. Tasks 1-8 complete; reviews signed off; proceeding to Task 9.
+Tasks 10-11 pending. Tasks 1-9 complete; reviews signed off; proceeding to Task 10.
 
 ---
 
