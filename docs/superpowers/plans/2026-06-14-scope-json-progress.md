@@ -40,13 +40,13 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 |---|---|---|---|---|
 | 1 | Test harness sync + progress doc shell | `812e51f` | 0 (baseline) | Inline (no implementer subagent — same shape as Task 1 of the contract branch). 85/85 baseline confirmed. |
 | 2 | Add `schema/brand/scope.schema.json` | `50cdb79` | 0 (loader test deferred to Task 3) | Schema compiled strict-mode-clean first try (no Task-2 strict-mode trap as on the contract branch — no `if/then` conditionals). Spec reviewer ✅ all 13 checks. Code reviewer **Approve**, M1 (enum descriptions on `tier` / `mode` / `interactive_preflight`) picked up inline because it's a 3-line cheap improvement and resolves a precedent inconsistency the contract reviewer also flagged. Commit amended with M1 fix; tests stayed 85/85. M2-M5 deferred per [D7]: M3 docs `live_urls` exclusion (XD-specific Layout CLI field, deliberately omitted per de-XD posture; could be footnoted in spec §7); M5 industry-signal future-extensibility — `additionalProperties: false` at top means the future #5 task addition is a deliberate one-line append. |
-| 3 | `cli/src/utils/scope-loader.js` (TDD) | `0ede969` | +6 (85 → 91) | DONE first-pass — TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected before implementation. Two exports (`loadScope`, `validateScope`); cached validator at module scope; ajv `strict: true` + `ajv/dist/2020.js` matching contract-loader precedent. **Spec + code review NOT YET RUN — controller paused at clean Task 3 stopping point to push the branch and resume in a fresh session.** Resuming controller must: (a) run spec compliance review of the Task 3 commit (`0ede969`) before dispatching Task 4; (b) run `superpowers:code-reviewer` against `8616ac0..0ede969` for Task 3; (c) only then proceed to Task 4 dispatch. |
+| 3 | `cli/src/utils/scope-loader.js` (TDD) | `0ede969` | +6 (85 → 91) | TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected before implementation. Two exports (`loadScope`, `validateScope`); cached validator at module scope; ajv `strict: true` + `ajv/dist/2020.js` matching contract-loader precedent. Reviews ran in fresh session (the original session paused at the clean stopping point and resumed for the proper review pair): **Spec compliance ✅ all 12 verifiable checks PASS** (item 13, the pre-implementation `ERR_MODULE_NOT_FOUND` snapshot, is structurally plausible but unverifiable post-commit). **Code review: Approve, Minors only.** Two Minor findings, both accepted per [D7]: M1 — `errorsTextFn` closure on the validator diverges from the sibling `manifest-writer`/`contract-loader` pattern of holding `ajv` in module scope and calling `ajv.errorsText()` directly; functionally equivalent. M2 — malformed-JSON error message has a small redundancy (`.brand/.scope.json at <abs path ending in .scope.json>`); test-regex is forgiving and Task 5's chalk wrapper rewrites the user-facing string anyway. |
 
 ---
 
 ## Pending tasks
 
-Tasks 4-11 pending. **NOTE: Task 3 needs spec + code review before proceeding to Task 4.** See Task 3 row above.
+Tasks 4-11 pending. Task 3 review pair signed off in this session — proceeding to Task 4.
 
 ---
 
@@ -78,7 +78,8 @@ Test count growth path remaining (use this to spot regressions in subagent repor
 
 ## Decisions made during implementation (D-letter pattern)
 
-(populated as decisions land)
+- **[D1]** Task 2: enum-only properties (`tier`, `mode`, `interactive_preflight`) added inline `description` strings during the Task 2 spec/code review pair (3-line cheap improvement; resolved a precedent inconsistency the contract reviewer also flagged). Logged in Task 2 row above.
+- **[D2]** Task 3: `errorsTextFn` closure stashed on the compiled validator instead of keeping `ajv` in module scope. Functionally equivalent to the sibling `manifest-writer`/`contract-loader` pattern; flagged Minor in code review and accepted as-is per [D7]. If a future branch refactors all validators for consistency, this is a candidate site.
 
 ---
 
