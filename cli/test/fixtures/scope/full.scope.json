@@ -1,0 +1,22 @@
+{
+  "_comment": "Full scope fixture used by scope-cli tests. Every field populated.",
+  "client": "ACME Corp",
+  "tier": "standard",
+  "mode": "standard",
+  "sources": {
+    "website": "https://acme.example.com",
+    "website_pages": ["/about", "/products"],
+    "figma": ["abc123def456"],
+    "figma_variable_collections": ["Primitives"],
+    "brand_guide": "assets/brand-guide.pdf",
+    "screenshots": ["assets/hero.png"],
+    "social": {
+      "twitter": "https://x.com/acmecorp"
+    },
+    "app_store": {
+      "ios": "https://apps.apple.com/us/app/acme/id123"
+    },
+    "design_system_repo": "./packages/ds"
+  },
+  "interactive_preflight": false
+}
