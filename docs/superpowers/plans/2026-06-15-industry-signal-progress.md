@@ -13,6 +13,8 @@ Companion to [`2026-06-15-industry-signal.md`](2026-06-15-industry-signal.md). T
 
 ```
 $ git log --oneline main..HEAD
+644484f docs: propagate industry signal note to README and tasks.md (#5)
+b33a308 docs: progress doc through Task 5
 6883003 test(skill-scope-parity): guard industry signal prose against drift (#5)
 cd527ae docs: progress doc through Task 4
 b062686 skill(brand-extract): add industry soft-prior to Stages 3 and 4 (#5)
@@ -47,12 +49,13 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 | 3 | Extend scope-merge.test.js (+1) | `344419a` | +1 (109/109) | Test exercises both empty-fill and brandrc-wins-on-conflict cases. No code change to scope-merge.js (verified). Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Used branch-suffixed tempfile name (`/tmp/commit-msg-task3-industry.txt`) per [D1] precedent. |
 | 4 | SKILL prose — §0a, §4c, §6b additive blocks | `b062686` | 0 (109/109) | All three Edits applied verbatim. Grep counts: `industry` ×8, `industry context:` ×3, `tie-breaker` ×4 (≥6/3/3 minimums all exceeded). §4c worked example uses 4-and-4 split between "playful" and "wry" with `*(industry context: fast-food QSR)*` citation. §6b paragraph explicitly excludes Visual Language and brand self-test. Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. One existing line was technically replaced (Edit 1 expanded a §0a sentence) — additive in content, deletion in diff stats only. |
 | 5 | Extend skill-scope-parity.test.js (+3) | `6883003` | +3 (112/112) | Three parity assertions: industry-mention (`includes('industry')`), citation-marker (`includes('industry context:')`), tie-breaker rule + threshold-preservation regex. Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Reviewer flagged three Minor non-blocking observations (false-positive resilience of test #1, compound assertion in test #3, task-marker style consistency) — all deliberate per the spec. |
+| 6 | Repo docs propagation | `644484f` | 0 (112/112) | README YAML example gets `industry: B2B SaaS analytics` line with inline comment; "How the pipeline works" section gets a paragraph explaining the field flows through both brandrc and scope.json with the citation marker. tasks.md #5 entry moved to "In flight on branch `feat/industry-signal`" status; "Last updated" line refreshed. Final move to Completed deferred to post-merge cleanup commit per #4 precedent. Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. |
 
 ---
 
 ## Pending tasks
 
-Tasks 6-7 pending. See plan.
+Task 7 pending. See plan.
 
 ---
 
