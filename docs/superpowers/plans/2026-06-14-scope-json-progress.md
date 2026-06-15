@@ -2,7 +2,7 @@
 
 Companion to [`2026-06-14-scope-json.md`](2026-06-14-scope-json.md). Tracks each task's commits, test delta, and decisions made during implementation.
 
-**Status:** in progress on branch `feat/scope-json`.
+**Status:** ready to merge — branch `feat/scope-json` cleared cross-branch code review.
 **Branch base:** `main` at commit `c595a08` (post-merge cleanup for #3).
 **Spec:** [`../specs/2026-06-14-scope-json-design.md`](../specs/2026-06-14-scope-json-design.md)
 **Precedent (D-letter pattern reference):** [`2026-06-13-mcp-fallback-contract-progress.md`](2026-06-13-mcp-fallback-contract-progress.md)
@@ -13,6 +13,7 @@ Companion to [`2026-06-14-scope-json.md`](2026-06-14-scope-json.md). Tracks each
 
 ```
 $ git log --oneline main..HEAD
+7df080b docs: progress doc through Task 10 + log [D4]
 31f2c45 docs: propagate .brand/.scope.json to repo-level docs
 3f5df38 docs: progress doc through Task 9
 b8b9710 test(unit): SKILL <-> scope parity
@@ -63,38 +64,27 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 | 8 | SKILL §0a.5 read-merge-delete prose | `5cd032a` | 0 (103 → 103) | New `### 0a.5.` section between `### 0a.` and `### 0b.` (44 lines added), plus leading paragraphs added to `### 0c.`, `### 0d.`, and two appended paragraphs in `### 0e.`. Total file growth: 950 → 994 lines (+44). All 6 cross-task contract grep checks pass: `.brand/.scope.json`, "brandrc wins on conflict / kept brandrc's value", `interactive_preflight`, `missing_required_fields`, `filledFromScope`, delete-after-merge phrase. Heading depth integrity preserved (`### ` count up by exactly 1; section-zero sequence is `0a, 0a.5, 0b, 0c, 0d, 0e, 0f, 0.5a, 0.5b`). All four `Edit` operations matched on first attempt. **Spec compliance ✅ all 11 checks PASS.** **Code review: Approve, two Minors** — accept per [D7]. M1: forward-looking pointer to `brand-cli scope --validate` (verified — Task 5 added this command). M2: §0a.5 phrase about "invoke `scope-merge.js` indirectly via the scope-loader" is slightly redundant; reads fine to a contributor. |
 | 9 | SKILL ↔ scope parity test | `b8b9710` | +5 (103 → 108) | 5 module-scope assertion tests reading `brand-context/skills/brand-extract/SKILL.md` once and asserting the cross-task contract phrases are present (file path, brandrc-wins-on-conflict, `interactive_preflight` + `missing_required_fields`, `filledFromScope`, delete-after-merge regex). Mirrors the contract-branch `skill-contract-parity.test.js` precedent. All 5 tests passed on first run with no SKILL prose changes needed (Task 8 wrote all phrases correctly). **Spec compliance ✅ all 10 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: path-resolution `../../../` depth is correct but fragile if test moves. M2: regex could be tighter (e.g. anchoring `.brand/.scope.json`) but loose form aligns with "forgiving as prose evolves" stance. |
 | 10 | Repo docs propagation | `31f2c45` | 0 (108 → 108) | 5 docs files modified: CLAUDE.md (file-write policy row + arch diagram), README.md (pipeline section paragraph), schema/brand/README.md (cross-link bullet), docs/DESIGN.md (end-to-end embedded path sub-section), docs/tasks.md (#4 → Completed, #5 → Unblocked, Last updated bumped, cross-task #4↔#5 contract bullet updated). Implementer subagent died mid-flight on terminal API token expiration after completing only Step 1 (CLAUDE.md row); per [D4] (logged below), controller picked up the partial edit and finished the remaining 4 files inline rather than re-dispatching. Single commit captures all 5 files. **Spec compliance ✅ all 14 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: stale prose at schema/brand/README.md L75 ("These two schemas...") was already drift before this task; out of scope for this branch. M2: DESIGN.md sub-section uses bold-paragraph style rather than `###`; matches the file's existing pattern. |
+| 11 | Final verification + cross-branch code review | this progress-doc commit | 0 (108 → 108) | Verification-only task — controller-driven, no implementer subagent. Step 1: full suite 108/108 pass, 0 fail. Step 2: end-to-end smoke test against a real scope file — `brand-cli scope --validate --json` returned `{"ok":true,"path":".brand/.scope.json"}` exit 0; in-process roundtrip via `loadScope` → `validateScope` → `mergeScopeIntoBrandrc` printed `roundtrip OK` (subsequent `pwd` failure was post-`rm` cwd cleanup, benign). Step 3: 22 commits ahead of main, working tree clean. Step 4: spec coverage skim — every spec section (§1-§8) maps to landed task(s) cleanly. Step 5: **cross-branch code reviewer Verdict: Approve — branch ships.** All 12 focus areas (cross-task `filledFromScope` sync; per-type "empty" rule; embedded-mode required-fields parity; delete-after-merge invariant; no disk writes in new code; no `.brandrc.yaml` writes in this branch; schema-permissive vs runtime SKILL enforcement; no XD residue; no dead code beyond plan-prescribed `readFileSync` Minor; test integrity 108/108; backward compatibility for absent `.scope.json`; manifest/health/MCP-fallback schemas untouched; `engines.node >= 22.0.0` unchanged) verified. No Critical/Important findings. Three Minors logged informationally — all out of scope or matching repo conventions. |
 
 ---
 
-## Pending tasks
+## Final-stage handoff
 
-Task 11 pending. Tasks 1-10 complete; reviews signed off; proceeding to Task 11 (verification only).
+Branch state at hand-off: `feat/scope-json` at this progress-doc commit, ~23 commits ahead of `main`, **108/108 tests passing**, working tree clean.
 
----
+What landed:
+- **Schema layer:** `schema/brand/scope.schema.json` (JSON Schema 2020-12, permissive at schema level)
+- **CLI layer:** `cli/src/utils/scope-loader.js` + `cli/src/utils/scope-merge.js` + `cli/src/commands/scope.js` + registration in `cli/bin/brand-cli.js`
+- **Test layer:** 23 new tests across 5 files (`scope-loader.test.js` +6, `scope-merge.test.js` +5, `scope-cli.test.js` +5, `scope-fixtures-roundtrip.test.js` +2, `skill-scope-parity.test.js` +5)
+- **Fixture layer:** `cli/test/fixtures/scope/{full,partial,invalid}.scope.json`
+- **SKILL layer:** new `### 0a.5.` section in `brand-context/skills/brand-extract/SKILL.md` plus leading paragraphs in `### 0c.`, `### 0d.`, and two appended paragraphs in `### 0e.`
+- **Repo docs:** CLAUDE.md (policy row + arch diagram), README.md (pipeline section paragraph), schema/brand/README.md (cross-link), docs/DESIGN.md (end-to-end embedded path), docs/tasks.md (#4 → Completed, #5 → Unblocked)
 
-## Resuming in a fresh session
+Test delta: **85 → 108 (+23 tests)**.
 
-Branch state at pause: `feat/scope-json` at `0ede969` (or whatever HEAD is post-progress-doc commit), 6 commits ahead of `main`, 91/91 tests passing, working tree clean, branch pushed to origin.
+Cross-branch review verdict: **Approve — branch ships** (all 12 focus areas verified clean, no Critical/Important findings, three Minors all out of scope).
 
-To resume:
-
-1. Read this progress doc end-to-end. The "Things that bite repeatedly" section + the per-task notes below tell the resuming controller everything they need.
-2. Read `docs/superpowers/specs/2026-06-14-scope-json-design.md` (the spec) end-to-end.
-3. Read `docs/superpowers/plans/2026-06-14-scope-json.md` (the plan) end-to-end. 11 tasks; Tasks 1-3 are committed.
-4. Verify branch state matches: `git log --oneline main..HEAD` should show ~6 commits including `0ede969 feat(cli): add scope-loader utility (TDD)` near the top. `npm test` should be 91/91.
-5. **First action:** dispatch the spec compliance reviewer + `superpowers:code-reviewer` for Task 3 (commit `0ede969`). The implementer's self-review was clean (TDD failure was missing-module; 6 tests pass; full suite 91/91), but the proper review pair was deferred to the fresh session for context budget. Task 3 prompt template + reviewer prompts are documented in the plan's "Per-task dispatch protocol" section.
-6. Once Task 3 is signed off, invoke `superpowers:subagent-driven-development` against the plan and pick up at Task 4.
-
-Test count growth path remaining (use this to spot regressions in subagent reports):
-- After Task 3 review: 91 (already there)
-- Task 4: 91 + 5 = 96 (scope-merge unit tests)
-- Task 5: 96 (no new tests — CLI command + fixtures)
-- Task 6: 96 + 5 = 101 (scope-cli integration tests)
-- Task 7: 101 + 2 = 103 (roundtrip)
-- Task 8: 103 (SKILL prose)
-- Task 9: 103 + 5 = 108 (SKILL ↔ scope parity)
-- Task 10: 108 (docs)
-- Task 11: 108 (verification only)
+Next: invoke `superpowers:finishing-a-development-branch` to push and merge. Match the contract-branch precedent: local merge with `--no-ff`, no PR. After merge: update `docs/tasks.md` "Last updated" line with the merge SHA. Hoist any new footguns that surfaced this branch into the next progress doc's "things to know" appendix. New footguns surfaced this branch: see [D4] for the agent-died-mid-flight handover pattern (now precedent).
 
 ---
 
