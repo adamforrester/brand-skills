@@ -13,6 +13,8 @@ Companion to [`2026-06-15-industry-signal.md`](2026-06-15-industry-signal.md). T
 
 ```
 $ git log --oneline main..HEAD
+072d208 schema: add industry field to scope.schema.json
+d1782f9 docs: progress doc through Task 1
 1db9ad9 docs: implementation plan + progress doc shell for #5
 86ee39c docs: spec for #5 — industry signal injection
 
@@ -35,12 +37,13 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 | # | Task | Commits | Tests added | Notes |
 |---|---|---|---|---|
 | 1 | Test harness sync + branch baseline | `1db9ad9` | 0 | 108/108 baseline confirmed. Spec reviewer ✅ all 6 checks. Code-quality review skipped — docs-only commit, no code surface. Tempfile per-task naming followed (`/tmp/commit-msg-task1.txt`). |
+| 2 | Append `industry` to scope.schema.json | `072d208` | 0 | Schema compiled strict-mode-clean first try. All four ajv assertions pass (positive case + 3 negatives). Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Existing scope-merge.js round-trips the new field without code changes (verified by reviewer). |
 
 ---
 
 ## Pending tasks
 
-Tasks 2-7 pending. See plan.
+Tasks 3-7 pending. See plan.
 
 ---
 
