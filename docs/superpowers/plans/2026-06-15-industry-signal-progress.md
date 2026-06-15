@@ -13,6 +13,8 @@ Companion to [`2026-06-15-industry-signal.md`](2026-06-15-industry-signal.md). T
 
 ```
 $ git log --oneline main..HEAD
+b062686 skill(brand-extract): add industry soft-prior to Stages 3 and 4 (#5)
+bba56d6 docs: progress doc through Task 3 + log [D1]
 344419a test(scope-merge): add industry round-trip test (#5)
 56efaa8 docs: progress doc through Task 2
 072d208 schema: add industry field to scope.schema.json
@@ -41,12 +43,13 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 | 1 | Test harness sync + branch baseline | `1db9ad9` | 0 | 108/108 baseline confirmed. Spec reviewer ✅ all 6 checks. Code-quality review skipped — docs-only commit, no code surface. Tempfile per-task naming followed (`/tmp/commit-msg-task1.txt`). |
 | 2 | Append `industry` to scope.schema.json | `072d208` | 0 | Schema compiled strict-mode-clean first try. All four ajv assertions pass (positive case + 3 negatives). Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Existing scope-merge.js round-trips the new field without code changes (verified by reviewer). |
 | 3 | Extend scope-merge.test.js (+1) | `344419a` | +1 (109/109) | Test exercises both empty-fill and brandrc-wins-on-conflict cases. No code change to scope-merge.js (verified). Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Used branch-suffixed tempfile name (`/tmp/commit-msg-task3-industry.txt`) per [D1] precedent. |
+| 4 | SKILL prose — §0a, §4c, §6b additive blocks | `b062686` | 0 (109/109) | All three Edits applied verbatim. Grep counts: `industry` ×8, `industry context:` ×3, `tie-breaker` ×4 (≥6/3/3 minimums all exceeded). §4c worked example uses 4-and-4 split between "playful" and "wry" with `*(industry context: fast-food QSR)*` citation. §6b paragraph explicitly excludes Visual Language and brand self-test. Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. One existing line was technically replaced (Edit 1 expanded a §0a sentence) — additive in content, deletion in diff stats only. |
 
 ---
 
 ## Pending tasks
 
-Tasks 4-7 pending. See plan.
+Tasks 5-7 pending. See plan.
 
 ---
 
