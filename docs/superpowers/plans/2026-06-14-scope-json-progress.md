@@ -1,0 +1,102 @@
+# `.brand/.scope.json` — Implementation Progress
+
+Companion to [`2026-06-14-scope-json.md`](2026-06-14-scope-json.md). Tracks each task's commits, test delta, and decisions made during implementation.
+
+**Status:** ready to merge — branch `feat/scope-json` cleared cross-branch code review.
+**Branch base:** `main` at commit `c595a08` (post-merge cleanup for #3).
+**Spec:** [`../specs/2026-06-14-scope-json-design.md`](../specs/2026-06-14-scope-json-design.md)
+**Precedent (D-letter pattern reference):** [`2026-06-13-mcp-fallback-contract-progress.md`](2026-06-13-mcp-fallback-contract-progress.md)
+
+---
+
+## Quick state check
+
+```
+$ git log --oneline main..HEAD
+7df080b docs: progress doc through Task 10 + log [D4]
+31f2c45 docs: propagate .brand/.scope.json to repo-level docs
+3f5df38 docs: progress doc through Task 9
+b8b9710 test(unit): SKILL <-> scope parity
+67fefd0 docs: progress doc through Task 8
+5cd032a feat(skill): add §0a.5 read-merge-delete for .brand/.scope.json
+5b4bd55 docs: progress doc through Task 7
+e798702 test(integration): scope fixtures roundtrip through loader + validator + CLI + merge
+e70ed6f docs: progress doc through Task 6
+1518a18 test(integration): scope-cli covers valid / invalid / absent / --json
+007a69a docs: progress doc through Task 5 + log [D3]
+4f3f940 feat(cli): brand-cli scope --validate subcommand + fixtures
+2353cc4 docs: progress doc through Task 4
+918e57f feat(cli): scope-merge utility (TDD)
+d6467f8 docs: record Task 3 spec + code review verdicts
+f36cc9a docs: progress doc through Task 3 + session-pause resume notes
+0ede969 feat(cli): add scope-loader utility (TDD)
+8616ac0 docs: progress doc through Task 2
+50cdb79 feat(schema): add scope.schema.json (JSON Schema 2020-12)
+812e51f docs: progress doc shell for #4
+90aed33 docs: implementation plan for #4
+8993533 docs: spec for #4 — .brand/.scope.json structured scope input
+
+$ npm test 2>&1 | tail -5
+# tests 108
+# pass 108
+# fail 0
+```
+
+---
+
+## Things that bite repeatedly (carried forward from precedent)
+
+See the "Things to know" section in the plan. Hoist new branch-specific patterns here as they surface.
+
+---
+
+## Completed tasks
+
+| # | Task | Commits | Tests added | Notes |
+|---|---|---|---|---|
+| 1 | Test harness sync + progress doc shell | `812e51f` | 0 (baseline) | Inline (no implementer subagent — same shape as Task 1 of the contract branch). 85/85 baseline confirmed. |
+| 2 | Add `schema/brand/scope.schema.json` | `50cdb79` | 0 (loader test deferred to Task 3) | Schema compiled strict-mode-clean first try (no Task-2 strict-mode trap as on the contract branch — no `if/then` conditionals). Spec reviewer ✅ all 13 checks. Code reviewer **Approve**, M1 (enum descriptions on `tier` / `mode` / `interactive_preflight`) picked up inline because it's a 3-line cheap improvement and resolves a precedent inconsistency the contract reviewer also flagged. Commit amended with M1 fix; tests stayed 85/85. M2-M5 deferred per [D7]: M3 docs `live_urls` exclusion (XD-specific Layout CLI field, deliberately omitted per de-XD posture; could be footnoted in spec §7); M5 industry-signal future-extensibility — `additionalProperties: false` at top means the future #5 task addition is a deliberate one-line append. |
+| 3 | `cli/src/utils/scope-loader.js` (TDD) | `0ede969` | +6 (85 → 91) | TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected before implementation. Two exports (`loadScope`, `validateScope`); cached validator at module scope; ajv `strict: true` + `ajv/dist/2020.js` matching contract-loader precedent. Reviews ran in fresh session (the original session paused at the clean stopping point and resumed for the proper review pair): **Spec compliance ✅ all 12 verifiable checks PASS** (item 13, the pre-implementation `ERR_MODULE_NOT_FOUND` snapshot, is structurally plausible but unverifiable post-commit). **Code review: Approve, Minors only.** Two Minor findings, both accepted per [D7]: M1 — `errorsTextFn` closure on the validator diverges from the sibling `manifest-writer`/`contract-loader` pattern of holding `ajv` in module scope and calling `ajv.errorsText()` directly; functionally equivalent. M2 — malformed-JSON error message has a small redundancy (`.brand/.scope.json at <abs path ending in .scope.json>`); test-regex is forgiving and Task 5's chalk wrapper rewrites the user-facing string anyway. Verdict logged at `d6467f8`. |
+| 4 | `cli/src/utils/scope-merge.js` (TDD) | `918e57f` | +5 (91 → 96) | TDD: test failed with `ERR_MODULE_NOT_FOUND` as expected. Pure function `mergeScopeIntoBrandrc(scope, brandrc)` returning `{ merged, filledFromScope, conflicts }`. Implements per-type "empty" rule from spec §1: string (missing/`""`/null), array (missing/`[]`/null), object (missing/`{}`/null + recurse leaf-by-leaf), boolean (missing only — `false` counts as set, including the `false`-beats-scope-`true` direction). Conflict comparison uses `JSON.stringify` deep-equal on leaves only (recursion exhausts plain-object cases first). `_comment` skipped during recursion at every level. **Spec compliance ✅ all 15 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: no defensive `null`/`undefined` guard at top-level entry (SKILL contract guarantees non-null). M2: arrays from scope flow through by reference (no downstream mutation in practice). M3: JSDoc could mention `_comment` skip explicitly. |
+| 5 | `brand-cli scope --validate` subcommand + fixtures | `4f3f940` | 0 (96 → 96) | Read-only lint command + three fixtures (`full`/`partial`/`invalid`). All three exit-code paths smoke-tested: full → 0; invalid → 1 with `additionalProperties` rejection; missing → 1. **Spec compliance ✅ all 10 checks PASS** with one informational note: see [D3] below for the plan-vs-spec divergence on `--json` invalid output shape. **Code review: Approve, Minors only** — accept per [D7]. M1: `--json` malformed-error leaks absolute path in `message` field (host-side hosts can ignore it; structured `path` field already carries the canonical relative path). M2: error string for missing-`--validate` could carry a spec-pointer tag-on (lint command, not stage failure — strict adherence not required). M3: `.scope.json` filename is implicit-duplicated between scope-loader's `join(brandDir, '.scope.json')` and the CLI's `SCOPE_REL_PATH` constant — defer extraction until rename happens. Cross-task contracts intact: command does not call `mergeScopeIntoBrandrc`, doesn't write any file, doesn't delete `.scope.json`, doesn't touch `.brandrc.yaml`. |
+| 6 | `scope-cli` integration tests | `1518a18` | +5 (96 → 101) | 5 integration tests against the three fixtures + an absent-file path. Tempdir-per-test isolation; `try/finally { cleanup() }`; `runCli` helper with `NO_COLOR: '1'` so chalk markers come through plain. **Spec compliance ✅ all 12 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: `__dirname` shadowing — standard ESM pattern. M2: `tmpProjectWithScope` helper duplicates shape-of-thing logic from sibling `tmp-brand.js`; promote later if a second integration test needs the same shape. M3: regex test 4's `path: '.brand/.scope.json'` assertion is POSIX-specific (Windows would emit `.brand\.scope.json`); rest of the suite makes the same assumption. |
+| 7 | Roundtrip integration test | `e798702` | +2 (101 → 103) | 2 cross-utility integration tests verifying loader → validator → merge → CLI subprocess all agree on valid/invalid for the same fixture. Test 1 (full): all four code paths return success-shaped output, merge produces expected values with `conflicts.length === 0`. Test 2 (invalid): both `validateScope` and `runCli` reject. Helper variant returns `{dir, brandDir, cleanup}` (vs Task 6's `{dir, cleanup}`) so tests can call `loadScope(brandDir)` directly. **Spec compliance ✅ all 10 checks PASS.** **Code review: Approve, Minor only** — accept per [D7]. M1: dead `readFileSync` import (plan-prescribed in the import list but never consumed in test bodies); kept verbatim to match plan; logged for plan-author follow-up. |
+| 8 | SKILL §0a.5 read-merge-delete prose | `5cd032a` | 0 (103 → 103) | New `### 0a.5.` section between `### 0a.` and `### 0b.` (44 lines added), plus leading paragraphs added to `### 0c.`, `### 0d.`, and two appended paragraphs in `### 0e.`. Total file growth: 950 → 994 lines (+44). All 6 cross-task contract grep checks pass: `.brand/.scope.json`, "brandrc wins on conflict / kept brandrc's value", `interactive_preflight`, `missing_required_fields`, `filledFromScope`, delete-after-merge phrase. Heading depth integrity preserved (`### ` count up by exactly 1; section-zero sequence is `0a, 0a.5, 0b, 0c, 0d, 0e, 0f, 0.5a, 0.5b`). All four `Edit` operations matched on first attempt. **Spec compliance ✅ all 11 checks PASS.** **Code review: Approve, two Minors** — accept per [D7]. M1: forward-looking pointer to `brand-cli scope --validate` (verified — Task 5 added this command). M2: §0a.5 phrase about "invoke `scope-merge.js` indirectly via the scope-loader" is slightly redundant; reads fine to a contributor. |
+| 9 | SKILL ↔ scope parity test | `b8b9710` | +5 (103 → 108) | 5 module-scope assertion tests reading `brand-context/skills/brand-extract/SKILL.md` once and asserting the cross-task contract phrases are present (file path, brandrc-wins-on-conflict, `interactive_preflight` + `missing_required_fields`, `filledFromScope`, delete-after-merge regex). Mirrors the contract-branch `skill-contract-parity.test.js` precedent. All 5 tests passed on first run with no SKILL prose changes needed (Task 8 wrote all phrases correctly). **Spec compliance ✅ all 10 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: path-resolution `../../../` depth is correct but fragile if test moves. M2: regex could be tighter (e.g. anchoring `.brand/.scope.json`) but loose form aligns with "forgiving as prose evolves" stance. |
+| 10 | Repo docs propagation | `31f2c45` | 0 (108 → 108) | 5 docs files modified: CLAUDE.md (file-write policy row + arch diagram), README.md (pipeline section paragraph), schema/brand/README.md (cross-link bullet), docs/DESIGN.md (end-to-end embedded path sub-section), docs/tasks.md (#4 → Completed, #5 → Unblocked, Last updated bumped, cross-task #4↔#5 contract bullet updated). Implementer subagent died mid-flight on terminal API token expiration after completing only Step 1 (CLAUDE.md row); per [D4] (logged below), controller picked up the partial edit and finished the remaining 4 files inline rather than re-dispatching. Single commit captures all 5 files. **Spec compliance ✅ all 14 checks PASS.** **Code review: Approve, Minors only** — accept per [D7]. M1: stale prose at schema/brand/README.md L75 ("These two schemas...") was already drift before this task; out of scope for this branch. M2: DESIGN.md sub-section uses bold-paragraph style rather than `###`; matches the file's existing pattern. |
+| 11 | Final verification + cross-branch code review | this progress-doc commit | 0 (108 → 108) | Verification-only task — controller-driven, no implementer subagent. Step 1: full suite 108/108 pass, 0 fail. Step 2: end-to-end smoke test against a real scope file — `brand-cli scope --validate --json` returned `{"ok":true,"path":".brand/.scope.json"}` exit 0; in-process roundtrip via `loadScope` → `validateScope` → `mergeScopeIntoBrandrc` printed `roundtrip OK` (subsequent `pwd` failure was post-`rm` cwd cleanup, benign). Step 3: 22 commits ahead of main, working tree clean. Step 4: spec coverage skim — every spec section (§1-§8) maps to landed task(s) cleanly. Step 5: **cross-branch code reviewer Verdict: Approve — branch ships.** All 12 focus areas (cross-task `filledFromScope` sync; per-type "empty" rule; embedded-mode required-fields parity; delete-after-merge invariant; no disk writes in new code; no `.brandrc.yaml` writes in this branch; schema-permissive vs runtime SKILL enforcement; no XD residue; no dead code beyond plan-prescribed `readFileSync` Minor; test integrity 108/108; backward compatibility for absent `.scope.json`; manifest/health/MCP-fallback schemas untouched; `engines.node >= 22.0.0` unchanged) verified. No Critical/Important findings. Three Minors logged informationally — all out of scope or matching repo conventions. |
+
+---
+
+## Final-stage handoff
+
+Branch state at hand-off: `feat/scope-json` at this progress-doc commit, ~23 commits ahead of `main`, **108/108 tests passing**, working tree clean.
+
+What landed:
+- **Schema layer:** `schema/brand/scope.schema.json` (JSON Schema 2020-12, permissive at schema level)
+- **CLI layer:** `cli/src/utils/scope-loader.js` + `cli/src/utils/scope-merge.js` + `cli/src/commands/scope.js` + registration in `cli/bin/brand-cli.js`
+- **Test layer:** 23 new tests across 5 files (`scope-loader.test.js` +6, `scope-merge.test.js` +5, `scope-cli.test.js` +5, `scope-fixtures-roundtrip.test.js` +2, `skill-scope-parity.test.js` +5)
+- **Fixture layer:** `cli/test/fixtures/scope/{full,partial,invalid}.scope.json`
+- **SKILL layer:** new `### 0a.5.` section in `brand-context/skills/brand-extract/SKILL.md` plus leading paragraphs in `### 0c.`, `### 0d.`, and two appended paragraphs in `### 0e.`
+- **Repo docs:** CLAUDE.md (policy row + arch diagram), README.md (pipeline section paragraph), schema/brand/README.md (cross-link), docs/DESIGN.md (end-to-end embedded path), docs/tasks.md (#4 → Completed, #5 → Unblocked)
+
+Test delta: **85 → 108 (+23 tests)**.
+
+Cross-branch review verdict: **Approve — branch ships** (all 12 focus areas verified clean, no Critical/Important findings, three Minors all out of scope).
+
+Next: invoke `superpowers:finishing-a-development-branch` to push and merge. Match the contract-branch precedent: local merge with `--no-ff`, no PR. After merge: update `docs/tasks.md` "Last updated" line with the merge SHA. Hoist any new footguns that surfaced this branch into the next progress doc's "things to know" appendix. New footguns surfaced this branch: see [D4] for the agent-died-mid-flight handover pattern (now precedent).
+
+---
+
+## Decisions made during implementation (D-letter pattern)
+
+- **[D1]** Task 2: enum-only properties (`tier`, `mode`, `interactive_preflight`) added inline `description` strings during the Task 2 spec/code review pair (3-line cheap improvement; resolved a precedent inconsistency the contract reviewer also flagged). Logged in Task 2 row above.
+- **[D2]** Task 3: `errorsTextFn` closure stashed on the compiled validator instead of keeping `ajv` in module scope. Functionally equivalent to the sibling `manifest-writer`/`contract-loader` pattern; flagged Minor in code review and accepted as-is per [D7]. If a future branch refactors all validators for consistency, this is a candidate site.
+- **[D3]** Task 5: spec §4 prose example for `--json` invalid output shows `{ok: false, errors: [{path, message}]}` (an array). The plan's authoritative implementation block (Task 5 Step 4) specifies `{ok: false, error: "schema_validation_failed", path, errorText: <string>}` (a single string field, mirroring `validateScope`'s return shape). The committed code matches the plan, which is the implementer's source of truth. Picking the plan over the spec prose because (a) `errorText` is the existing canonical field name returned by `validateScope` so consumers already deal with that shape; (b) the plan-pasted code is what the implementer was instructed to write byte-for-byte; (c) the spec example was illustrative shape-of-thing rather than authoritative wire format. **Action:** none for this branch. If hosts later request structured per-field error breakdown, file as a follow-up — that would be an additive `errors: [{path, message}]` field alongside `errorText`, not a replacement.
+- **[D4]** Task 10: implementer subagent died mid-flight on terminal API token expiration ("Token is expired. To refresh this SSO session run 'aws sso login'..."). At the point of death, the agent had completed only Step 1 (CLAUDE.md `.scope.json` row addition) and left it unstaged on disk. Per the contract-branch precedent (D3 in `2026-06-13-mcp-fallback-contract-progress.md`), the controller did NOT re-dispatch a fresh agent — instead picked up the partial edit and finished the remaining 4 files (CLAUDE.md arch diagram, README.md, schema/brand/README.md, docs/DESIGN.md, docs/tasks.md) inline. Single commit (`31f2c45`) captures all 5 files. Test count held at 108/108 throughout. Reviewers still run as a normal Task 10 review pair against `31f2c45`.
+
+---
+
+## Open questions surfaced for upcoming tasks
+
+(populated as questions surface)

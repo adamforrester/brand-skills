@@ -8,6 +8,7 @@ import { refreshContextCommand } from '../src/commands/refresh-context.js';
 import { scoreCommand } from '../src/commands/score.js';
 import { emitManifestCommand } from '../src/commands/emit-manifest.js';
 import { importTokensCommand } from '../src/commands/import-tokens.js';
+import { scopeCommand } from '../src/commands/scope.js';
 
 program
   .name('brand-cli')
@@ -62,5 +63,12 @@ program
   .description('Ingest DTCG token files (assets/*.tokens.json) and print merged token state as JSON. Stage 1 fallback when figma-console MCP is absent.')
   .option('--file <path>', 'Read exactly this file instead of scanning assets/')
   .action(importTokensCommand);
+
+program
+  .command('scope')
+  .description('Validate .brand/.scope.json against the scope schema. Pre-flight check for embedded hosts before dispatching the SKILL.')
+  .option('--validate', 'Validate the scope file (currently the only supported action)')
+  .option('--json', 'Emit structured JSON output to stdout instead of human-readable text')
+  .action(scopeCommand);
 
 program.parse();

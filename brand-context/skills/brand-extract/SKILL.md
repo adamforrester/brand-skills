@@ -30,6 +30,38 @@ Discover sources by reading `.brandrc.yaml`, scanning the project for asset file
 1. Confirm `.brandrc.yaml` exists at the project root. If not, run `brand-cli init` via `Bash` to scaffold it (it'll prompt for client name and tier). If `brand-cli` is not available, write a minimal `.brandrc.yaml` inline using the YAML library or just `Write` with the right shape: `client`, `tier: standard`, `mode: standard`, empty `sources:`.
 2. Read the file. Note `client`, `tier`, `mode`, and any `sources.*` already populated. Existing values are kept unless the practitioner explicitly says otherwise.
 
+### 0a.5. Read `.brand/.scope.json` (if present) and pre-fill brandrc
+
+If `.brand/.scope.json` exists, the practitioner (or an embedded host) has pre-answered some or all of Stage 0d's discovery questions. Read the file once at the start of Stage 0, merge into the in-memory brandrc state, and delete the scope file after `§0e` writes the brandrc successfully.
+
+**Read.** `Read` `.brand/.scope.json`. If absent: skip this entire subsection and continue to `§0b`. If present and malformed JSON: bail with a chalk-red error mentioning the file path; exit. If present and parses but fails schema validation: bail with the ajv error text; exit. (Practitioners can run `brand-cli scope --validate` to lint scope files before invoking the SKILL — see spec §4.)
+
+**Merge.** Apply the merge rule from `cli/src/utils/scope-merge.js` (the canonical implementation). Per spec §1: brandrc wins on conflict; "empty" brandrc fields get pre-filled from scope; non-empty conflicts are recorded for `§0e` to surface as chalk-yellow log lines. The merge produces:
+- An updated in-memory brandrc state (merged values).
+- A `filledFromScope` set of dot-paths (e.g. `"client"`, `"sources.website"`, `"sources.social.twitter"`) — every brandrc key that scope filled. Stage 0c-0e read this set to skip conversational questions for already-populated fields.
+- A `conflicts` array of `{field, scope_value, brandrc_value}` records for `§0e` to log.
+
+When `brand-cli` is installed, prefer to invoke `cli/src/utils/scope-merge.js` indirectly via the scope-loader. When `brand-cli` is absent, read `.brand/.scope.json` directly and apply the same merge algorithm inline (the scope-merge utility's algorithm is documented in spec §3 — implement it in-prose by walking scope leaf-by-leaf, comparing each leaf against the corresponding brandrc value via the per-type "empty" rule from spec §1).
+
+**Embedded-mode bail.** If the merged scope sets `interactive_preflight: false` (or the env var `BRAND_SKILLS_NONINTERACTIVE=1` is set — env wins on disagreement), check that all of these are present after the merge:
+- `client` (non-empty string)
+- `tier` (non-empty enum value)
+- At least one of: `sources.website`, `sources.figma` (non-empty array), `sources.brand_guide`, `sources.screenshots` (non-empty array), `sources.design_system_repo`. `sources.social` and `sources.app_store` alone do **not** satisfy this — they're voice/copy supplements, not standalone pipeline inputs.
+
+If any required field is empty, bail. Print a chalk-red one-line problem statement, then emit a JSON object to stderr for embedded host parsing:
+
+```
+.scope.json is missing required fields for embedded mode: <comma-separated field names>.
+Add the missing fields and re-author .scope.json before dispatching the SKILL.
+See docs/superpowers/specs/2026-06-14-scope-json-design.md §3.
+
+{"error":"missing_required_fields","missing":["client","tier"],"hint":"<one-line hint>"}
+```
+
+Exit 1. **Do not delete the scope file** — the host needs it to fix and retry.
+
+**Hold.** Pass `filledFromScope` and the merged brandrc state forward in memory. Don't write `.brandrc.yaml` yet — `§0e` does that after the rest of Stage 0 completes.
+
 ### 0b. Scan the project for asset files
 
 Look for assets the practitioner may have dropped into the project. Check these directories in order; use whichever exists:
@@ -49,6 +81,8 @@ For each file found, classify by extension:
 - **`.txt`, `.md`** in an asset folder → may be a hand-written voice doc or notes. Read it; surface contents to the practitioner.
 
 ### 0c. Surface findings and confirm
+
+**If `filledFromScope` (from `§0a.5`) contains `sources.brand_guide` or `sources.screenshots` AND `interactive_preflight: false`:** treat the corresponding asset entries as pre-confirmed. Skip the "sound good?" prompt for those entries; proceed silently. Asset rescan logic (Cases 2 + 3) still applies as today — pre-filled scope doesn't manifest files that don't exist on disk.
 
 Three cases — handle each explicitly. **Don't silently skip the asset step** even when nothing is found; the drop-folder pattern is the primary intake mechanism, so it has to be visible to a practitioner who hasn't read the docs.
 
@@ -86,6 +120,8 @@ If yes, `mkdir ./assets/` via Bash and write the same scaffold README that `bran
 
 ### 0d. Ask for non-file sources
 
+**Pre-filled-from-scope fields:** for each question below, check whether the corresponding `sources.*` key is in `filledFromScope` (from `§0a.5`). If yes, skip the question silently — the value is already in the merged brandrc state. If `interactive_preflight: false` AND a required field (per `§0a.5` runtime requirements) is still empty, bail with the structured error from `§0a.5` rather than asking. Otherwise, ask conversationally.
+
 These can't be discovered on disk. Ask conversationally — one question at a time, accept "skip" or empty as valid answers:
 
 1. **Live website URL** — required for Stages 2 and 3 (token sampling, voice extraction). Skip is OK if the brand has no public web presence; the skill will run on PDF/screenshot inputs only.
@@ -101,6 +137,14 @@ For each one, validate the answer minimally (URL looks like a URL; local path ex
 Update `.brandrc.yaml` with everything gathered. Use `Edit` (not `Write`) so any fields the practitioner had set manually are preserved — only add or update what we discovered.
 
 After writing, show the final `sources:` block to the practitioner so they can confirm. If anything looks wrong, accept corrections inline and re-write the file.
+
+**Conflicts from `§0a.5`:** for each entry in the `conflicts` array, surface a chalk-yellow log line:
+
+> Note: scope provided `<field>: <scope_value>` but brandrc already had `<brandrc_value>`. Kept brandrc's value.
+
+This is informational only — the merge already honored brandrc. No action needed.
+
+**Delete `.brand/.scope.json` on success.** After the `Edit` to `.brandrc.yaml` completes successfully (Stage 0e writes through), delete `.brand/.scope.json` via `Bash rm` or the equivalent. The scope file is a one-shot input; subsequent runs use brandrc only. **Do NOT delete on failure** — if the brandrc write itself failed, the state is inconsistent and the host needs the scope file to retry. Failures earlier in `§0a.5` (parse, validation, embedded-mode bail) also do not delete.
 
 ### 0f. Detect available tools
 

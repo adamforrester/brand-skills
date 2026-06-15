@@ -148,3 +148,13 @@ The project is intentionally minimal-dependency:
 - **No coupling to a specific agent.** Output is plain markdown; Claude Code, Cursor, Copilot, and Cline all consume it the same way they consume `CLAUDE.md` or `.cursorrules`.
 
 These aren't accidents — they're load-bearing. Every new feature should preserve the graceful-degradation property.
+
+**End-to-end embedded path.** A host orchestrator dispatches the SKILL non-interactively as follows:
+
+1. `brand-cli init --client "<name>" --mode standard --force` — non-interactive scaffold; writes the minimal `.brand/` + `.brandrc.yaml`.
+2. Author `.brand/.scope.json` with the host's known answers to Stage 0's discovery questions, including `interactive_preflight: false`.
+3. Optionally validate ahead of time: `brand-cli scope --validate --json`.
+4. Dispatch `/brand-context:extract` (or the SKILL via whatever the host's invocation mechanism is). The SKILL reads `.scope.json` at `§0a.5`, merges into brandrc, deletes the scope file, runs §0.5 pre-flight, then proceeds through Stages 1-8.
+5. After completion, `.brand/manifest.json` is the machine-readable record the host gates on.
+
+This path is the missing half of the multi-tenant story alongside the manifest+health work (#2, #6) and the MCP-fallback contract (#3).

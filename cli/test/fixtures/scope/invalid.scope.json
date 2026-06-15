@@ -1,0 +1,5 @@
+{
+  "_comment": "Invalid scope fixture: has unknown top-level field.",
+  "client": "ACME Corp",
+  "unknownTopLevel": "this should fail validation"
+}

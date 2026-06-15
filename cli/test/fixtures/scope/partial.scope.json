@@ -1,0 +1,8 @@
+{
+  "_comment": "Partial scope fixture: client + tier + sources.website only.",
+  "client": "ACME Corp",
+  "tier": "standard",
+  "sources": {
+    "website": "https://acme.example.com"
+  }
+}

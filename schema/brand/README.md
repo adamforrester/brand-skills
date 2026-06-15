@@ -78,5 +78,6 @@ These two schemas validate machine-readable artifacts emitted by the toolkit (on
 - [`../health.schema.json`](../health.schema.json) — `.brand/.health.json`, emitted by `/brand-context:check`
 - [`../mcp-fallback-contract.json`](../mcp-fallback-contract.json) — canonical per-stage MCP fallback contract data
 - [`../mcp-fallback-contract.schema.json`](../mcp-fallback-contract.schema.json) — JSON Schema validating the contract data
+- [`scope.schema.json`](scope.schema.json) — JSON Schema validating optional `.brand/.scope.json` pre-fill (read-once → merged into `.brandrc.yaml` → deleted at SKILL `§0a.5`)
 
 They live at `schema/` rather than `schema/brand/` because they describe toolkit-output JSON, not `.brand/*.md` source content.

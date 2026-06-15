@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/adamforrester/brand-skills/schemas/scope.schema.json",
+  "title": "brand-skills .brand/.scope.json",
+  "description": "Optional pre-fill for .brandrc.yaml. Read once at SKILL §0a.5; merged into brandrc; deleted after successful Stage 0 completion. Spec: docs/superpowers/specs/2026-06-14-scope-json-design.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "_comment": { "type": "string" },
+    "client": { "type": "string", "minLength": 1 },
+    "tier": {
+      "description": "Target completeness tier. Mirrors .brandrc.yaml's tier and matches the enum used by manifest.schema.json and health.schema.json.",
+      "enum": ["minimum", "standard", "comprehensive"]
+    },
+    "mode": {
+      "description": "Init-mode that drives cli/src/commands/init.js TIER_FOR_MODE mapping. Note: the enum is intentionally different from tier (pitch instead of minimum); they are not interchangeable.",
+      "enum": ["pitch", "standard", "comprehensive"]
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "website": { "type": "string", "minLength": 1 },
+        "website_pages": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "figma": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "figma_variable_collections": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "brand_guide": { "type": "string", "minLength": 1 },
+        "screenshots": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "social": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "twitter": { "type": "string", "minLength": 1 },
+            "instagram": { "type": "string", "minLength": 1 },
+            "linkedin": { "type": "string", "minLength": 1 },
+            "facebook": { "type": "string", "minLength": 1 },
+            "tiktok": { "type": "string", "minLength": 1 }
+          }
+        },
+        "app_store": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ios": { "type": "string", "minLength": 1 },
+            "android": { "type": "string", "minLength": 1 }
+          }
+        },
+        "design_system_repo": { "type": "string", "minLength": 1 }
+      }
+    },
+    "interactive_preflight": {
+      "description": "When false, the SKILL bails on missing required fields instead of asking conversationally. Embedded-mode hinge; see spec §3.",
+      "type": "boolean"
+    }
+  }
+}
