@@ -13,10 +13,13 @@ Companion to [`2026-06-15-industry-signal.md`](2026-06-15-industry-signal.md). T
 
 ```
 $ git log --oneline main..HEAD
-<paste current log here on each progress-doc commit>
+1db9ad9 docs: implementation plan + progress doc shell for #5
+86ee39c docs: spec for #5 — industry signal injection
 
 $ npm test 2>&1 | tail -5
-<paste pass/fail counts>
+ℹ tests 108
+ℹ pass 108
+ℹ fail 0
 ```
 
 ---
@@ -31,12 +34,13 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 
 | # | Task | Commits | Tests added | Notes |
 |---|---|---|---|---|
+| 1 | Test harness sync + branch baseline | `1db9ad9` | 0 | 108/108 baseline confirmed. Spec reviewer ✅ all 6 checks. Code-quality review skipped — docs-only commit, no code surface. Tempfile per-task naming followed (`/tmp/commit-msg-task1.txt`). |
 
 ---
 
 ## Pending tasks
 
-All 7 tasks pending. See plan.
+Tasks 2-7 pending. See plan.
 
 ---
 
