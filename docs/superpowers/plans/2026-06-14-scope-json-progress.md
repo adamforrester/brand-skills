@@ -2,7 +2,7 @@
 
 Companion to [`2026-06-14-scope-json.md`](2026-06-14-scope-json.md). Tracks each task's commits, test delta, and decisions made during implementation.
 
-**Status:** ready to merge — branch `feat/scope-json` cleared cross-branch code review.
+**Status:** merged. `feat/scope-json` merged to `main` 2026-06-15 via local `--no-ff` merge commit `97db05d`. Feature branch preserved on origin.
 **Branch base:** `main` at commit `c595a08` (post-merge cleanup for #3).
 **Spec:** [`../specs/2026-06-14-scope-json-design.md`](../specs/2026-06-14-scope-json-design.md)
 **Precedent (D-letter pattern reference):** [`2026-06-13-mcp-fallback-contract-progress.md`](2026-06-13-mcp-fallback-contract-progress.md)

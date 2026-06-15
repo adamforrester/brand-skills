@@ -34,7 +34,7 @@ Three repos compared: dembrandt (primary, 1.9K stars), design-oracle (3 stars), 
 Strategic decision recorded: **borrow without dependency** (Option 3). Captured in [CLAUDE.md "Stance on dembrandt and other peer tools"](../CLAUDE.md). Adopt patterns and open specs (DTCG, design.md, MCP tool shape); don't add a runtime dependency on any peer.
 
 ### #3 — Explicit MCP-fallback contract per stage in `brand-extract` ✅
-**Output:** branch `feat/mcp-fallback-contract` (PR number to be filled in post-merge).
+**Output:** branch `feat/mcp-fallback-contract` merged to `main` via `--no-ff` local merge commit `4383a94` (no PR — feature branch preserved on origin).
 
 What landed:
 - Contract schema + canonical data files: `schema/mcp-fallback-contract.json` + `schema/mcp-fallback-contract.schema.json`. Per-stage chains for Stages 1, 2, 3 with `tier` / `quality` / `fidelity_note` / `pre_conditions` declared as data.
@@ -86,23 +86,24 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 | Tag | Idea | Why hold |
 |---|---|---|
 | C1 | Expose brand-skills as an MCP server | Biggest multi-tenant unlock. Model on dembrandt's job-queue + sync/async + 7-typed-tools design. File once #2 + #6 land — they define the JSON contract this exposes. |
-| C2 | `brand-cli doctor` — tooling-readiness sibling to `brand-cli score` | Pairs with #3 + #6. File once #3 lands (the MCP-fallback contract is what `doctor` reports on). |
+| C2 | `brand-cli doctor` — tooling-readiness sibling to `brand-cli score` | Pairs with #3 + #6. **#3 has landed** — C2 is now filable when an embedded host asks for it. |
 | C3 | Motion token extraction in Stage 2 | Populate `tokens/motion.md` (currently always placeholder). Borrows from dembrandt's approach. Independent — could file anytime. |
 | C4 | Multi-page confidence boosting in Stage 2 | Tokens on N pages → HIGH confidence; on 1 page → MEDIUM/LOW. Independent — could file anytime. |
 | C5 | `docs/install.md` agent-readable installer | Lets non-Claude-Code agents install via "Hey agent, follow this" pattern. Multi-tenant unlock. |
 | C6 | WCAG state-simulating contrast walk in `/brand-context:audit` Dimension 5 | Borrowed from dembrandt. Improves audit quality. |
 | C7 | Pluggable channel architecture for source extractors | Borrowed from Agent-Reach. Not urgent until we have a third source type asking for an alternative. |
-| C8 | Standard Figma MCP (`plugin:figma:figma`) per-node walk as Stage 1 Tier 2 | Adds `get_variable_defs` per-selection walk as a degraded path between `figma-console` (full) and DTCG-import. Loses modes/aliases. Filed during #3 brainstorm; deferred for UX scoping (which nodes to walk?). File once #3 lands. |
+| C8 | Standard Figma MCP (`plugin:figma:figma`) per-node walk as Stage 1 Tier 2 | Adds `get_variable_defs` per-selection walk as a degraded path between `figma-console` (full) and DTCG-import. Loses modes/aliases. Filed during #3 brainstorm; deferred for UX scoping (which nodes to walk?). **#3 has landed** — fileable; needs UX scoping first. |
+| C9 | Unify ajv-validator construction pattern across loaders | Sibling utilities (`manifest-writer`, `health-writer`, `contract-loader`) keep `ajv` in module scope and call `ajv.errorsText()` directly; `scope-loader.js` instead stashes an `errorsTextFn` closure on the compiled validator. Functionally equivalent ([D2] in the scope-json branch progress doc). A future small refactor could align all four. Independent; surface only if other validator drift accumulates. |
 
 ---
 
 ## Priority notes
 
-**Sequence (recommended):**
-1. **#2 + #6 together** — sister tasks, share status vocabulary, design once. Reference dembrandt's MCP schemas during design.
-2. **#8** — independent; could parallel with #2/#6, but easier after the manifest's `dtcg_export` flag shape is decided.
-3. **#3** — slots into the manifest from #2.
-4. **#4 + #5** — once #2 + #6 land. #5 follows #4 naturally.
+**Sequence (recommended) — remaining active backlog only:**
+1. **#5 next** — small, well-scoped (one-line schema append + Stage 3/4 prose to read the field). Closes the #4↔#5 cross-task contract while it's fresh.
+2. **#8 in parallel or after** — independent of #5. DTCG token export composes with the manifest's `dtcg_export` flag from #2.
+
+(Sequence for #1-#3, #6, #7 has shipped — see Completed.)
 
 **Cross-task contracts to preserve:**
 - **#2 ↔ #6 status vocabulary:** must match exactly. `complete | partial | placeholder | missing | defaults`.
