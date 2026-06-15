@@ -13,6 +13,7 @@ Companion to [`2026-06-15-industry-signal.md`](2026-06-15-industry-signal.md). T
 
 ```
 $ git log --oneline main..HEAD
+187865a docs: progress doc through Task 6
 644484f docs: propagate industry signal note to README and tasks.md (#5)
 b33a308 docs: progress doc through Task 5
 6883003 test(skill-scope-parity): guard industry signal prose against drift (#5)
@@ -50,12 +51,42 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 | 4 | SKILL prose — §0a, §4c, §6b additive blocks | `b062686` | 0 (109/109) | All three Edits applied verbatim. Grep counts: `industry` ×8, `industry context:` ×3, `tie-breaker` ×4 (≥6/3/3 minimums all exceeded). §4c worked example uses 4-and-4 split between "playful" and "wry" with `*(industry context: fast-food QSR)*` citation. §6b paragraph explicitly excludes Visual Language and brand self-test. Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. One existing line was technically replaced (Edit 1 expanded a §0a sentence) — additive in content, deletion in diff stats only. |
 | 5 | Extend skill-scope-parity.test.js (+3) | `6883003` | +3 (112/112) | Three parity assertions: industry-mention (`includes('industry')`), citation-marker (`includes('industry context:')`), tie-breaker rule + threshold-preservation regex. Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Reviewer flagged three Minor non-blocking observations (false-positive resilience of test #1, compound assertion in test #3, task-marker style consistency) — all deliberate per the spec. |
 | 6 | Repo docs propagation | `644484f` | 0 (112/112) | README YAML example gets `industry: B2B SaaS analytics` line with inline comment; "How the pipeline works" section gets a paragraph explaining the field flows through both brandrc and scope.json with the citation marker. tasks.md #5 entry moved to "In flight on branch `feat/industry-signal`" status; "Last updated" line refreshed. Final move to Completed deferred to post-merge cleanup commit per #4 precedent. Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. |
+| 7 | Final verification + cross-branch code review | (this commit) | 0 (112/112) | Verification, no implementation. `npm test` 112/112; smoke test on `/tmp/industry-smoke` confirmed `brand-cli scope --validate --json` accepts an industry-bearing scope file (`{"ok":true}`, exit 0) and the loader→merge chain correctly populates `industry` and applies brandrc-wins-on-conflict (logs 1 conflict, scope value not in `filledFromScope`). Spec coverage skim (plan §10): all 6 spec rows map to landed tasks. Cross-branch code reviewer (Opus model) **Ready to merge** with zero Critical/Important findings; 3 Minor non-blocking observations: parity test #1 is sanity-only (deliberate), `init.js` doesn't scaffold an `industry:` placeholder (deliberate per spec; candidate follow-up), `§0a.5` example dot-paths don't include `industry` (minor; example sentence, not exhaustive enumeration). |
 
 ---
 
 ## Pending tasks
 
-Task 7 pending. See plan.
+(none — all 7 tasks complete)
+
+---
+
+## Final-stage handoff
+
+**Branch state:**
+- Branch: `feat/industry-signal`
+- HEAD: `187865a` (this commit will be `<sha>` after the Task-7 progress-doc update)
+- Base: `main` at `62546f3`
+- Commits ahead: 14 (1 spec + 1 plan/progress shell + 6 task commits + 5 progress-doc commits + 1 D-letter amendment + 1 final progress-doc update)
+- Test delta: 108 → 112 (+4 tests)
+- Working tree: clean
+
+**What landed:**
+- Schema: `industry` top-level field in `schema/brand/scope.schema.json` (one-line append).
+- SKILL prose: three additive blocks in `brand-context/skills/brand-extract/SKILL.md` (§0a, §4c bullet+example, §6b paragraph).
+- Tests: +1 in `cli/test/unit/scope-merge.test.js` (industry round-trip), +3 in `cli/test/unit/skill-scope-parity.test.js` (industry mention, citation-marker, tie-breaker rule).
+- Docs: README YAML example + paragraph; tasks.md #5 in-flight; "Last updated" refreshed.
+- No source code changes outside test files (the generic recursive merge in `scope-merge.js` handles the new field automatically — exactly the cross-task contract from #4).
+
+**Cross-branch reviewer verdict:** Ready to merge. Zero Critical/Important findings; 3 Minor non-blocking observations captured for future follow-up.
+
+**Next step:** invoke `superpowers:finishing-a-development-branch` to merge `feat/industry-signal` to `main` via `--no-ff` (per #3/#4 precedent), then write the post-merge cleanup commit on `main` that:
+- Moves #5 from `docs/tasks.md` "Active backlog → Unblocked" to "Completed" with the merge SHA.
+- Updates the "Last updated" line.
+- Hoists [D1] (stale-tempfile collision footgun) into the next progress doc's "Things to know" appendix as a recurring footgun.
+
+**Spec:** [`../specs/2026-06-15-industry-signal-design.md`](../specs/2026-06-15-industry-signal-design.md)
+**Plan:** [`2026-06-15-industry-signal.md`](2026-06-15-industry-signal.md)
 
 ---
 
