@@ -13,6 +13,8 @@ Companion to [`2026-06-15-industry-signal.md`](2026-06-15-industry-signal.md). T
 
 ```
 $ git log --oneline main..HEAD
+6883003 test(skill-scope-parity): guard industry signal prose against drift (#5)
+cd527ae docs: progress doc through Task 4
 b062686 skill(brand-extract): add industry soft-prior to Stages 3 and 4 (#5)
 bba56d6 docs: progress doc through Task 3 + log [D1]
 344419a test(scope-merge): add industry round-trip test (#5)
@@ -23,8 +25,8 @@ d1782f9 docs: progress doc through Task 1
 86ee39c docs: spec for #5 — industry signal injection
 
 $ npm test 2>&1 | tail -5
-ℹ tests 109
-ℹ pass 109
+ℹ tests 112
+ℹ pass 112
 ℹ fail 0
 ```
 
@@ -44,12 +46,13 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 | 2 | Append `industry` to scope.schema.json | `072d208` | 0 | Schema compiled strict-mode-clean first try. All four ajv assertions pass (positive case + 3 negatives). Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Existing scope-merge.js round-trips the new field without code changes (verified by reviewer). |
 | 3 | Extend scope-merge.test.js (+1) | `344419a` | +1 (109/109) | Test exercises both empty-fill and brandrc-wins-on-conflict cases. No code change to scope-merge.js (verified). Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Used branch-suffixed tempfile name (`/tmp/commit-msg-task3-industry.txt`) per [D1] precedent. |
 | 4 | SKILL prose — §0a, §4c, §6b additive blocks | `b062686` | 0 (109/109) | All three Edits applied verbatim. Grep counts: `industry` ×8, `industry context:` ×3, `tie-breaker` ×4 (≥6/3/3 minimums all exceeded). §4c worked example uses 4-and-4 split between "playful" and "wry" with `*(industry context: fast-food QSR)*` citation. §6b paragraph explicitly excludes Visual Language and brand self-test. Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. One existing line was technically replaced (Edit 1 expanded a §0a sentence) — additive in content, deletion in diff stats only. |
+| 5 | Extend skill-scope-parity.test.js (+3) | `6883003` | +3 (112/112) | Three parity assertions: industry-mention (`includes('industry')`), citation-marker (`includes('industry context:')`), tie-breaker rule + threshold-preservation regex. Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Reviewer flagged three Minor non-blocking observations (false-positive resilience of test #1, compound assertion in test #3, task-marker style consistency) — all deliberate per the spec. |
 
 ---
 
 ## Pending tasks
 
-Tasks 5-7 pending. See plan.
+Tasks 6-7 pending. See plan.
 
 ---
 
