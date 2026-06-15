@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-14 — #4 ready for merge on `feat/scope-json` (PR/merge SHA filled in post-merge).
+**Last updated:** 2026-06-15 — #4 merged to `main` via local merge commit `97db05d` (no PR — `--no-ff` merged from `feat/scope-json`; the feature branch is preserved on origin for history).
 
 ---
 
@@ -47,7 +47,7 @@ What landed:
 Spec: [2026-06-13-mcp-fallback-contract-design.md](superpowers/specs/2026-06-13-mcp-fallback-contract-design.md).
 
 ### #4 — Support `.brand/.scope.json` as alternative to conversational scope-confirmation ✅
-**Output:** branch `feat/scope-json` (PR/merge SHA filled in post-merge).
+**Output:** branch `feat/scope-json` merged to `main` via `--no-ff` local merge commit `97db05d` (no PR — feature branch preserved on origin).
 
 What landed:
 - Scope schema: `schema/brand/scope.schema.json` (JSON Schema 2020-12, permissive at schema level — runtime requirements enforced in SKILL prose).
