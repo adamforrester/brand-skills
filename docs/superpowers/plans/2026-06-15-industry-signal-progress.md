@@ -13,14 +13,16 @@ Companion to [`2026-06-15-industry-signal.md`](2026-06-15-industry-signal.md). T
 
 ```
 $ git log --oneline main..HEAD
+344419a test(scope-merge): add industry round-trip test (#5)
+56efaa8 docs: progress doc through Task 2
 072d208 schema: add industry field to scope.schema.json
 d1782f9 docs: progress doc through Task 1
 1db9ad9 docs: implementation plan + progress doc shell for #5
 86ee39c docs: spec for #5 — industry signal injection
 
 $ npm test 2>&1 | tail -5
-ℹ tests 108
-ℹ pass 108
+ℹ tests 109
+ℹ pass 109
 ℹ fail 0
 ```
 
@@ -38,18 +40,19 @@ See the "Things to know" section in the plan. Hoist new branch-specific patterns
 |---|---|---|---|---|
 | 1 | Test harness sync + branch baseline | `1db9ad9` | 0 | 108/108 baseline confirmed. Spec reviewer ✅ all 6 checks. Code-quality review skipped — docs-only commit, no code surface. Tempfile per-task naming followed (`/tmp/commit-msg-task1.txt`). |
 | 2 | Append `industry` to scope.schema.json | `072d208` | 0 | Schema compiled strict-mode-clean first try. All four ajv assertions pass (positive case + 3 negatives). Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Existing scope-merge.js round-trips the new field without code changes (verified by reviewer). |
+| 3 | Extend scope-merge.test.js (+1) | `344419a` | +1 (109/109) | Test exercises both empty-fill and brandrc-wins-on-conflict cases. No code change to scope-merge.js (verified). Spec reviewer ✅, code-quality reviewer **Ready to merge** with zero findings. Used branch-suffixed tempfile name (`/tmp/commit-msg-task3-industry.txt`) per [D1] precedent. |
 
 ---
 
 ## Pending tasks
 
-Tasks 3-7 pending. See plan.
+Tasks 4-7 pending. See plan.
 
 ---
 
 ## Decisions made during implementation (D-letter pattern)
 
-(populated as decisions land)
+**[D1] Stale tempfile collision on Task-2 progress-doc commit (2026-06-15).** The Task-2 progress-doc commit (`065f6d5`, then amended to `56efaa8`) initially landed with the wrong message body — `git commit -F /tmp/commit-msg-task2-progress.txt` consumed a stale file left over from the #4 branch's same-named tempfile because the Write tool errored ("file has not been read yet") and the Bash chain proceeded silently. The wrong body referenced Task 1=`812e51f` and scope-schema work from #4 — entirely unrelated. **Resolution:** amended the tip commit with the correct message via a freshly-named tempfile (`/tmp/commit-msg-task2pd-fix.txt`). New SHA `56efaa8`. **How to apply:** when re-using `/tmp/commit-msg-task<N>-progress.txt`-style names across branches, either `rm` first or use a branch-suffixed name. Carries forward [[per-task-commit-tempfile]]'s "stale tempfiles in /tmp survive across sessions" warning — confirmed in practice for the second time.
 
 ---
 
