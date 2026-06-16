@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-16 — #8 closed as won't-do (DTCG export is upstream-owned by Token Press; the import direction shipped in #3 is sufficient). Active backlog now empty; next work picks from candidate tasks. #5 merged earlier on this date via `2aa31b4`; #4 via `97db05d`.
+**Last updated:** 2026-06-16 — C9 resolved on `feat/ajv-pattern-unification` (scope-loader's `errorsTextFn` closure removed; ajv now cached at module scope). Earlier today: #8 closed as won't-do (Token Press is the canonical DTCG producer; import direction in #3 is sufficient). Active backlog empty.
 
 ---
 
@@ -108,7 +108,7 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 | C6 | WCAG state-simulating contrast walk in `/brand-context:audit` Dimension 5 | Borrowed from dembrandt. Improves audit quality. |
 | C7 | Pluggable channel architecture for source extractors | Borrowed from Agent-Reach. Not urgent until we have a third source type asking for an alternative. |
 | C8 | Standard Figma MCP (`plugin:figma:figma`) per-node walk as Stage 1 Tier 2 | Adds `get_variable_defs` per-selection walk as a degraded path between `figma-console` (full) and DTCG-import. Loses modes/aliases. Filed during #3 brainstorm; deferred for UX scoping (which nodes to walk?). **#3 has landed** — fileable; needs UX scoping first. |
-| C9 | Unify ajv-validator construction pattern across loaders | Sibling utilities (`manifest-writer`, `health-writer`, `contract-loader`) keep `ajv` in module scope and call `ajv.errorsText()` directly; `scope-loader.js` instead stashes an `errorsTextFn` closure on the compiled validator. Functionally equivalent ([D2] in the scope-json branch progress doc). A future small refactor could align all four. Independent; surface only if other validator drift accumulates. |
+| ~~C9~~ | ~~Unify ajv-validator construction pattern across loaders~~ | **Resolved 2026-06-16** on `feat/ajv-pattern-unification`. `scope-loader.js` now caches `ajv` at module scope and calls `ajv.errorsText()` directly (matching the contract-loader pattern); `errorsTextFn` closure removed. Writers stay eager; loaders stay lazy — both legitimate by design. |
 
 ---
 
@@ -116,7 +116,7 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 
 **Sequence (recommended) — remaining active backlog only:**
 
-(Active backlog is empty. #1-#7 shipped; #8 closed as won't-do — see "Won't do" above. Next work picks from candidate tasks below; C2 / C8 / C9 are most fileable.)
+(Active backlog is empty. #1-#7 shipped; #8 closed as won't-do; C9 resolved as a small refactor — see "Won't do" and the C9 row in candidates. Next work picks from remaining candidates; C2 and C8 are most fileable.)
 
 **Cross-task contracts to preserve:**
 - **#2 ↔ #6 status vocabulary:** must match exactly. `complete | partial | placeholder | missing | defaults`.
