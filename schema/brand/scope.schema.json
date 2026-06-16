@@ -16,6 +16,11 @@
       "description": "Init-mode that drives cli/src/commands/init.js TIER_FOR_MODE mapping. Note: the enum is intentionally different from tier (pitch instead of minimum); they are not interchangeable.",
       "enum": ["pitch", "standard", "comprehensive"]
     },
+    "industry": {
+      "description": "Free-form descriptive prior (e.g. 'fast-food QSR', 'B2B SaaS analytics', 'luxury fashion ecommerce'). Stages 3 + 4 use it as a soft tie-breaker on inference and cite it inline. Mirrored field in .brandrc.yaml; same shape.",
+      "type": "string",
+      "minLength": 1
+    },
     "sources": {
       "type": "object",
       "additionalProperties": false,

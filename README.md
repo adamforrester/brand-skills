@@ -92,6 +92,7 @@ Then add your sources to `.brandrc.yaml`:
 client: ACME Corp
 tier: standard
 mode: standard
+industry: B2B SaaS analytics       # optional, free-form; Stages 3+4 use it as a soft tie-breaker prior
 sources:
   website: https://acme.example.com
   website_pages: ["/about", "/products"]
@@ -133,6 +134,8 @@ The skill walks you through scope confirmation, runs the pipeline, surfaces conf
 The fallback chains themselves are declared as data in [`schema/mcp-fallback-contract.json`](schema/mcp-fallback-contract.json); both the SKILL prose and the CLI consume it. To audit chains or add a new fallback tier, edit the contract first.
 
 For **embedded use** (a host orchestrator dispatching the SKILL non-interactively), drop a `.brand/.scope.json` file with structured answers to Stage 0's discovery questions. The SKILL pre-fills `.brandrc.yaml` from it, skips the conversational flow for any field already populated, and deletes `.scope.json` after a successful Stage 0 completion. Standalone use is unchanged. Schema: [`schema/brand/scope.schema.json`](schema/brand/scope.schema.json). Spec: [`docs/superpowers/specs/2026-06-14-scope-json-design.md`](docs/superpowers/specs/2026-06-14-scope-json-design.md).
+
+The optional top-level `industry` field flows through both `.brandrc.yaml` and `.brand/.scope.json` as a free-form descriptive string. When set, Stages 3 (voice) and 4 (overview) use it as a soft tie-breaker prior on inference and cite it inline as `*(industry context: <value>)*`. Safe to omit. Spec: [`docs/superpowers/specs/2026-06-15-industry-signal-design.md`](docs/superpowers/specs/2026-06-15-industry-signal-design.md).
 
 Each stage is independently skippable. The skill degrades gracefully — if a source or tool is missing, that stage is skipped or falls back to a simpler method, and the rest of the pipeline runs.
 

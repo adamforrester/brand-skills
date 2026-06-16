@@ -92,3 +92,22 @@ test('mergeScopeIntoBrandrc returns interactive_preflight; false counts as set',
   assert.equal(r2.conflicts.length, 1);
   assert.equal(r2.conflicts[0].field, 'interactive_preflight');
 });
+
+test('mergeScopeIntoBrandrc round-trips industry as a top-level string (#5 cross-task contract)', () => {
+  const scope = { industry: 'fast-food QSR' };
+  const brandrc = { client: '', tier: '', mode: 'standard', sources: {} };
+  const r = mergeScopeIntoBrandrc(scope, brandrc);
+  assert.equal(r.merged.industry, 'fast-food QSR');
+  assert.ok(r.filledFromScope.has('industry'));
+  assert.equal(r.conflicts.length, 0);
+
+  // Brandrc-wins-on-conflict applies to industry too.
+  const brandrcWithIndustry = { ...brandrc, industry: 'luxury ecommerce' };
+  const r2 = mergeScopeIntoBrandrc({ industry: 'fast-food QSR' }, brandrcWithIndustry);
+  assert.equal(r2.merged.industry, 'luxury ecommerce');
+  assert.equal(r2.conflicts.length, 1);
+  assert.equal(r2.conflicts[0].field, 'industry');
+  assert.equal(r2.conflicts[0].scope_value, 'fast-food QSR');
+  assert.equal(r2.conflicts[0].brandrc_value, 'luxury ecommerce');
+  assert.ok(!r2.filledFromScope.has('industry'));
+});

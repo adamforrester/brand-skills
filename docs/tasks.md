@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-15 — #4 merged to `main` via local merge commit `97db05d` (no PR — `--no-ff` merged from `feat/scope-json`; the feature branch is preserved on origin for history).
+**Last updated:** 2026-06-15 — #5 (industry signal) in flight on `feat/industry-signal`; #4 merged to `main` via local merge commit `97db05d` (no PR — `--no-ff` merged from `feat/scope-json`; the feature branch is preserved on origin for history).
 
 ---
 
@@ -71,7 +71,7 @@ Spec: [2026-06-14-scope-json-design.md](superpowers/specs/2026-06-14-scope-json-
 W3C Design Tokens Community Group format. Pure spec adoption — interoperates with Style Dictionary, Tokens Studio, Figma plugins, dembrandt itself. Composes with #2 (manifest can declare `dtcg_export: true|false|<path>`). Source: dembrandt research; CLAUDE.md "borrow without dependency" stance.
 
 #### #5 — Inject industry signal into voice + overview extraction
-`industry:` field in `.brandrc.yaml` (and/or scope payload). Stages 3 + 4 read it; bias inference transparently. Cite the prior in voice.md / overview.md prose. Source: feedback item #4. Now unblocked by the #4 merge — the scope schema's `additionalProperties: false` at the top level means adding `industry: <string>` to `scope.schema.json` will be a one-line append.
+**In flight on branch `feat/industry-signal`.** `industry:` field at the top of `.brandrc.yaml` and `.brand/.scope.json`. Stages 3 + 4 use it as a soft tie-breaker prior on inference; every prior-influenced claim cites `*(industry context: <value>)*` inline. Spec: [`docs/superpowers/specs/2026-06-15-industry-signal-design.md`](superpowers/specs/2026-06-15-industry-signal-design.md). Final move to Completed lands in the post-merge cleanup commit per #4 precedent.
 
 ### Blocked
 

@@ -40,3 +40,30 @@ test('SKILL prose references the delete-after-merge invariant', () => {
     /delete .*\.scope\.json|delete the scope file|rm .*\.scope\.json/i.test(skill);
   assert.ok(mentionsDelete, 'SKILL.md must explain that .scope.json is deleted after a successful merge + brandrc write');
 });
+
+test('SKILL prose mentions the industry field by name (#5)', () => {
+  assert.ok(skill.includes('industry'), 'SKILL.md must reference the industry field');
+});
+
+test('SKILL prose contains the `industry context:` citation marker (#5)', () => {
+  assert.ok(
+    skill.includes('industry context:'),
+    'SKILL.md must document the `*(industry context: <value>)*` citation marker so prose drift is caught early'
+  );
+});
+
+test('SKILL prose explains the soft-prior tie-breaker rule (#5)', () => {
+  // The rule must be visible in prose: "tie-breaker" (or "tie breaker") in proximity
+  // to the word "industry". This guards against silently dropping the soft-prior framing
+  // and lapsing into a hard heuristic.
+  const tieBreakerMatch = /tie[- ]breaker/i.test(skill);
+  assert.ok(tieBreakerMatch, 'SKILL.md must use the phrase "tie-breaker" when describing the industry prior');
+  // And the threshold-preservation rule must be present (the prior may not lower the
+  // sample thresholds in section 4d or section 4e).
+  const preservesThreshold =
+    /may NOT lower|may not lower|never lowers|never invent|may NOT invent/i.test(skill);
+  assert.ok(
+    preservesThreshold,
+    'SKILL.md must explicitly state the prior may not lower thresholds or invent claims'
+  );
+});

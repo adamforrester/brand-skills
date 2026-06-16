@@ -28,7 +28,7 @@ Discover sources by reading `.brandrc.yaml`, scanning the project for asset file
 ### 0a. Read existing config
 
 1. Confirm `.brandrc.yaml` exists at the project root. If not, run `brand-cli init` via `Bash` to scaffold it (it'll prompt for client name and tier). If `brand-cli` is not available, write a minimal `.brandrc.yaml` inline using the YAML library or just `Write` with the right shape: `client`, `tier: standard`, `mode: standard`, empty `sources:`.
-2. Read the file. Note `client`, `tier`, `mode`, and any `sources.*` already populated. Existing values are kept unless the practitioner explicitly says otherwise.
+2. Read the file. Note `client`, `tier`, `mode`, and any `sources.*` already populated. Existing values are kept unless the practitioner explicitly says otherwise. Also note `industry` if present (free-form string, e.g. "fast-food QSR", "B2B SaaS analytics"). When set, Stages 3 and 4 use it as a soft tie-breaker prior on inference. When absent, behavior is identical to today.
 
 ### 0a.5. Read `.brand/.scope.json` (if present) and pre-fill brandrc
 
@@ -378,6 +378,9 @@ From the corpus, derive:
 - **Vocabulary** — preferred terms (words that recur with intent) and avoided terms (you can rarely prove a word is *avoided*, so use the absence cautiously — only flag avoided terms that the brand explicitly contrasts in marketing copy or that are obvious anti-patterns for the inferred voice).
 - **Microcopy patterns** — patterns visible in the samples for buttons, errors, empty states. Cite real examples.
 - **Channel deltas** — note material differences (e.g., "Twitter copy is shorter and more irreverent than the website").
+- **Industry prior (optional, soft tie-breaker).** If `.brandrc.yaml` has `industry` set, treat it as a tie-breaker on inference choices when the evidence is roughly balanced — for example, choosing between "clinical-but-warm" and "clinical-but-cold" when sample counts and tone signals are even. The prior may NOT lower the ≥3-supporting-samples-per-attribute threshold from §4d, NOR the <10-total-samples threshold from §4e, NOR invent claims that have no sample support. When the prior actually influenced a claim, cite it inline with `*(industry context: <value>)*` after the claim's other citations. When `industry` is unset, this bullet is a no-op.
+
+  Example. Samples are split 4-and-4 between "playful" and "wry" as candidate voice attributes; both clear the threshold. With `industry: "fast-food QSR"`, the prior breaks the tie toward "playful". The voice.md entry reads: `**playful** *(MEDIUM — 8 samples)* — short irreverent CTAs and emoji in social posts *(industry context: fast-food QSR)*`. Without the prior, the SKILL would pick whichever the corpus narrowly favored or surface both as candidates.
 
 ### 4d. Confidence levels
 
@@ -560,6 +563,8 @@ If the PDF is encrypted, corrupt, or fails to read, log "Stage 4: brand-guide PD
 ### 6b. Extract per overview.md schema
 
 Synthesize content for each required section of `schema/brand/overview.schema.md`. Anchor every claim in specific source material — cite page numbers for the PDF, filenames for screenshots, URLs for web captures.
+
+**Industry prior (optional, soft tie-breaker).** When `.brandrc.yaml` has `industry` set, the same soft-prior rule from §4c applies to the **Brand Personality**, **Audience**, and **Competitive Context** subsections — and only those. Visual Language and the brand self-test are evidence-only (screenshots and the guide's stated rules). When the prior influenced a claim, append `*(industry context: <value>)*` after the claim's other citations. The prior never overrides an explicit guide statement; it only disambiguates close calls grounded in evidence.
 
 **Brand Identity:**
 - Brand name, tagline, one-sentence positioning. The brand guide is authoritative; cross-check against the website hero copy.
