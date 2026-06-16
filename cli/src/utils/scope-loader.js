@@ -15,15 +15,15 @@ import addFormats from 'ajv-formats';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SCHEMA_PATH = resolve(__dirname, '../../../schema/brand/scope.schema.json');
 
+let cachedAjv = null;
 let cachedValidator = null;
 
 function getValidator() {
   if (cachedValidator) return cachedValidator;
   const schema = JSON.parse(readFileSync(SCHEMA_PATH, 'utf-8'));
-  const ajv = new Ajv({ allErrors: true, strict: true });
-  addFormats(ajv);
-  cachedValidator = ajv.compile(schema);
-  cachedValidator.errorsTextFn = (errs) => ajv.errorsText(errs);
+  cachedAjv = new Ajv({ allErrors: true, strict: true });
+  addFormats(cachedAjv);
+  cachedValidator = cachedAjv.compile(schema);
   return cachedValidator;
 }
 
@@ -52,5 +52,5 @@ export function validateScope(payload) {
   const validate = getValidator();
   const ok = validate(payload);
   if (ok) return { valid: true };
-  return { valid: false, errorText: validate.errorsTextFn(validate.errors) };
+  return { valid: false, errorText: cachedAjv.errorsText(validate.errors) };
 }
