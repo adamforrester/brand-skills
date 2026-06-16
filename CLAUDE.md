@@ -121,7 +121,7 @@ Same posture applies to design-oracle, Agent-Reach, or any peer that emerges lat
 - **One version, three places.** `package.json` `version`, `.claude-plugin/marketplace.json` `metadata.version` AND `plugins[0].version`, and `cli/bin/brand-cli.js` `program.version()`. All three must match. Easy to miss the CLI bin file.
   - Two test goldens also pin the version literally in their `generator` field — `cli/test/golden/manifest-from-populated.json` (`brand-cli@<version>`) and `cli/test/golden/manifest-from-skill.json` (`brand-extract-skill@<version>`). Stale goldens don't break tests (the strip list deletes `generator` before deepEqual) but mislead readers. Bump them with the others.
   - The MCP-fallback contract at `schema/mcp-fallback-contract.json` has its own `version: "1"` field, independent from the package version. Bump it (and the corresponding `version` const in `schema/mcp-fallback-contract.schema.json`) only on breaking shape changes. The manifest's `version: "2"` is similarly independent — bump on shape changes to `manifest.schema.json`.
-- **No tests yet.** `npm test` is a TODO stub. Don't claim a change is verified by tests; manually walk the affected SKILL or CLI command end-to-end.
+- **Tests cover the CLI, not the SKILLs.** `npm test` runs the suite (`node --test 'cli/test/**/*.test.js'` — 108 tests as of v0.4.0, all green). Run `npm install` first; with no `node_modules` the suite fails wholesale on missing deps (ajv/js-yaml/commander), which looks like a red suite but isn't. The SKILL fallback prose is **not** under test — when you change a SKILL, manually walk the affected stage end-to-end rather than claiming the suite verifies it.
 - **Not yet on npm.** Install path today is GitHub-direct via `claude plugin marketplace add adamforrester/brand-skills`. The CLI is intended to publish to npm but hasn't yet (roadmap item in README).
 - **Don't bump the version proactively.** Wait for explicit instruction — release cadence is being decided.
 
@@ -129,9 +129,7 @@ Same posture applies to design-oracle, Agent-Reach, or any peer that emerges lat
 
 ## Things to know that aren't obvious from reading the code
 
-- **`tests/fixtures/wendys/.brand/overview.md` is referenced from `brand-extract/SKILL.md:477` but does not exist in the repo.** Either the reference should be removed or the fixture committed. Flag this if you're touching that section of the SKILL.
-- **The Wendy's brand is the canonical extraction example** in SKILL prose (red, food-photography references). When updating examples, swap to a different brand to avoid the impression that the tool is Wendy's-specific.
-- **`docs/` is empty but referenced.** `brand-extract/SKILL.md:20` mentions `docs/DESIGN.md`. Either remove the pointer or add the file.
+- **The Wendy's brand is the canonical extraction example** in SKILL prose (red, food-photography references) and across `schema/brand/*.schema.md`. When updating examples, swap to a different brand to avoid the impression that the tool is Wendy's-specific. (See `docs/xd-assumption-inventory.md` finding #9.)
 - **MCP dependencies are recommended but not required.** Playwright MCP, Figma Console MCP, and Firecrawl MCP all degrade gracefully. When adding a new SKILL feature that uses an MCP, write the no-MCP fallback at the same time.
 - **Stage numbering in `brand-extract` is non-contiguous.** Stages are 1, 2, 3, 4, 5, 6, 8 — there is no Stage 7 (collapsed historically). Don't "fix" this without reading the "Phase 8 scope reminder" block at the bottom of the SKILL; the numbers are referenced from outside this repo.
 
