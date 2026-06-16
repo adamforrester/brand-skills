@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-15 — #5 (industry signal) in flight on `feat/industry-signal`; #4 merged to `main` via local merge commit `97db05d` (no PR — `--no-ff` merged from `feat/scope-json`; the feature branch is preserved on origin for history).
+**Last updated:** 2026-06-16 — #5 merged to `main` via local merge commit `2aa31b4` (no PR — `--no-ff` merged from `feat/industry-signal`; feature branch will be preserved on origin for history). #4 merged earlier (`97db05d`).
 
 ---
 
@@ -61,6 +61,20 @@ Test count: 85 → 108 (+23). Conversational flow stays the standalone default. 
 
 Spec: [2026-06-14-scope-json-design.md](superpowers/specs/2026-06-14-scope-json-design.md).
 
+### #5 — Inject industry signal into voice + overview extraction ✅
+**Output:** branch `feat/industry-signal` merged to `main` via `--no-ff` local merge commit `2aa31b4` (no PR — feature branch preserved on origin).
+
+What landed:
+- Schema: one-line `industry` field append to `schema/brand/scope.schema.json` at top level (sibling of `client`/`tier`/`mode`). Free-form string with `minLength: 1`. The cross-task contract from #4's `additionalProperties: false` made this a one-line change.
+- SKILL prose: three additive blocks in `brand-context/skills/brand-extract/SKILL.md` — §0a notes the field, §4c adds a soft-tie-breaker bullet for Stage 3 voice inference (with worked example), §6b scopes the prior to Stage 4 Brand Personality / Audience / Competitive Context only (Visual Language and brand self-test stay evidence-only).
+- Citation marker: `*(industry context: <value>)*` (italicized parenthetical, matches existing confidence-cite and source-cite patterns). Threshold-preservation rule explicit: prior may NOT lower §4d's ≥3-samples-per-attribute or §4e's <10-total-samples thresholds, NOR invent claims with no sample support.
+- Tests: +1 in `cli/test/unit/scope-merge.test.js` (industry round-trip + brandrc-wins-on-conflict), +3 in `cli/test/unit/skill-scope-parity.test.js` (field-mention, citation-marker literal, tie-breaker rule + threshold-preservation regex).
+- Docs: README YAML example + paragraph in "How the pipeline works" section. **No CLI code changes** — the existing generic recursive merge in `scope-merge.js` round-trips the new field automatically.
+
+Test count: 108 → 112 (+4). Behavior identical to today when `industry` is unset.
+
+Spec: [2026-06-15-industry-signal-design.md](superpowers/specs/2026-06-15-industry-signal-design.md).
+
 ---
 
 ## Active backlog
@@ -69,9 +83,6 @@ Spec: [2026-06-14-scope-json-design.md](superpowers/specs/2026-06-14-scope-json-
 
 #### #8 — DTCG token export (`brand-cli refresh-design --dtcg`)
 W3C Design Tokens Community Group format. Pure spec adoption — interoperates with Style Dictionary, Tokens Studio, Figma plugins, dembrandt itself. Composes with #2 (manifest can declare `dtcg_export: true|false|<path>`). Source: dembrandt research; CLAUDE.md "borrow without dependency" stance.
-
-#### #5 — Inject industry signal into voice + overview extraction
-**In flight on branch `feat/industry-signal`.** `industry:` field at the top of `.brandrc.yaml` and `.brand/.scope.json`. Stages 3 + 4 use it as a soft tie-breaker prior on inference; every prior-influenced claim cites `*(industry context: <value>)*` inline. Spec: [`docs/superpowers/specs/2026-06-15-industry-signal-design.md`](superpowers/specs/2026-06-15-industry-signal-design.md). Final move to Completed lands in the post-merge cleanup commit per #4 precedent.
 
 ### Blocked
 
@@ -100,15 +111,14 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 ## Priority notes
 
 **Sequence (recommended) — remaining active backlog only:**
-1. **#5 next** — small, well-scoped (one-line schema append + Stage 3/4 prose to read the field). Closes the #4↔#5 cross-task contract while it's fresh.
-2. **#8 in parallel or after** — independent of #5. DTCG token export composes with the manifest's `dtcg_export` flag from #2.
+1. **#8 next** — DTCG token export. Composes with the manifest's `dtcg_export` flag from #2. Source: dembrandt research notes; CLAUDE.md "borrow without dependency" stance.
 
-(Sequence for #1-#3, #6, #7 has shipped — see Completed.)
+(Sequence for #1-#7 has shipped — see Completed.)
 
 **Cross-task contracts to preserve:**
 - **#2 ↔ #6 status vocabulary:** must match exactly. `complete | partial | placeholder | missing | defaults`.
 - **#2 ↔ #3:** manifest schema must accommodate per-stage MCP fallback decisions.
-- **#4 ↔ #5:** scope schema (`schema/brand/scope.schema.json`) has `additionalProperties: false` at the top level. #5 adds `industry: <string>` as a one-line append.
+- **#4 ↔ #5:** scope schema (`schema/brand/scope.schema.json`) `additionalProperties: false` at top level let #5 land as a one-line append. (Both shipped.)
 
 **Multi-tenant constraint** (applies to all tasks): brand-skills is used both standalone (Claude Code slash commands) and embedded (host-project orchestrator dispatching the SKILL or CLI). Every task here adds artifacts/contracts that work in both modes. Conversational flows stay; structured I/O is additive, not a replacement.
 
