@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-16 — #5 merged to `main` via local merge commit `2aa31b4` (no PR — `--no-ff` merged from `feat/industry-signal`; feature branch will be preserved on origin for history). #4 merged earlier (`97db05d`).
+**Last updated:** 2026-06-16 — #8 closed as won't-do (DTCG export is upstream-owned by Token Press; the import direction shipped in #3 is sufficient). Active backlog now empty; next work picks from candidate tasks. #5 merged earlier on this date via `2aa31b4`; #4 via `97db05d`.
 
 ---
 
@@ -79,14 +79,18 @@ Spec: [2026-06-15-industry-signal-design.md](superpowers/specs/2026-06-15-indust
 
 ## Active backlog
 
-### Unblocked (ready to start)
-
-#### #8 — DTCG token export (`brand-cli refresh-design --dtcg`)
-W3C Design Tokens Community Group format. Pure spec adoption — interoperates with Style Dictionary, Tokens Studio, Figma plugins, dembrandt itself. Composes with #2 (manifest can declare `dtcg_export: true|false|<path>`). Source: dembrandt research; CLAUDE.md "borrow without dependency" stance.
+(empty — pick next work from "Candidate tasks" below)
 
 ### Blocked
 
 (none currently)
+
+---
+
+## Won't do
+
+### #8 — DTCG token export (`brand-cli refresh-design --dtcg`) ✗
+**Closed:** 2026-06-16. DTCG export is out of scope for brand-skills. The canonical DTCG producer in this practitioner's workflow is **Token Press** (a separate Figma plugin); brand-skills already consumes its output via `brand-cli import-tokens` (shipped in #3 as Stage 1's degraded fallback). An export command would round-trip through brand-skills for no consumer the tool owns, and pull framing toward "token tooling" — outside the extraction-and-context mandate. If a future use case appears that needs `.brand/tokens/*.md` → DTCG (e.g. emitting tokens that originated from non-Figma sources), file as a fresh task with that specific use case named.
 
 ---
 
@@ -111,9 +115,8 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 ## Priority notes
 
 **Sequence (recommended) — remaining active backlog only:**
-1. **#8 next** — DTCG token export. Composes with the manifest's `dtcg_export` flag from #2. Source: dembrandt research notes; CLAUDE.md "borrow without dependency" stance.
 
-(Sequence for #1-#7 has shipped — see Completed.)
+(Active backlog is empty. #1-#7 shipped; #8 closed as won't-do — see "Won't do" above. Next work picks from candidate tasks below; C2 / C8 / C9 are most fileable.)
 
 **Cross-task contracts to preserve:**
 - **#2 ↔ #6 status vocabulary:** must match exactly. `complete | partial | placeholder | missing | defaults`.
