@@ -16,6 +16,7 @@ import { warnDeprecated } from './deprecations.js';
  *  - extensions: [...] → dropped + warn once (no extension contract shipped)
  *  - tools.storybook: ... → dropped silently (was never functional)
  *  - brand defaults to basename(projectDir) when neither brand nor client is set
+ *    (empty-string brand is treated as unset)
  *
  * Returns: an object with at minimum `{ brand, tier, mode, sources, outputs, tools, ... }`.
  * Other keys from the YAML are passed through untouched.
@@ -40,6 +41,13 @@ export function loadBrandrc(projectDir) {
   }
 
   const normalized = { ...raw };
+
+  // Treat empty-string `brand` as unset for alias-decision purposes.
+  // This makes `client: "ACME"` + `brand: ""` adopt the client value rather
+  // than silently discarding both and falling back to dirname.
+  if (normalized.brand === '') {
+    normalized.brand = undefined;
+  }
 
   // client → brand
   if (normalized.client !== undefined && normalized.brand === undefined) {

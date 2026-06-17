@@ -136,3 +136,22 @@ test('loadBrandrc: warns fire exactly once even when called twice', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('loadBrandrc: `client` set + `brand: ""` adopts client value (de-XD edge case)', () => {
+  const dir = mkProject('client-with-empty-brand', 'client: ACME Corp\nbrand: ""\ntier: standard\n');
+  const original = console.warn;
+  let warnings = 0;
+  console.warn = () => { warnings++; };
+  try {
+    const cfg = loadBrandrc(dir);
+    // Empty brand is treated as unset, so client's value flows through.
+    assert.equal(cfg.brand, 'ACME Corp');
+    assert.equal(cfg.client, undefined);
+    // The single warning fires for `brandrc.client` (the simple alias path),
+    // not for `brandrc.client+brand` (which would be misleading here).
+    assert.equal(warnings, 1);
+  } finally {
+    console.warn = original;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
