@@ -101,7 +101,7 @@ sources:
   screenshots: [assets/hero.png]       # optional
   social:
     twitter: https://x.com/acmecorp
-  design_system_repo: ./packages/ds    # optional, comprehensive tier
+  design_system_repo: ./packages/ds    # optional; when set, Stage 6 runs at any tier
 ```
 
 In Claude Code:
@@ -123,7 +123,7 @@ The skill walks you through scope confirmation, runs the pipeline, surfaces conf
 | 3 | Voice extraction (samples → attributes, tone, vocabulary) | `playwright` MCP (full) → Jina Reader `r.jina.ai` (degraded, keyless HTTP) → native `WebFetch` (degraded, SSR sites only). |
 | 4 | Multimodal analysis → `overview.md` | Native `Read` tool + brand-guide PDF or screenshots |
 | 5 | Cross-source conflict detection → `conflicts.md` | Outputs from Stages 1–4 |
-| 6 | Design-system repo scan → `components/*.md` | Local path or remote git URL (comprehensive tier only) |
+| 6 | Design-system repo scan → `components/*.md` | Local path or remote git URL. Runs whenever `sources.design_system_repo` is set, regardless of tier. |
 | 8 | Regenerate `design.md` + `brand.md` | `brand-cli refresh-design` and `refresh-context` (or inline fallback) |
 
 **Always also emitted:**
