@@ -527,13 +527,15 @@ colors:
 
 Apply the same shape to `typography.md`, `spacing.md`, `surfaces.md` per their schemas in `schema/brand/`.
 
-### 5c. Pitch mode
+### 5c. Public-sources-only mode
 
-If `mode: pitch` in `.brandrc.yaml`, prepend the disclaimer:
+If `mode: public-sources-only` in `.brandrc.yaml`, prepend the disclaimer:
 
 ```
-> ⚠️ **PITCH MODE** — derived from public sources only. Not validated against internal brand standards.
+> ⚠️ **PUBLIC-SOURCES-ONLY MODE** — derived from public sources only. Not validated against internal brand standards.
 ```
+
+(The legacy `mode: pitch` value is normalized by the brandrc loader to `public-sources-only` before this stage runs; treat them identically.)
 
 ### 5d. Write the file
 
@@ -626,12 +628,12 @@ Sources:
 
 When in doubt, default to **skip** and leave the file alone.
 
-### 6e. Pitch mode
+### 6e. Public-sources-only mode
 
-In pitch mode (`mode: pitch`), prepend the disclaimer block to `overview.md`:
+In public-sources-only mode (`mode: public-sources-only`, or its deprecated alias `mode: pitch`), prepend the disclaimer block to `overview.md`:
 
 ```markdown
-> ⚠️ **PITCH MODE** — derived from public sources only. Not validated against internal brand standards.
+> ⚠️ **PUBLIC-SOURCES-ONLY MODE** — derived from public sources only. Not validated against internal brand standards.
 ```
 
 Cap inferred confidence: if a personality trait or audience claim relies on inference (rather than a direct guide quote), note it inline as `*(inferred from public materials)*`.
@@ -835,12 +837,12 @@ Read the existing `conflicts.md` first. Build the new file as:
 
 **Never delete entries from Intentional Adaptations or Resolved Conflicts Archive.** Use the `Edit` tool to surgically update sections, or `Write` to rebuild the file from in-memory state — but verify the diff in either case.
 
-### 8f. Pitch mode
+### 8f. Public-sources-only mode
 
-In pitch mode (`mode: pitch`), do not run the practitioner walkthrough — there's no internal access to resolve conflicts authoritatively. Instead:
+In public-sources-only mode (`mode: public-sources-only`, or its deprecated alias `mode: pitch`), do not run the practitioner walkthrough — there's no internal access to resolve conflicts authoritatively. Instead:
 - Detect conflicts as usual
-- Write all detected items as `unresolved` with `Recommended resolution: pending — pitch mode (public sources only)`
-- Surface the count in the Final summary so the practitioner can resolve later when client access is available
+- Write all detected items as `unresolved` with `Recommended resolution: pending — public-sources-only mode (public sources only)`
+- Surface the count in the Final summary so the practitioner can resolve later when internal access is available
 
 ### 8g. Provenance
 

@@ -40,13 +40,14 @@ const BRAND_FILES = {
 };
 
 const TIER_FOR_MODE = {
-  pitch: 'minimum',
+  'public-sources-only': 'minimum',
+  pitch: 'minimum', // deprecated alias; loader normalizes but init's --mode also accepts
   standard: 'standard',
   comprehensive: 'comprehensive',
 };
 
-const PITCH_DISCLAIMER =
-  '> ⚠️ **PITCH MODE** — derived from public sources only. Not validated against internal brand standards.\n\n';
+const PUBLIC_SOURCES_ONLY_DISCLAIMER =
+  '> ⚠️ **PUBLIC-SOURCES-ONLY MODE** — derived from public sources only. Not validated against internal brand standards.\n\n';
 
 const TOKEN_FRONTMATTER = {
   'tokens/colors.md': `---\ncolors:\n  # primary: "#000000"\n  # neutral: "#FFFFFF"\n  # error: "#D32F2F"\n---\n\n`,
@@ -86,8 +87,16 @@ export async function initCommand(opts) {
     answers.brand = brand.trim();
   }
 
-  if (opts.mode && ['standard', 'pitch', 'comprehensive'].includes(opts.mode)) {
-    answers.mode = opts.mode;
+  if (opts.mode && ['standard', 'public-sources-only', 'pitch', 'comprehensive'].includes(opts.mode)) {
+    if (opts.mode === 'pitch') {
+      warnDeprecated(
+        'init.flag.mode.pitch',
+        '--mode pitch is deprecated; use --mode public-sources-only instead. The alias is read but will be removed in 2.0.'
+      );
+      answers.mode = 'public-sources-only';
+    } else {
+      answers.mode = opts.mode;
+    }
   } else if (!opts.mode || opts.mode === 'standard') {
     const { mode } = await inquirer.prompt([
       {
@@ -95,9 +104,9 @@ export async function initCommand(opts) {
         name: 'mode',
         message: 'Project mode:',
         choices: [
-          { name: `standard      ${chalk.dim('— You have brand assets: style guide, Figma, live site')}`, value: 'standard' },
-          { name: `pitch         ${chalk.dim('— Public sources only: website, social, no internal access')}`, value: 'pitch' },
-          { name: `comprehensive ${chalk.dim('— Full access plus institutional knowledge capture')}`, value: 'comprehensive' },
+          { name: `standard             ${chalk.dim('— You have brand assets: style guide, Figma, live site')}`, value: 'standard' },
+          { name: `public-sources-only  ${chalk.dim('— Public sources only: website, social, no internal access')}`, value: 'public-sources-only' },
+          { name: `comprehensive        ${chalk.dim('— Full access plus institutional knowledge capture')}`, value: 'comprehensive' },
         ],
         default: 'standard',
       },
@@ -137,7 +146,7 @@ export async function initCommand(opts) {
 
   // 1. .brand/ directory
   const brandDir = join(projectDir, '.brand');
-  scaffoldBrandDirectory(brandDir, tier, answers.mode === 'pitch');
+  scaffoldBrandDirectory(brandDir, tier, answers.mode === 'public-sources-only');
   results.created.push('.brand/');
   console.log(chalk.green(`✓ .brand/ (${tier} tier)`));
 
@@ -203,7 +212,7 @@ export async function initCommand(opts) {
   }
 }
 
-function scaffoldBrandDirectory(brandDir, tier, isPitch) {
+function scaffoldBrandDirectory(brandDir, tier, isPublicSourcesOnly) {
   const filesToCreate = [...BRAND_FILES.minimum];
   if (tier === 'standard' || tier === 'comprehensive') filesToCreate.push(...BRAND_FILES.standard);
   if (tier === 'comprehensive') filesToCreate.push(...BRAND_FILES.comprehensive);
@@ -222,7 +231,7 @@ function scaffoldBrandDirectory(brandDir, tier, isPitch) {
     const schemaRef = `schema/brand/${filePath.replace(/\//g, '-').replace('.md', '')}.schema.md`;
     const frontmatter = TOKEN_FRONTMATTER[filePath] || '';
     let content = frontmatter + `# ${title}\n\n<!-- Fill this file following the schema at ${schemaRef} -->\n`;
-    if (isPitch) content = PITCH_DISCLAIMER + content;
+    if (isPublicSourcesOnly) content = PUBLIC_SOURCES_ONLY_DISCLAIMER + content;
     writeFileSync(fullPath, content, 'utf-8');
   }
 }

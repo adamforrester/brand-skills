@@ -67,3 +67,28 @@ test('SKILL prose explains the soft-prior tie-breaker rule (#5)', () => {
     'SKILL.md must explicitly state the prior may not lower thresholds or invent claims'
   );
 });
+
+test('SKILL prose uses PUBLIC-SOURCES-ONLY MODE banner (de-XD #4)', () => {
+  // The disclaimer banner reads PUBLIC-SOURCES-ONLY MODE in three places (sections 5c, 6e, 8f).
+  // Drift here would mean the SKILL silently reverted to the agency-pitch label.
+  assert.ok(
+    skill.includes('PUBLIC-SOURCES-ONLY MODE'),
+    'SKILL.md must use the PUBLIC-SOURCES-ONLY MODE banner (renamed from PITCH MODE in de-XD cleanup)'
+  );
+});
+
+test('SKILL prose does not contain legacy PITCH MODE banner (de-XD #4)', () => {
+  // The bare "PITCH MODE" banner (case-sensitive) should be absent — the alias note
+  // mentioning `mode: pitch` is fine, but the banner shouldn't appear.
+  assert.ok(
+    !skill.includes('PITCH MODE'),
+    'SKILL.md must not contain the legacy PITCH MODE banner; rename to PUBLIC-SOURCES-ONLY MODE'
+  );
+});
+
+test('SKILL prose mentions public-sources-only mode value by name (de-XD #4)', () => {
+  assert.ok(
+    skill.includes('public-sources-only'),
+    'SKILL.md must reference the new mode value `public-sources-only` so prose drift is caught early'
+  );
+});

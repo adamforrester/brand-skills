@@ -68,6 +68,7 @@ References to source materials for the extraction pipeline. Drives what `/brand-
 brand: "Wendy's"
 project: "rewards-app-2026"
 tier: standard
+mode: standard
 
 deploy:
   platform: netlify
