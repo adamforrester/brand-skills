@@ -1,8 +1,8 @@
-import { existsSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import chalk from 'chalk';
-import { parse as yamlParse } from 'yaml';
 import { generateDesignMd } from '../utils/design-md-generator.js';
+import { loadBrandrc } from '../utils/brandrc-loader.js';
 
 /**
  * Regenerate design.md at the project root from the project's .brand/.
@@ -12,23 +12,16 @@ import { generateDesignMd } from '../utils/design-md-generator.js';
  *   2. brand_path field in .brandrc.yaml
  *   3. ./.brand
  *
- * Client name from .brandrc.yaml (`client`); falls back to directory name.
+ * Brand name from .brandrc.yaml (`brand`, with `client` accepted as a deprecated alias);
+ * falls back to basename(projectDir) when neither is set.
  */
 export async function refreshDesignCommand(opts) {
   const projectDir = process.cwd();
-  let client = projectDir.split('/').pop() || 'Brand';
-  let brandDir = join(projectDir, '.brand');
-
-  const brandrcPath = join(projectDir, '.brandrc.yaml');
-  if (existsSync(brandrcPath)) {
-    try {
-      const cfg = yamlParse(readFileSync(brandrcPath, 'utf-8'));
-      if (cfg?.client) client = cfg.client;
-      if (cfg?.brand_path) brandDir = resolve(projectDir, cfg.brand_path);
-    } catch (err) {
-      console.log(chalk.yellow(`⚠ Could not parse .brandrc.yaml: ${err.message}`));
-    }
-  }
+  const cfg = loadBrandrc(projectDir);
+  const brand = cfg.brand;
+  let brandDir = cfg.brand_path
+    ? resolve(projectDir, cfg.brand_path)
+    : join(projectDir, '.brand');
 
   if (opts.brandPath) {
     brandDir = resolve(projectDir, opts.brandPath);
@@ -40,13 +33,13 @@ export async function refreshDesignCommand(opts) {
     process.exit(1);
   }
 
-  const content = generateDesignMd(brandDir, client);
+  const content = generateDesignMd(brandDir, brand);
   const outPath = join(projectDir, 'design.md');
   writeFileSync(outPath, content, 'utf-8');
 
   console.log(chalk.green(`✓ design.md regenerated from ${brandDir}`));
 
   if (opts.json) {
-    console.log(JSON.stringify({ ok: true, brand_dir: brandDir, output: outPath, client }, null, 2));
+    console.log(JSON.stringify({ ok: true, brand_dir: brandDir, output: outPath, brand }, null, 2));
   }
 }

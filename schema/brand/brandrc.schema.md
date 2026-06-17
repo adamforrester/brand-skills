@@ -14,8 +14,8 @@
 
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
-| `client` | required | string | Client name as used in brand materials |
-| `project` | optional | string | Project name within the client (e.g., "rewards-app", "2026-redesign") |
+| `brand` | optional | string | The brand this package describes. Defaults to the project directory name. Older configs may use `client`; the alias is read but emits a one-line deprecation warning. |
+| `project` | optional | string | Project name within the brand (e.g., "rewards-app", "2026-redesign") |
 | `tier` | required | enum | Target completeness tier: `minimum`, `standard`, or `comprehensive` |
 
 ### Deployment (optional)
@@ -64,8 +64,8 @@ References to source materials for the extraction pipeline. Drives what `/brand-
 ## Example
 
 ```yaml
-# .brandrc.yaml — XD Toolkit project configuration
-client: "Wendy's"
+# .brandrc.yaml — brand-skills project configuration
+brand: "Wendy's"
 project: "rewards-app-2026"
 tier: standard
 
@@ -112,7 +112,7 @@ extensions:
 ## Validation Rules
 
 The `brand-cli` validation pass checks:
-1. `client` and `tier` are present
+1. `tier` is present (`brand` is optional and falls back to the project directory name)
 2. `tier` value is one of: `minimum`, `standard`, `comprehensive`
 3. If `tier` is `standard` or `comprehensive`, the corresponding `.brand/` files exist
 4. If `sources.figma` is set, the Figma Console MCP is configured (via `claude mcp list`)

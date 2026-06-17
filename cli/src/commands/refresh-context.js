@@ -1,34 +1,27 @@
-import { existsSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import chalk from 'chalk';
-import { parse as yamlParse } from 'yaml';
 import { generateBrandContext } from '../utils/brand-context-generator.js';
+import { loadBrandrc } from '../utils/brandrc-loader.js';
 
 /**
  * Regenerate the project-root brand context file from .brand/.
  *
  * Default output: `brand.md` at project root. Any agent that loads root-level
- * brand files (Claude Code, Cursor, Copilot, Impeccable, etc.) reads it.
+ * brand files (Claude Code, Cursor, Copilot, etc.) reads it.
  *
- * If `--impeccable` is passed, additionally writes the same content to
- * `.impeccable.md` so the Impeccable skill picks it up under its conventional
- * filename.
+ * Additional outputs:
+ *  - `--also-write <path>` (repeatable): mirror brand.md to each path.
+ *  - `outputs: [path, ...]` in .brandrc.yaml: same effect, declarative.
+ *  - `--impeccable` (deprecated alias): equivalent to --also-write .impeccable.md.
  */
 export async function refreshContextCommand(opts) {
   const projectDir = process.cwd();
-  let client = projectDir.split('/').pop() || 'Brand';
-  let brandDir = join(projectDir, '.brand');
-
-  const brandrcPath = join(projectDir, '.brandrc.yaml');
-  if (existsSync(brandrcPath)) {
-    try {
-      const cfg = yamlParse(readFileSync(brandrcPath, 'utf-8'));
-      if (cfg?.client) client = cfg.client;
-      if (cfg?.brand_path) brandDir = resolve(projectDir, cfg.brand_path);
-    } catch (err) {
-      console.log(chalk.yellow(`⚠ Could not parse .brandrc.yaml: ${err.message}`));
-    }
-  }
+  const cfg = loadBrandrc(projectDir);
+  const brand = cfg.brand;
+  let brandDir = cfg.brand_path
+    ? resolve(projectDir, cfg.brand_path)
+    : join(projectDir, '.brand');
 
   if (opts.brandPath) {
     brandDir = resolve(projectDir, opts.brandPath);
@@ -40,7 +33,7 @@ export async function refreshContextCommand(opts) {
     process.exit(1);
   }
 
-  const content = generateBrandContext(brandDir, client);
+  const content = generateBrandContext(brandDir, brand);
   const outputs = [join(projectDir, 'brand.md')];
 
   if (opts.impeccable) {
@@ -53,6 +46,6 @@ export async function refreshContextCommand(opts) {
   }
 
   if (opts.json) {
-    console.log(JSON.stringify({ ok: true, brand_dir: brandDir, outputs, client }, null, 2));
+    console.log(JSON.stringify({ ok: true, brand_dir: brandDir, outputs, brand }, null, 2));
   }
 }

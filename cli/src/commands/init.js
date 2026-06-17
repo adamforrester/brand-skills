@@ -1,11 +1,12 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { stringify as yamlStringify } from 'yaml';
 import { generateDesignMd } from '../utils/design-md-generator.js';
 import { generateBrandContext } from '../utils/brand-context-generator.js';
+import { warnDeprecated } from '../utils/deprecations.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SCHEMA_DIR = resolve(__dirname, '../../../schema/brand');
@@ -55,7 +56,7 @@ const TOKEN_FRONTMATTER = {
 };
 
 export async function initCommand(opts) {
-  const results = { created: [], tier: '', mode: '', client: '' };
+  const results = { created: [], tier: '', mode: '', brand: '' };
   const projectDir = process.cwd();
 
   console.log('');
@@ -63,13 +64,26 @@ export async function initCommand(opts) {
   console.log('');
 
   const answers = {};
-  if (opts.client) {
-    answers.client = opts.client;
+  const dirnameDefault = basename(projectDir) || 'Brand';
+  if (opts.brand) {
+    answers.brand = opts.brand;
+  } else if (opts.client) {
+    warnDeprecated(
+      'init.flag.client',
+      '--client is deprecated; use --brand instead. The alias is read but will be removed in 2.0.'
+    );
+    answers.brand = opts.client;
   } else {
-    const { client } = await inquirer.prompt([
-      { type: 'input', name: 'client', message: 'Client name:', validate: v => v.trim().length > 0 || 'Required' },
+    const { brand } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'brand',
+        message: 'Brand name:',
+        default: dirnameDefault,
+        validate: v => v.trim().length > 0 || 'Required',
+      },
     ]);
-    answers.client = client.trim();
+    answers.brand = brand.trim();
   }
 
   if (opts.mode && ['standard', 'pitch', 'comprehensive'].includes(opts.mode)) {
@@ -96,7 +110,7 @@ export async function initCommand(opts) {
   const tier = TIER_FOR_MODE[answers.mode];
   results.tier = tier;
   results.mode = answers.mode;
-  results.client = answers.client;
+  results.brand = answers.brand;
 
   // Detect existing files
   const existing = ['.brand', '.brandrc.yaml', 'brand.md', 'design.md'].filter(f => existsSync(join(projectDir, f)));
@@ -104,7 +118,7 @@ export async function initCommand(opts) {
     console.log(chalk.yellow('  Existing files detected:'));
     for (const f of existing) console.log(chalk.yellow(`    - ${f}`));
     console.log('');
-    if (opts.client) {
+    if (opts.brand || opts.client) {
       console.log(chalk.red('  Aborting: existing files would be overwritten.'));
       console.log(chalk.dim('  Re-run with --force to overwrite, or run from an empty directory.'));
       process.exit(1);
@@ -118,7 +132,7 @@ export async function initCommand(opts) {
     }
   }
 
-  console.log(chalk.bold(`  Scaffolding ${answers.client} (${answers.mode} mode)`));
+  console.log(chalk.bold(`  Scaffolding ${answers.brand} (${answers.mode} mode)`));
   console.log('');
 
   // 1. .brand/ directory
@@ -129,7 +143,7 @@ export async function initCommand(opts) {
 
   // 2. .brandrc.yaml
   const brandrc = {
-    client: answers.client,
+    brand: answers.brand,
     tier,
     mode: answers.mode,
     sources: {},
@@ -139,12 +153,12 @@ export async function initCommand(opts) {
   results.created.push('.brandrc.yaml');
 
   // 3. brand.md (project-root context, generated from .brand/ — placeholder shape)
-  writeFileSync(join(projectDir, 'brand.md'), generateBrandContext(brandDir, answers.client), 'utf-8');
+  writeFileSync(join(projectDir, 'brand.md'), generateBrandContext(brandDir, answers.brand), 'utf-8');
   console.log(chalk.green('✓ brand.md'));
   results.created.push('brand.md');
 
   // 4. design.md (spec-compliant, generated from .brand/)
-  writeFileSync(join(projectDir, 'design.md'), generateDesignMd(brandDir, answers.client), 'utf-8');
+  writeFileSync(join(projectDir, 'design.md'), generateDesignMd(brandDir, answers.brand), 'utf-8');
   console.log(chalk.green('✓ design.md (design.md spec)'));
   results.created.push('design.md');
 
