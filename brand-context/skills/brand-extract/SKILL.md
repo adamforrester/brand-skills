@@ -453,7 +453,7 @@ This is different from token files. Tokens are values — replacing them is fine
 
 Include the divergences subsection only when there are real divergences to surface. Otherwise omit it.
 
-**Pitch mode** (when `mode: pitch`): inside the section, append a confidence-cap note: `> Pitch mode — confidence capped at MEDIUM.` Do not touch the file's top-level pitch disclaimer (if any) — that's owned by other stages.
+**Public-sources-only mode** (when `mode: public-sources-only`, or its deprecated alias `mode: pitch`): inside the section, append a confidence-cap note: `> Public-sources-only mode — confidence capped at MEDIUM.` Do not touch the file's top-level public-sources-only disclaimer (if any) — that's owned by other stages.
 
 **Provenance block** (only when writing the section for the first time, case 1 or 2): immediately after the `## Observed Voice (live channels)` content, before any subsequent section, place:
 

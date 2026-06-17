@@ -92,3 +92,14 @@ test('SKILL prose mentions public-sources-only mode value by name (de-XD #4)', (
     'SKILL.md must reference the new mode value `public-sources-only` so prose drift is caught early'
   );
 });
+
+test('SKILL prose has no stale "Pitch mode" headings or prose blocks (de-XD #4)', () => {
+  // Catches title-case "Pitch mode" prose that the all-caps PITCH MODE check misses.
+  // Pattern matches `**Pitch mode**` (bold) and `Pitch mode` (heading-style) but NOT
+  // the lowercase `mode: pitch` token, which is preserved as a deprecated alias mention.
+  const stalePitchHeading = /\*\*Pitch mode\*\*|^### \d[a-z]?\. Pitch mode/m;
+  assert.ok(
+    !stalePitchHeading.test(skill),
+    'SKILL.md must not contain "**Pitch mode**" or "### Nx. Pitch mode" — rename to Public-sources-only mode'
+  );
+});
