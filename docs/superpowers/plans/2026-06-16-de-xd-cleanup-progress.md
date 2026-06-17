@@ -11,6 +11,23 @@ Companion to [`2026-06-16-de-xd-cleanup.md`](2026-06-16-de-xd-cleanup.md) (the i
 
 ---
 
+## Quick state check
+
+```
+$ git log --oneline main..HEAD
+e916917 docs: implementation plan for de-XD cleanup
+039b695 docs: progress doc shell for de-XD cleanup + tasks.md state
+25e3300 docs: spec for de-XD cleanup (Bucket A — pre-1.0 contract residue)
+
+$ npm test 2>&1 | tail -5
+# pass 112
+# fail 0
+```
+
+Baseline locked: 112 tests at HEAD `e916917`. New tests by task tracked below.
+
+---
+
 ## Resume from here (read first when picking back up)
 
 The session that produced the spec hit recurring API errors during plan-writing — only in this project's chat, not user's other sessions. To get unblocked the user is restarting; this doc captures all decisions made so the next session doesn't re-litigate any of them.
