@@ -128,7 +128,7 @@ These can't be discovered on disk. Ask conversationally — one question at a ti
 2. **Figma file URL** — optional. Paste a URL like `https://figma.com/design/<fileKey>/...` and the skill extracts the file key. Skip if no Figma access.
 3. **Social profiles** — optional. Twitter/X, Instagram, LinkedIn, Facebook, TikTok. Accept any combination. Skip if none.
 4. **App store listings** — optional. iOS App Store and/or Google Play URLs. Skip if no app.
-5. **Design-system repo** — only ask if `tier == comprehensive`. Local path or remote git URL.
+5. **Design-system repo** — local path or remote git URL. When set, Stage 6 produces `.brand/components/*.md` regardless of tier.
 
 For each one, validate the answer minimally (URL looks like a URL; local path exists if given). Don't over-validate — bad URLs will surface as Stage failures with clear errors.
 
@@ -644,13 +644,12 @@ Use the `Write` tool when overwriting (or scaffolding from placeholder). Use `Ed
 
 After writing, verify the file is no longer the placeholder by checking that the brand identity, personality, and visual language sections are populated.
 
-## 7. Stage 6 — Design-system repo scan (comprehensive tier only)
+## 7. Stage 6 — Design-system repo scan (any tier)
 
-This stage runs only when **both** are true:
-- `.brandrc.yaml` `tier` is `comprehensive`
+This stage runs when:
 - `.brandrc.yaml` `sources.design_system_repo` is set (local path or remote git URL)
 
-If either is false, skip Stage 6 with a one-line log and move to Section 8 (design.md regen).
+Tier no longer gates Stage 6. Any project that points at a design-system repo gets the inventory — `comprehensive` tier no longer carries an implicit DS-scan opt-in. If `sources.design_system_repo` is unset, skip Stage 6 with a one-line log and move to Section 8 (design.md regen).
 
 The job: inventory what components actually exist in the client's design system codebase and write per-component descriptions into `.brand/components/<name>.md`. This describes what's there for agents working on visual implementation — it does **not** audit quality, completeness, or DS conformance. That's a DS Pack concern.
 
@@ -971,7 +970,6 @@ Be concise. The summary is one short message, not a wall of text.
 | Stage 5: practitioner can't resolve right now | Leave the conflict as `unresolved`. They can re-run later. |
 | Stage 5: a previously-resolved conflict re-surfaces | Treat as a new active conflict. Note in the new entry that it had been resolved on a prior date. |
 | Stage 5: only one source is present (e.g., no Figma, no PDF) | Cannot detect cross-source conflicts. Stage 5 writes "_No active conflicts as of {date}._" and notes the limited input in the provenance block. |
-| Stage 6: tier is not comprehensive | Skip silently. Note in summary. |
 | Stage 6: `sources.design_system_repo` not set | Skip silently. Note in summary. |
 | Stage 6: local path not found | Log "Stage 6: path not found", skip. Don't error the pipeline. |
 | Stage 6: remote git clone fails (auth, 404, network) | Log the error, skip Stage 6, continue. |
@@ -991,7 +989,7 @@ Implemented (complete pipeline):
 - Stage 3: Voice extraction → voice.md `## Observed Voice` section (additive)
 - Stage 4: Multimodal analysis → overview.md
 - Stage 5: Conflict detection → conflicts.md (additive, with practitioner walkthrough)
-- Stage 6: Design-system repo scan → components/*.md + components/inventory.md (comprehensive tier only)
+- Stage 6: Design-system repo scan → components/*.md + components/inventory.md (when `sources.design_system_repo` is set, any tier)
 - Stage 8: `brand.md` regeneration (always runs)
 - design.md regeneration
 - Manifest emission (Section 10b) — every extract run now writes `.brand/manifest.json`

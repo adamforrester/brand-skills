@@ -45,6 +45,7 @@ References to source materials for the extraction pipeline. Drives what `/brand-
 | `sources.live_urls` | optional | string[] | Live product URLs for token extraction via Layout CLI |
 | `sources.brand_guide` | optional | string | Path to brand guide PDF (relative to project root) |
 | `sources.screenshots` | optional | string[] | Paths to brand reference screenshots |
+| `sources.design_system_repo` | optional | string | Local path or remote git URL of a design-system repo. When set, Stage 6 of `/brand-context:extract` runs and produces `.brand/components/*.md` regardless of tier. |
 
 ### Tool Configuration (optional)
 

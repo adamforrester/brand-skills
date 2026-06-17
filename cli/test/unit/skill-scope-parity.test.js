@@ -103,3 +103,21 @@ test('SKILL prose has no stale "Pitch mode" headings or prose blocks (de-XD #4)'
     'SKILL.md must not contain "**Pitch mode**" or "### Nx. Pitch mode" — rename to Public-sources-only mode'
   );
 });
+
+test('SKILL Stage 6 gate is decoupled from comprehensive tier (de-XD #3 + #7)', () => {
+  // The Stage 6 header should say "(any tier)" — this is the post-decoupling marker.
+  // The legacy phrase "(comprehensive tier only)" must be absent from the Stage 6 header.
+  assert.ok(
+    /Stage 6 — Design-system repo scan \(any tier\)/.test(skill),
+    'SKILL.md Stage 6 header must read "(any tier)" — the gate is now sources.design_system_repo, not tier'
+  );
+  assert.ok(
+    !/Stage 6 — Design-system repo scan \(comprehensive tier only\)/.test(skill),
+    'SKILL.md must not retain the legacy "(comprehensive tier only)" Stage 6 header'
+  );
+  // The §0d list must not require comprehensive tier for the DS-repo question.
+  assert.ok(
+    !/Design-system repo.*tier == comprehensive/.test(skill),
+    'SKILL.md §0d must not gate the design-system repo question on tier == comprehensive'
+  );
+});
