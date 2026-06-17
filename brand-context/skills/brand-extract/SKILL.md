@@ -10,7 +10,7 @@ You are running the brand-extract skill end to end. The full pipeline writes/ref
 - `.brand/tokens/{colors,typography,spacing,surfaces}.md`
 - `.brand/voice.md` (additive Stage 3)
 - `.brand/overview.md`
-- `.brand/components/*.md` + `.brand/components/inventory.md` (comprehensive tier only)
+- `.brand/components/*.md` + `.brand/components/inventory.md` (when `sources.design_system_repo` is set, any tier)
 - `.brand/conflicts.md` (additive Stage 5)
 - `design.md` (project root, [design.md spec](https://github.com/google-labs-code/design.md))
 - `brand.md` (project root, dense brand context loaded by AI agents)

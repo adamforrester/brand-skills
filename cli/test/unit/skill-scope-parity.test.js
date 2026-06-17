@@ -120,4 +120,11 @@ test('SKILL Stage 6 gate is decoupled from comprehensive tier (de-XD #3 + #7)', 
     !/Design-system repo.*tier == comprehensive/.test(skill),
     'SKILL.md §0d must not gate the design-system repo question on tier == comprehensive'
   );
+  // Catch any other "(comprehensive tier only)" parenthetical anywhere in the SKILL —
+  // the Stage 6 header is one place; the top-level pipeline-output list bullet is another.
+  // Both must say "any tier" or similar to reflect the decoupling.
+  assert.ok(
+    !/\(comprehensive tier only\)/.test(skill),
+    'SKILL.md must not contain any "(comprehensive tier only)" parenthetical — Stage 6 is now gated by sources.design_system_repo, not tier'
+  );
 });
