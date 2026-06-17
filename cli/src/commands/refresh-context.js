@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import chalk from 'chalk';
 import { generateBrandContext } from '../utils/brand-context-generator.js';
 import { loadBrandrc } from '../utils/brandrc-loader.js';
+import { warnDeprecated } from '../utils/deprecations.js';
 
 /**
  * Regenerate the project-root brand context file from .brand/.
@@ -34,11 +35,33 @@ export async function refreshContextCommand(opts) {
   }
 
   const content = generateBrandContext(brandDir, brand);
-  const outputs = [join(projectDir, 'brand.md')];
+
+  // Build the output list: brand.md is always written. Then merge:
+  //  1. brandrc `outputs: [path, ...]` (relative paths resolved from projectDir)
+  //  2. CLI `--also-write <path>` flag (repeatable)
+  //  3. `--impeccable` alias (resolves to .impeccable.md + deprecation warning)
+  // Dedup by absolute path so the same path passed twice writes once.
+  const extraOutputs = new Set();
+
+  if (Array.isArray(cfg.outputs)) {
+    for (const p of cfg.outputs) {
+      if (typeof p === 'string' && p.length > 0) extraOutputs.add(resolve(projectDir, p));
+    }
+  }
+
+  if (Array.isArray(opts.alsoWrite)) {
+    for (const p of opts.alsoWrite) extraOutputs.add(resolve(projectDir, p));
+  }
 
   if (opts.impeccable) {
-    outputs.push(join(projectDir, '.impeccable.md'));
+    warnDeprecated(
+      'cli.refresh-context.impeccable',
+      '--impeccable is deprecated; use --also-write .impeccable.md instead. The alias is read but will be removed in 2.0.'
+    );
+    extraOutputs.add(resolve(projectDir, '.impeccable.md'));
   }
+
+  const outputs = [join(projectDir, 'brand.md'), ...extraOutputs];
 
   for (const outPath of outputs) {
     writeFileSync(outPath, content, 'utf-8');

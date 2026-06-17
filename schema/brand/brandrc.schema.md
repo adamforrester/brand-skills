@@ -47,6 +47,12 @@ References to source materials for the extraction pipeline. Drives what `/brand-
 | `sources.screenshots` | optional | string[] | Paths to brand reference screenshots |
 | `sources.design_system_repo` | optional | string | Local path or remote git URL of a design-system repo. When set, Stage 6 of `/brand-context:extract` runs and produces `.brand/components/*.md` regardless of tier. |
 
+### Outputs (optional)
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `outputs` | optional | string[] | Additional paths to mirror `brand.md` into when `brand-cli refresh-context` runs. Each entry is a path relative to project root. Equivalent to passing `--also-write <path>` for each entry; flag and field are merged and deduplicated. |
+
 ### Tool Configuration (optional)
 
 | Field | Required | Type | Description |

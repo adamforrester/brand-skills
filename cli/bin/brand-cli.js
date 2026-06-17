@@ -10,6 +10,10 @@ import { emitManifestCommand } from '../src/commands/emit-manifest.js';
 import { importTokensCommand } from '../src/commands/import-tokens.js';
 import { scopeCommand } from '../src/commands/scope.js';
 
+function collectAlsoWrite(value, previous) {
+  return previous.concat([value]);
+}
+
 program
   .name('brand-cli')
   .description('Standalone CLI for the brand-skills toolkit — scaffold .brand/, regenerate root artifacts, score completeness')
@@ -40,9 +44,10 @@ program
 
 program
   .command('refresh-context')
-  .description('Regenerate brand.md (and optionally .impeccable.md) at project root from .brand/')
+  .description('Regenerate brand.md at project root from .brand/, optionally mirroring to additional paths')
   .option('--brand-path <path>', 'Override path to .brand/ directory')
-  .option('--impeccable', 'Also write .impeccable.md (same content as brand.md, Impeccable-conventional filename)')
+  .option('--also-write <path>', 'Mirror brand.md to an additional path (repeatable)', collectAlsoWrite, [])
+  .option('--impeccable', 'Deprecated alias of --also-write .impeccable.md; will be removed in 2.0')
   .option('--json', 'Output results as JSON')
   .action(refreshContextCommand);
 
