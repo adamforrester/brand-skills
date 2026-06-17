@@ -36,21 +36,23 @@ export async function refreshContextCommand(opts) {
 
   const content = generateBrandContext(brandDir, brand);
 
-  // Build the output list: brand.md is always written. Then merge:
+  // Build the output set: brand.md is always written. Then merge:
   //  1. brandrc `outputs: [path, ...]` (relative paths resolved from projectDir)
   //  2. CLI `--also-write <path>` flag (repeatable)
   //  3. `--impeccable` alias (resolves to .impeccable.md + deprecation warning)
-  // Dedup by absolute path so the same path passed twice writes once.
-  const extraOutputs = new Set();
+  // Dedup by absolute path. Seeding the Set with brand.md ensures that an
+  // outputs: [./brand.md] entry (or --also-write brand.md) is silently coalesced
+  // rather than writing the file twice.
+  const outputSet = new Set([resolve(projectDir, 'brand.md')]);
 
   if (Array.isArray(cfg.outputs)) {
     for (const p of cfg.outputs) {
-      if (typeof p === 'string' && p.length > 0) extraOutputs.add(resolve(projectDir, p));
+      if (typeof p === 'string' && p.length > 0) outputSet.add(resolve(projectDir, p));
     }
   }
 
   if (Array.isArray(opts.alsoWrite)) {
-    for (const p of opts.alsoWrite) extraOutputs.add(resolve(projectDir, p));
+    for (const p of opts.alsoWrite) outputSet.add(resolve(projectDir, p));
   }
 
   if (opts.impeccable) {
@@ -58,10 +60,10 @@ export async function refreshContextCommand(opts) {
       'cli.refresh-context.impeccable',
       '--impeccable is deprecated; use --also-write .impeccable.md instead. The alias is read but will be removed in 2.0.'
     );
-    extraOutputs.add(resolve(projectDir, '.impeccable.md'));
+    outputSet.add(resolve(projectDir, '.impeccable.md'));
   }
 
-  const outputs = [join(projectDir, 'brand.md'), ...extraOutputs];
+  const outputs = [...outputSet];
 
   for (const outPath of outputs) {
     writeFileSync(outPath, content, 'utf-8');

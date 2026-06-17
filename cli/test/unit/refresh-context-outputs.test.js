@@ -62,3 +62,18 @@ test('refresh-context: --impeccable writes .impeccable.md (de-XD #6 alias)', () 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('refresh-context: outputs entry pointing at brand.md is deduplicated (de-XD #6 dedup)', () => {
+  // Seeds outputs: [./brand.md] in brandrc plus --also-write brand.md on the command line.
+  // Both should resolve to the mandatory brand.md write target and be silently coalesced.
+  // The CLI must print exactly one "regenerated" line for brand.md, not three.
+  const dir = mkProject('dedup-brand-md', 'brand: ACME\ntier: standard\nmode: standard\noutputs:\n  - ./brand.md\n');
+  try {
+    const output = runRefresh(dir, ['--also-write', 'brand.md']);
+    const matches = output.match(/brand\.md regenerated/g) || [];
+    assert.equal(matches.length, 1, `brand.md should be written exactly once, got ${matches.length} writes:\n${output}`);
+    assert.ok(existsSync(join(dir, 'brand.md')), 'brand.md should be written');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
