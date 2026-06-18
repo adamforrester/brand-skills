@@ -163,8 +163,34 @@ footer p { margin: 0 0 0.5rem; }
 // ---------------------------------------------------------------------------
 
 function buildConflictsBanner(brandDir) {
-  // Stub for Task 4. Returns null in Task 2.
-  return null;
+  const content = readFileSafe(brandDir, 'conflicts.md');
+  if (!content) return null;
+  const count = countActiveConflicts(content);
+  if (count <= 0) return null;
+  const noun = count === 1 ? 'active conflict' : 'active conflicts';
+  return `<p class="banner">⚠ ${count} ${noun} — see <code>conflicts.md</code></p>`;
+}
+
+function countActiveConflicts(conflictsContent) {
+  // Find the H2 "## Active Conflicts" (case-insensitive); count entries until
+  // the next H2 or end of file. An "entry" is any line starting with "### "
+  // (H3) or "- " (top-level bullet). Lines starting with `<!--` (comments)
+  // and blank lines are ignored.
+  const lines = conflictsContent.split('\n');
+  let inSection = false;
+  let count = 0;
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    if (/^##\s+Active Conflicts\b/i.test(line)) {
+      inSection = true;
+      continue;
+    }
+    if (inSection && /^##\s+/.test(line)) break;
+    if (!inSection) continue;
+    if (/^###\s+\S/.test(line)) count++;
+    else if (/^-\s+\S/.test(line) && !line.startsWith('- _')) count++;
+  }
+  return count;
 }
 
 function buildIdentityHeader(brandDir, brand) {
@@ -331,8 +357,57 @@ function filterPopulatedEntries(map) {
 }
 
 function buildVoiceSection(brandDir) {
-  // Stub for Task 4. Returns null (silent skip) in Task 2.
-  return null;
+  const content = readFileSafe(brandDir, 'voice.md');
+  if (!content) return null;
+  const observed = extractObservedVoiceSection(content);
+  if (!observed) return null;
+  const quotes = extractBlockquotes(observed).slice(0, 3);
+  if (quotes.length === 0) return null;
+  return [
+    '<h2>Voice</h2>',
+    quotes.map((q) => `<blockquote>${escapeHtml(q)}</blockquote>`).join('\n'),
+  ].join('\n');
+}
+
+function extractObservedVoiceSection(voiceContent) {
+  // Find the H2 header "## Observed Voice (live channels)" (case-insensitive,
+  // tolerant of trailing punctuation) and return everything until the next H2
+  // or end of file.
+  const lines = voiceContent.split('\n');
+  let inSection = false;
+  const collected = [];
+  for (const line of lines) {
+    if (/^##\s+Observed Voice\b/i.test(line)) {
+      inSection = true;
+      continue;
+    }
+    if (inSection && /^##\s+/.test(line)) break;
+    if (inSection) collected.push(line);
+  }
+  return collected.join('\n').trim();
+}
+
+function extractBlockquotes(sectionContent) {
+  // Markdown blockquotes: lines starting with `>` (one or more, possibly with
+  // a leading space). Adjacent `>` lines are joined with a space; blank lines
+  // delimit separate quotes.
+  const blocks = [];
+  let current = [];
+  for (const rawLine of sectionContent.split('\n')) {
+    const line = rawLine.trimEnd();
+    const m = line.match(/^>\s?(.*)$/);
+    if (m) {
+      current.push(m[1]);
+    } else if (current.length > 0) {
+      blocks.push(current.join(' ').trim());
+      current = [];
+    }
+  }
+  if (current.length > 0) blocks.push(current.join(' ').trim());
+  return blocks
+    .map((b) => b.trim())
+    .filter((b) => b.length > 0)
+    .filter((b) => !/^_.*_$/.test(b));  // skip italic-only stub lines like "_Stub for tests; not extracted._" wrapped in `>`
 }
 
 function buildFooter(now) {

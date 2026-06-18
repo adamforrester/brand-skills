@@ -228,3 +228,132 @@ test('generateStyleGuide: token values cannot inject CSS via semicolons (defense
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('generateStyleGuide: voice section renders pull-quotes from Observed Voice (caps at 3)', () => {
+  const dir = mkBrandDir('voice-populated', {
+    'voice.md': [
+      '# Voice',
+      '',
+      'Acme writes in plain sentences.',
+      '',
+      '## Observed Voice (live channels)',
+      '',
+      '> "The data is what it is. Read it carefully."',
+      '',
+      '> "Numbers do not negotiate."',
+      '',
+      '> "If you must guess, write down what you guessed."',
+      '',
+      '> "A fourth quote that should be capped off."',
+      '',
+    ].join('\n'),
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.match(html, /<h2>Voice<\/h2>/);
+    assert.ok(html.includes('The data is what it is.'), 'expected first quote');
+    assert.ok(html.includes('Numbers do not negotiate.'), 'expected second quote');
+    assert.ok(html.includes('If you must guess'), 'expected third quote');
+    assert.ok(!html.includes('A fourth quote'), 'expected the fourth quote to be capped');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: voice section silently skipped when Observed Voice has no blockquotes', () => {
+  const dir = mkBrandDir('voice-empty', {
+    'voice.md': '# Voice\n\nAcme writes in plain sentences.\n\n## Observed Voice (live channels)\n_Stub for tests; not extracted._\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.ok(!html.includes('<h2>Voice</h2>'), 'expected no Voice section heading when source has no blockquotes');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: conflicts banner renders when conflicts.md has Active Conflicts entries', () => {
+  const dir = mkBrandDir('conflicts-active', {
+    'conflicts.md': [
+      '# Conflicts',
+      '',
+      '## Active Conflicts',
+      '',
+      '### Primary color disagreement',
+      'Brand guide says #007749; Figma says #008542.',
+      '',
+      '### Body font on web vs. print',
+      'Print uses Display family; web uses Body family.',
+      '',
+      '## Intentional Adaptations',
+      '',
+      '### Font substitution on web',
+      'Display font swapped for Body to keep page weight low.',
+      '',
+    ].join('\n'),
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.match(html, /class="banner">⚠ 2 active conflicts — see/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: conflicts banner suppressed when Active Conflicts is empty', () => {
+  const dir = mkBrandDir('conflicts-empty', {
+    'conflicts.md': [
+      '# Conflicts',
+      '',
+      'No active conflicts in this fixture.',
+      '',
+      '## Active Conflicts',
+      '',
+      '_(none)_',
+      '',
+    ].join('\n'),
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.ok(!html.includes('class="banner"'), 'expected no banner when Active Conflicts is empty');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: output is a single self-contained HTML document', () => {
+  const dir = mkBrandDir('single-document', {
+    'tokens/colors.md': '---\ncolors:\n  primary: "#0066ff"\n---\n',
+    'tokens/typography.md': '---\ntypography:\n  body-md:\n    fontSize: 16px\n    fontFamily: Inter\n---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.ok(html.startsWith('<!DOCTYPE html>'), 'expected the document to begin with the doctype');
+    // Exactly one <style> block in <head>.
+    const styleBlockCount = (html.match(/<style[\s>]/g) || []).length;
+    assert.equal(styleBlockCount, 1, 'expected exactly one <style> block');
+    // Zero <script> tags.
+    assert.ok(!/<script[\s>]/.test(html), 'expected no <script> tags');
+    // Zero <link rel="stylesheet">.
+    assert.ok(!/<link\s+[^>]*rel\s*=\s*["']?stylesheet/.test(html), 'expected no <link rel="stylesheet">');
+    // Zero external <script src=...>.
+    assert.ok(!/<script\s+[^>]*src\s*=/.test(html), 'expected no external <script src=>');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: never throws on malformed YAML frontmatter', () => {
+  const dir = mkBrandDir('malformed-yaml', {
+    'tokens/colors.md': '---\ncolors: [[[[[invalid\n---\n',
+    'tokens/typography.md': '---\ntypography: {{{{{invalid\n---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    // Generator does not throw -- both sections fall back to empty-state callouts.
+    assert.match(html, /No colors extracted yet\. Run \/brand-context:extract\./);
+    assert.match(html, /No typography extracted yet\. Run \/brand-context:extract\./);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
