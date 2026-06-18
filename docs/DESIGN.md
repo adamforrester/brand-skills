@@ -158,3 +158,9 @@ These aren't accidents — they're load-bearing. Every new feature should preser
 5. After completion, `.brand/manifest.json` is the machine-readable record the host gates on.
 
 This path is the missing half of the multi-tenant story alongside the manifest+health work (#2, #6) and the MCP-fallback contract (#3).
+
+---
+
+## Visual style guide (`style-guide.html`)
+
+The third generated artifact at project root, alongside `design.md` and `brand.md`. Single self-contained HTML5 file produced by `brand-cli refresh-design`; renders the brand synthesis from `.brand/` for visual scan-ability. Sibling of the existing artifacts; same overwrite-wholesale policy. Aimed at designers, PMs, and stakeholders who'd rather see than read. Spec: [`docs/superpowers/specs/2026-06-18-visual-style-guide-design.md`](superpowers/specs/2026-06-18-visual-style-guide-design.md).

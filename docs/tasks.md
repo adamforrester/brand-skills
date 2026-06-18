@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-17 — De-XD cleanup (Bucket A) ready for merge on `feat/de-xd-cleanup`; closes XD-inventory items #2, #3, #4, #6, #7, #10, #12, #14, #18 and unblocks 1.0 release. 132/132 tests; 16 commits across loader extraction, mode rename, Stage 6 decoupling, --also-write generalization, and schema-doc cleanup. Final move to Completed lands in the post-merge cleanup commit per #4 precedent.
+**Last updated:** 2026-06-18 — Visual style guide (`style-guide.html` synthesis artifact) ready for merge on `feat/visual-style-guide`; full SKILL↔CLI fallback parity, 154/154 tests, 11 commits across the generator, refresh-design wire-up, SKILL Stage 8a inline-fallback prose, and repo docs propagation. Final move to Completed lands in the post-merge cleanup commit per #4 precedent. De-XD cleanup merged to `main` at `167c1f2` (preserved earlier in this entry).
 
 ---
 
@@ -75,16 +75,40 @@ Test count: 108 → 112 (+4). Behavior identical to today when `industry` is uns
 
 Spec: [2026-06-15-industry-signal-design.md](superpowers/specs/2026-06-15-industry-signal-design.md).
 
+### De-XD cleanup (Bucket A — pre-1.0 contract residue) ✅
+**Output:** branch `feat/de-xd-cleanup` merged to `main` via `--no-ff` local merge commit `167c1f2` (no PR — feature branch preserved on origin).
+
+Closes XD-inventory items #2, #3 (partial), #4, #6, #7, #10, #12, #14, #18 and unblocks 1.0 release.
+
+What landed:
+- New `cli/src/utils/brandrc-loader.js` + `deprecations.js`. `loadBrandrc(projectDir)` is the single normalization site; four reading callers (`refresh-context`, `refresh-design`, `score`, `emit-manifest`) consume the normalized `{brand, ...}` shape. `init.js` scaffolds, doesn't read.
+- `client` → `brand` rename across brandrc field, init prompt, `--brand` flag, schema doc, README. `--client` retained as deprecated alias. Manifest schema stays `version: "2"`; brandrc `brand` translates to `manifest.client` at write time ([D0]).
+- `mode: pitch` → `mode: public-sources-only` across SKILL §4f/§5c/§6e/§8f banners and init prompt list. Loader normalizes legacy `mode: pitch` with warn-once.
+- Stage 6 gate decoupled from `tier == comprehensive`; now fires whenever `sources.design_system_repo` is set, regardless of tier. Init-time workflow scaffolding under `tier: comprehensive` unchanged (Bucket C scope).
+- `--impeccable` → `--also-write <path>` (repeatable) + brandrc `outputs: [path]` field; dedup-merged via `Set` seeded with `brand.md`. `--impeccable` retained as deprecated alias. `overview.schema.md` reframes Impeccable as one of many AI-agent context-gathering protocols.
+- Schema-doc cleanup batch: `tools.agent` enum→string with cline/aider/other; `tools.storybook` row dropped; `extensions` row+section dropped; `sources.asset_dir` row added with init `--asset-dir <path>` persistence; SKILL §0b honors override before legacy fallbacks.
+- Soft-deprecation infrastructure: `deprecations.js` warns once per key per process. Seven warn keys: `brandrc.client`, `brandrc.client+brand`, `brandrc.mode.pitch`, `brandrc.extensions`, `init.flag.client`, `init.flag.mode.pitch`, `cli.refresh-context.impeccable`. `tools.storybook` dropped silently.
+
+Test delta: 112 → 132 (+20). +1 deprecations + 9 brandrc-loader + 4 refresh-context-outputs (incl. dedup-coalesce regression) + 6 skill-scope-parity assertions for renamed banners, Stage 6 gating phrase, and asset_dir override.
+
+Spec: [2026-06-16-de-xd-cleanup-design.md](superpowers/specs/2026-06-16-de-xd-cleanup-design.md).
+Plan: [2026-06-16-de-xd-cleanup.md](superpowers/plans/2026-06-16-de-xd-cleanup.md).
+Progress: [2026-06-16-de-xd-cleanup-progress.md](superpowers/plans/2026-06-16-de-xd-cleanup-progress.md).
+
 ---
 
 ## Active backlog
 
-### In flight on branch `feat/de-xd-cleanup`
+### In flight on branch `feat/visual-style-guide`
 
-#### De-XD cleanup (Bucket A — pre-1.0 contract residue)
-**Status:** ready for merge on `feat/de-xd-cleanup`. Plan: [`docs/superpowers/plans/2026-06-16-de-xd-cleanup.md`](superpowers/plans/2026-06-16-de-xd-cleanup.md). Spec: [2026-06-16-de-xd-cleanup-design.md](superpowers/specs/2026-06-16-de-xd-cleanup-design.md).
+#### Visual style guide (`style-guide.html` synthesis artifact)
+**Status:** ready for merge on `feat/visual-style-guide`. Plan: [`docs/superpowers/plans/2026-06-18-visual-style-guide.md`](superpowers/plans/2026-06-18-visual-style-guide.md). Spec: [2026-06-18-visual-style-guide-design.md](superpowers/specs/2026-06-18-visual-style-guide-design.md).
 
-Closes XD-inventory items #2, #3, #4, #6, #7, #10, #12, #14, #18 on land. Unblocks 1.0 release. Final move to Completed lands in the post-merge cleanup commit per #4 precedent.
+New project-root artifact alongside `design.md` and `brand.md`. Single self-contained HTML file rendering the brand synthesis from `.brand/`: identity header, color swatches, type ramp, spacing/surface samples, voice pull-quotes, and an active-conflicts banner. Auto-generated by `brand-cli refresh-design` (no new subcommand, no opt-in flag). Neutral page chrome — brand values appear only in content samples. Long-scroll narrative layout. Empty-state on a fresh init renders the brand name + per-section "not yet extracted" callouts.
+
+Full SKILL↔CLI fallback parity: new `cli/src/utils/style-guide-generator.js` is canonical; SKILL §8a prose mirrors it for the no-CLI path. Generator is pure (no fs writes, no `Date.now()`); timestamp comes from the call site. Test delta: 132 → 154 (+22 — 21 generator unit tests + 1 SKILL parity). Manifest schema unchanged. No new dependencies.
+
+Final move to Completed lands in the post-merge cleanup commit per #4 precedent.
 
 ### Blocked
 
@@ -121,7 +145,7 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 
 **Sequence (recommended) — remaining active backlog only:**
 
-(Active backlog is empty. #1-#7 shipped; #8 closed as won't-do; C9 resolved as a small refactor — see "Won't do" and the C9 row in candidates. Next work picks from remaining candidates; C2 and C8 are most fileable.)
+(Visual style guide is the only active item. After it lands, next work picks from remaining candidates; C2 and C8 are most fileable.)
 
 **Cross-task contracts to preserve:**
 - **#2 ↔ #6 status vocabulary:** must match exactly. `complete | partial | placeholder | missing | defaults`.

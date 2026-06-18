@@ -136,3 +136,24 @@ test('SKILL §0b honors sources.asset_dir override (de-XD #14)', () => {
     'SKILL.md §0b must reference sources.asset_dir as the override path for the asset scan'
   );
 });
+
+test('SKILL Stage 8 documents the style-guide.html inline-fallback (visual-style-guide #1)', () => {
+  // Three load-bearing assertions:
+  //   1. SKILL.md mentions style-guide.html somewhere in Stage 8 prose.
+  //   2. SKILL.md points at the canonical generator file path so the fallback
+  //      author has a reference to mirror.
+  //   3. SKILL.md surfaces the byte-identical parity contract so future drift
+  //      between CLI and SKILL is caught at review time.
+  assert.ok(
+    skill.includes('style-guide.html'),
+    'SKILL.md must reference style-guide.html (Stage 8 inline-fallback)'
+  );
+  assert.ok(
+    skill.includes('cli/src/utils/style-guide-generator.js'),
+    'SKILL.md must point at the canonical generator path so the inline fallback can mirror it'
+  );
+  assert.ok(
+    /byte-identical/i.test(skill),
+    'SKILL.md must surface the byte-identical parity contract for the visual style guide'
+  );
+});
