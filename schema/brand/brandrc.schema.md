@@ -45,6 +45,7 @@ References to source materials for the extraction pipeline. Drives what `/brand-
 | `sources.live_urls` | optional | string[] | Live product URLs for token extraction via Layout CLI |
 | `sources.brand_guide` | optional | string | Path to brand guide PDF (relative to project root) |
 | `sources.screenshots` | optional | string[] | Paths to brand reference screenshots |
+| `sources.asset_dir` | optional | string | Directory scanned for brand assets (PDFs, screenshots, DTCG token files). Defaults to `./assets`. When set, the SKILL's Stage 0 asset scan honors this path before falling back to legacy alternatives. |
 | `sources.design_system_repo` | optional | string | Local path or remote git URL of a design-system repo. When set, Stage 6 of `/brand-context:extract` runs and produces `.brand/components/*.md` regardless of tier. |
 
 ### Outputs (optional)
@@ -57,14 +58,7 @@ References to source materials for the extraction pipeline. Drives what `/brand-
 
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
-| `tools.agent` | optional | enum | Primary agent tool: `claude-code`, `cursor`, `vscode-copilot`, `codex`, `gemini` |
-| `tools.storybook` | optional | boolean | Whether this project uses Storybook |
-
-### Extensions (optional)
-
-| Field | Required | Type | Description |
-|-------|----------|------|-------------|
-| `extensions` | optional | string[] | Active extensions: `ds-pack`, `ux-design-skills` |
+| `tools.agent` | optional | string | Primary agent tool. Free-form. Common values: `claude-code`, `cursor`, `vscode-copilot`, `codex`, `gemini`, `cline`, `aider`, `other`. |
 
 ---
 
@@ -109,10 +103,6 @@ sources:
 
 tools:
   agent: claude-code
-  storybook: true
-
-extensions:
-  - ds-pack
 ```
 
 ---

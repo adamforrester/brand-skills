@@ -128,3 +128,11 @@ test('SKILL Stage 6 gate is decoupled from comprehensive tier (de-XD #3 + #7)', 
     'SKILL.md must not contain any "(comprehensive tier only)" parenthetical — Stage 6 is now gated by sources.design_system_repo, not tier'
   );
 });
+
+test('SKILL §0b honors sources.asset_dir override (de-XD #14)', () => {
+  // The Stage 0b scan must reference sources.asset_dir as the primary scan target.
+  assert.ok(
+    skill.includes('sources.asset_dir'),
+    'SKILL.md §0b must reference sources.asset_dir as the override path for the asset scan'
+  );
+});

@@ -171,8 +171,11 @@ export async function initCommand(opts) {
   console.log(chalk.green('✓ design.md (design.md spec)'));
   results.created.push('design.md');
 
-  // 5. assets/ directory with a brief README so practitioners know where to drop files
-  const assetsDir = join(projectDir, 'assets');
+  // 5. asset directory (default ./assets, override via --asset-dir or sources.asset_dir).
+  // Records the chosen path on .brandrc.yaml's sources.asset_dir so the SKILL's Stage 0
+  // scan honors the override on subsequent runs.
+  const assetDirRel = opts.assetDir || 'assets';
+  const assetsDir = join(projectDir, assetDirRel);
   if (!existsSync(assetsDir)) {
     mkdirSync(assetsDir, { recursive: true });
     writeFileSync(
@@ -180,7 +183,7 @@ export async function initCommand(opts) {
       [
         '# Brand assets',
         '',
-        'Drop client brand assets here — `/brand-context:extract` (in Claude Code) will discover and use them automatically.',
+        'Drop brand assets here — `/brand-context:extract` (in Claude Code) will discover and use them automatically.',
         '',
         '**Supported:**',
         '- `.pdf` — brand guides, style guides, voice docs',
@@ -190,19 +193,24 @@ export async function initCommand(opts) {
         '**Not directly readable** (export to PDF first):',
         '- `.docx` / `.pptx` / `.key` / `.numbers`',
         '',
-        'You don\'t need to edit `.brandrc.yaml` by hand — the skill scans this directory, classifies what it finds, and asks you to confirm before extracting.',
+        "You don't need to edit `.brandrc.yaml` by hand — the skill scans this directory, classifies what it finds, and asks you to confirm before extracting.",
         '',
       ].join('\n'),
       'utf-8'
     );
-    console.log(chalk.green('✓ assets/ (drop brand files here)'));
-    results.created.push('assets/');
+    console.log(chalk.green(`✓ ${assetDirRel}/ (drop brand files here)`));
+    results.created.push(`${assetDirRel}/`);
+  }
+  if (assetDirRel !== 'assets') {
+    // Persist the override into sources.asset_dir so subsequent SKILL runs honor it.
+    brandrc.sources.asset_dir = assetDirRel;
+    writeFileSync(join(projectDir, '.brandrc.yaml'), yamlStringify(brandrc), 'utf-8');
   }
 
   console.log('');
   console.log(chalk.bold('  Next steps'));
   console.log('');
-  console.log(`  1. Drop brand assets (PDFs, screenshots, logos) into ${chalk.cyan('./assets/')}`);
+  console.log(`  1. Drop brand assets (PDFs, screenshots, logos) into ${chalk.cyan(`./${assetDirRel}/`)}`);
   console.log(`  2. In Claude Code, run ${chalk.cyan('/brand-context:extract')} — the skill scans assets, asks for any URLs (website, Figma, social), and runs the pipeline`);
   console.log(`  3. After editing ${chalk.cyan('.brand/')} files manually, re-run ${chalk.cyan('brand-cli refresh-design')} / ${chalk.cyan('brand-cli refresh-context')} to regenerate root artifacts`);
   console.log('');

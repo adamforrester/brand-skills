@@ -64,13 +64,18 @@ Exit 1. **Do not delete the scope file** — the host needs it to fix and retry.
 
 ### 0b. Scan the project for asset files
 
-Look for assets the practitioner may have dropped into the project. Check these directories in order; use whichever exists:
-- `./assets/`
-- `./brand-assets/`
-- `./.brand-assets/`
-- `./inputs/`
-- `./sources/`
-- Project root (loose files only — be selective; ignore obvious code/config/dotfiles)
+Look for assets the practitioner may have dropped into the project. The scan order:
+
+1. **`sources.asset_dir`** from `.brandrc.yaml` if set (e.g. `./brand-inputs/`).
+2. **`./assets/`** — the default scaffold path.
+3. **Legacy fallbacks** — checked only when neither (1) nor (2) yields any assets:
+   - `./brand-assets/`
+   - `./.brand-assets/`
+   - `./inputs/`
+   - `./sources/`
+   - Project root (loose files only — be selective; ignore obvious code/config/dotfiles)
+
+When `sources.asset_dir` is set, prefer it for the "drop your assets here" prompt and any rescan loops. The legacy fallback list is preserved for projects that never ran `brand-cli init` and have assets sitting in older conventional locations.
 
 For each file found, classify by extension:
 - **`.pdf`** → brand guide candidate. Read the **first page** with the `Read` tool (`pages: "1"`) to confirm. Brand-guide covers usually have the brand name + "Brand Guidelines" / "Brand Identity" / "Style Guide". A pitch deck or other PDF will look obviously different — categorize accordingly. Multiple PDFs are fine; pick the one that reads as a brand guide; treat the rest as supporting context (campaign decks, voice docs).
