@@ -174,7 +174,10 @@ export async function initCommand(opts) {
   // 5. asset directory (default ./assets, override via --asset-dir or sources.asset_dir).
   // Records the chosen path on .brandrc.yaml's sources.asset_dir so the SKILL's Stage 0
   // scan honors the override on subsequent runs.
-  const assetDirRel = opts.assetDir || 'assets';
+  // Normalize a leading `./` from --asset-dir input so the path renders cleanly
+  // in the success log + Next steps output (which prepend `./` themselves) and
+  // is persisted to brandrc as a relative path without redundant slashes.
+  const assetDirRel = (opts.assetDir || 'assets').replace(/^\.\//, '');
   const assetsDir = join(projectDir, assetDirRel);
   if (!existsSync(assetsDir)) {
     mkdirSync(assetsDir, { recursive: true });
