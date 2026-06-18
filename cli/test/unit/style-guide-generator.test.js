@@ -198,3 +198,33 @@ test('generateStyleGuide: surfaces section silently skipped when both rounded + 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('generateStyleGuide: token values cannot inject CSS via semicolons (defense in depth)', () => {
+  // The user controls their own .brand/ so this is closer to "shoot own foot"
+  // than a real vulnerability, but escapeHtml does not strip CSS-significant
+  // characters and a token value of "red; background: black" would otherwise
+  // inject a second declaration. Sanitize ;, {, }, <, >, \n, \r before any
+  // value lands inside an inline style attribute.
+  const dir = mkBrandDir('css-injection', {
+    'tokens/colors.md': '---\ncolors:\n  evil: "red; background: black"\n---\n',
+    'tokens/typography.md': '---\ntypography:\n  evil:\n    fontFamily: "Inter; background: black"\n    fontSize: 16px\n    fontWeight: 400\n    lineHeight: 1.5\n---\n',
+    'tokens/surfaces.md': '---\nrounded:\n  evil: "4px; background: black"\nelevation:\n  evil: "0 1px 2px rgba(0,0,0,0.1); background: black"\n---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    // The injected `background: black` declaration must not survive into any
+    // inline style attribute. The substring may appear inside a <span> meta
+    // line (text content) but never inside style="..." -- check both.
+    const styleAttrs = html.match(/style="[^"]*"/g) || [];
+    for (const attr of styleAttrs) {
+      assert.ok(!attr.includes('background: black'),
+        `expected no CSS injection in style attribute: ${attr}`);
+    }
+    // Sanity: the token value, with the injection stripped, still appears
+    // in style attributes (escapeCss removes ; not the value before it).
+    assert.ok(styleAttrs.some((a) => a.includes('background: red')),
+      'expected the sanitized "red" prefix to survive in a style attribute');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

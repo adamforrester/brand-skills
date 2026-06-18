@@ -209,10 +209,10 @@ function buildTypographySection(brandDir) {
     const fontWeight = spec.fontWeight !== undefined ? String(spec.fontWeight) : 'inherit';
     const lineHeight = spec.lineHeight !== undefined ? String(spec.lineHeight) : 'inherit';
     const inlineStyle = [
-      `font-family: ${escapeHtml(fontFamily)}`,
-      `font-size: ${escapeHtml(fontSize)}`,
-      `font-weight: ${escapeHtml(fontWeight)}`,
-      `line-height: ${escapeHtml(lineHeight)}`,
+      `font-family: ${escapeHtml(escapeCss(fontFamily))}`,
+      `font-size: ${escapeHtml(escapeCss(fontSize))}`,
+      `font-weight: ${escapeHtml(escapeCss(fontWeight))}`,
+      `line-height: ${escapeHtml(escapeCss(lineHeight))}`,
     ].join('; ');
     const meta = [
       escapeHtml(name),
@@ -297,7 +297,7 @@ function buildSurfacesSection(brandDir) {
     blocks.push('<div class="surfaces-grid">');
     for (const [name, value] of roundedEntries) {
       blocks.push([
-        '  <div class="surface-sample" style="' + `border-radius: ${escapeHtml(String(value))}` + '">',
+        '  <div class="surface-sample" style="' + `border-radius: ${escapeHtml(escapeCss(value))}` + '">',
         `    <span class="surface-meta">${escapeHtml(name)} · ${escapeHtml(String(value))}</span>`,
         '  </div>',
       ].join('\n'));
@@ -310,7 +310,7 @@ function buildSurfacesSection(brandDir) {
     blocks.push('<div class="surfaces-grid">');
     for (const [name, value] of elevationEntries) {
       const shadow = String(value);
-      const inlineShadow = shadow === 'none' ? 'box-shadow: none' : `box-shadow: ${escapeHtml(shadow)}`;
+      const inlineShadow = shadow === 'none' ? 'box-shadow: none' : `box-shadow: ${escapeHtml(escapeCss(shadow))}`;
       blocks.push([
         `  <div class="surface-sample" style="${inlineShadow}">`,
         `    <span class="surface-meta">${escapeHtml(name)} · ${escapeHtml(shadow)}</span>`,
@@ -371,7 +371,7 @@ function renderColorGroups(colors) {
       `  <div class="swatches">`,
       ...tokens.map((t) => [
         `    <div class="swatch">`,
-        `      <div class="swatch-block" style="background: ${escapeHtml(t.value)}"></div>`,
+        `      <div class="swatch-block" style="background: ${escapeHtml(escapeCss(t.value))}"></div>`,
         `      <span class="swatch-name">${escapeHtml(t.name)}</span>`,
         `      <span class="swatch-value">${escapeHtml(t.value)}</span>`,
         `    </div>`,
@@ -446,6 +446,23 @@ function extractIdentitySubtitle(overviewContent) {
     return stripped.replace(/\n+/g, ' ').trim();
   }
   return '';
+}
+
+/**
+ * Strip characters that have no legitimate place in a CSS literal token
+ * value: `;`, `:`, `{`, `}`, `<`, `>`, and newlines. escapeHtml handles HTML
+ * injection but not CSS injection via semicolons — a token value of
+ * `red; background: black` would inject a second declaration when
+ * concatenated into inline `style="..."`. This sanitizer prevents that.
+ *
+ * Token values are simple CSS literals like `#0066ff`, `16px`, `Inter`,
+ * `0 4px 8px rgba(0,0,0,0.06)`. None of the stripped characters appear
+ * legitimately in those (the colon is the property:value separator, not
+ * part of the value itself).
+ */
+function escapeCss(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/[;:{}<>\n\r]/g, '');
 }
 
 function escapeHtml(input) {
