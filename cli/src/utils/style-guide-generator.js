@@ -194,22 +194,140 @@ function buildColorsSection(brandDir) {
 }
 
 function buildTypographySection(brandDir) {
-  // Stub for Task 3. Returns the empty-state callout in Task 2 so the
-  // section heading is always present.
+  const typography = readFrontmatterKey(brandDir, 'tokens/typography.md', 'typography');
+  if (!typography || Object.keys(typography).length === 0) {
+    return [
+      '<h2>Typography</h2>',
+      '<p class="callout">No typography extracted yet. Run /brand-context:extract.</p>',
+    ].join('\n');
+  }
+  const rows = [];
+  for (const [name, spec] of Object.entries(typography)) {
+    if (!spec || typeof spec !== 'object') continue;
+    const fontFamily = spec.fontFamily ? String(spec.fontFamily) : 'inherit';
+    const fontSize = spec.fontSize ? String(spec.fontSize) : 'inherit';
+    const fontWeight = spec.fontWeight !== undefined ? String(spec.fontWeight) : 'inherit';
+    const lineHeight = spec.lineHeight !== undefined ? String(spec.lineHeight) : 'inherit';
+    const inlineStyle = [
+      `font-family: ${escapeHtml(fontFamily)}`,
+      `font-size: ${escapeHtml(fontSize)}`,
+      `font-weight: ${escapeHtml(fontWeight)}`,
+      `line-height: ${escapeHtml(lineHeight)}`,
+    ].join('; ');
+    const meta = [
+      escapeHtml(name),
+      `${escapeHtml(fontSize)} / ${escapeHtml(fontWeight)}`,
+      escapeHtml(fontFamily),
+    ].join(' · ');
+    rows.push([
+      '  <div class="type-row">',
+      `    <span style="${inlineStyle}">The quick brown fox jumps over the lazy dog.</span>`,
+      `    <span class="type-row-meta">${meta}</span>`,
+      '  </div>',
+    ].join('\n'));
+  }
+  if (rows.length === 0) {
+    return [
+      '<h2>Typography</h2>',
+      '<p class="callout">No typography extracted yet. Run /brand-context:extract.</p>',
+    ].join('\n');
+  }
   return [
     '<h2>Typography</h2>',
-    '<p class="callout">No typography extracted yet. Run /brand-context:extract.</p>',
+    '<div class="type-ramp">',
+    rows.join('\n'),
+    '</div>',
   ].join('\n');
 }
 
 function buildSpacingSection(brandDir) {
-  // Stub for Task 3. Returns null (silent skip) in Task 2.
+  const spacing = readFrontmatterKey(brandDir, 'tokens/spacing.md', 'spacing');
+  if (!spacing || Object.keys(spacing).length === 0) return null;
+  const entries = Object.entries(spacing).filter(
+    ([, value]) => value !== null && value !== undefined && value !== ''
+  );
+  if (entries.length === 0) return null;
+
+  const maxBarPx = 400;
+  const widthForValue = (rawValue) => {
+    const px = parsePxLike(String(rawValue));
+    if (px === null) return null;
+    return Math.min(px, maxBarPx);
+  };
+
+  const rows = entries.map(([name, value]) => {
+    const width = widthForValue(value);
+    const barStyle = width !== null ? `width: ${width}px` : 'width: 16px; opacity: 0.3';
+    return [
+      '  <div class="spacing-row">',
+      `    <div class="spacing-bar" style="${barStyle}"></div>`,
+      `    <span class="spacing-meta">${escapeHtml(name)} · ${escapeHtml(String(value))}</span>`,
+      '  </div>',
+    ].join('\n');
+  });
+  return [
+    '<h2>Spacing</h2>',
+    rows.join('\n'),
+  ].join('\n');
+}
+
+function parsePxLike(value) {
+  // Accepts "16px", "1rem" (treated as 16px base), "16", or returns null.
+  const trimmed = value.trim();
+  const pxMatch = trimmed.match(/^(\d+(?:\.\d+)?)px$/i);
+  if (pxMatch) return Number(pxMatch[1]);
+  const remMatch = trimmed.match(/^(\d+(?:\.\d+)?)rem$/i);
+  if (remMatch) return Number(remMatch[1]) * 16;
+  const bareMatch = trimmed.match(/^(\d+(?:\.\d+)?)$/);
+  if (bareMatch) return Number(bareMatch[1]);
   return null;
 }
 
 function buildSurfacesSection(brandDir) {
-  // Stub for Task 3. Returns null (silent skip) in Task 2.
-  return null;
+  const rounded = readFrontmatterKey(brandDir, 'tokens/surfaces.md', 'rounded');
+  const elevation = readFrontmatterKey(brandDir, 'tokens/surfaces.md', 'elevation');
+  const roundedEntries = filterPopulatedEntries(rounded);
+  const elevationEntries = filterPopulatedEntries(elevation);
+  if (roundedEntries.length === 0 && elevationEntries.length === 0) return null;
+
+  const blocks = ['<h2>Surfaces</h2>'];
+
+  if (roundedEntries.length > 0) {
+    blocks.push('<p class="swatch-group-name">Rounded</p>');
+    blocks.push('<div class="surfaces-grid">');
+    for (const [name, value] of roundedEntries) {
+      blocks.push([
+        '  <div class="surface-sample" style="' + `border-radius: ${escapeHtml(String(value))}` + '">',
+        `    <span class="surface-meta">${escapeHtml(name)} · ${escapeHtml(String(value))}</span>`,
+        '  </div>',
+      ].join('\n'));
+    }
+    blocks.push('</div>');
+  }
+
+  if (elevationEntries.length > 0) {
+    blocks.push('<p class="swatch-group-name">Elevation</p>');
+    blocks.push('<div class="surfaces-grid">');
+    for (const [name, value] of elevationEntries) {
+      const shadow = String(value);
+      const inlineShadow = shadow === 'none' ? 'box-shadow: none' : `box-shadow: ${escapeHtml(shadow)}`;
+      blocks.push([
+        `  <div class="surface-sample" style="${inlineShadow}">`,
+        `    <span class="surface-meta">${escapeHtml(name)} · ${escapeHtml(shadow)}</span>`,
+        '  </div>',
+      ].join('\n'));
+    }
+    blocks.push('</div>');
+  }
+
+  return blocks.join('\n');
+}
+
+function filterPopulatedEntries(map) {
+  if (!map || typeof map !== 'object') return [];
+  return Object.entries(map).filter(
+    ([, value]) => value !== null && value !== undefined && value !== ''
+  );
 }
 
 function buildVoiceSection(brandDir) {

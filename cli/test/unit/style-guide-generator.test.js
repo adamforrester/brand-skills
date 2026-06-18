@@ -106,3 +106,95 @@ test('generateStyleGuide: brand name is HTML-escaped to prevent injection', () =
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('generateStyleGuide: typography section renders empty-state callout when frontmatter is empty', () => {
+  const dir = mkBrandDir('type-empty', {
+    'tokens/typography.md': '---\ntypography:\n  # body-md:\n  #   fontFamily: Inter\n---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.match(html, /<h2>Typography<\/h2>/);
+    assert.match(html, /No typography extracted yet\. Run \/brand-context:extract\./);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: typography section renders type ramp with inline font CSS when populated', () => {
+  const dir = mkBrandDir('type-populated', {
+    'tokens/typography.md': '---\ntypography:\n  body-md:\n    fontFamily: Inter\n    fontSize: 16px\n    fontWeight: 400\n    lineHeight: 1.6\n  display-lg:\n    fontFamily: Inter\n    fontSize: 64px\n    fontWeight: 700\n    lineHeight: 1.1\n---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.match(html, /<h2>Typography<\/h2>/);
+    assert.ok(html.includes('font-size: 16px'), 'expected body-md font-size in output');
+    assert.ok(html.includes('font-size: 64px'), 'expected display-lg font-size in output');
+    assert.ok(html.includes('font-family: Inter'), 'expected font-family applied inline');
+    assert.ok(html.includes('font-weight: 400'), 'expected body-md font-weight applied inline');
+    assert.ok(html.includes('The quick brown fox jumps over the lazy dog.'), 'expected the sample text');
+    // Token names should appear in the meta line.
+    assert.ok(html.includes('body-md'), 'expected body-md token name');
+    assert.ok(html.includes('display-lg'), 'expected display-lg token name');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: spacing section silently skipped when frontmatter is empty', () => {
+  const dir = mkBrandDir('spacing-empty', {
+    'tokens/spacing.md': '---\nspacing:\n  # base: 16px\n  # xs: 4px\n---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.ok(!html.includes('<h2>Spacing</h2>'), 'expected no Spacing section heading when source data is empty');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: spacing section renders bars when populated', () => {
+  const dir = mkBrandDir('spacing-populated', {
+    'tokens/spacing.md': '---\nspacing:\n  base: 16px\n  xs: 4px\n  sm: 8px\n  md: 16px\n  lg: 32px\n---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.match(html, /<h2>Spacing<\/h2>/);
+    // Each token name should appear.
+    for (const name of ['base', 'xs', 'sm', 'md', 'lg']) {
+      assert.ok(html.includes(name), `expected spacing token "${name}" in output`);
+    }
+    // Bar widths should reflect parsed px values.
+    assert.ok(html.includes('width: 16px'), 'expected base bar width to be 16px');
+    assert.ok(html.includes('width: 32px'), 'expected lg bar width to be 32px');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: surfaces section renders rounded + elevation when populated', () => {
+  const dir = mkBrandDir('surfaces-populated', {
+    'tokens/surfaces.md': '---\nrounded:\n  sm: 4px\n  md: 8px\nelevation:\n  flat: none\n  md: "0 4px 8px rgba(0,0,0,0.06)"\n---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.match(html, /<h2>Surfaces<\/h2>/);
+    assert.ok(html.includes('border-radius: 4px'), 'expected rounded.sm radius applied inline');
+    assert.ok(html.includes('border-radius: 8px'), 'expected rounded.md radius applied inline');
+    assert.ok(html.includes('box-shadow: 0 4px 8px rgba(0,0,0,0.06)'), 'expected elevation.md shadow applied inline');
+    assert.ok(html.includes('box-shadow: none'), 'expected elevation.flat shadow as none');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateStyleGuide: surfaces section silently skipped when both rounded + elevation are empty', () => {
+  const dir = mkBrandDir('surfaces-empty', {
+    'tokens/surfaces.md': '---\nrounded:\n  # sm: 4px\nelevation:\n  # flat: none\n---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.ok(!html.includes('<h2>Surfaces</h2>'), 'expected no Surfaces heading when source data is empty');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
