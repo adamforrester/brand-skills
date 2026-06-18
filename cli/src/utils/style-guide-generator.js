@@ -181,7 +181,7 @@ function countActiveConflicts(conflictsContent) {
   let count = 0;
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
-    if (/^##\s+Active Conflicts\b/i.test(line)) {
+    if (/^##\s+Active Conflicts\s*$/i.test(line)) {
       inSection = true;
       continue;
     }

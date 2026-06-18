@@ -357,3 +357,32 @@ test('generateStyleGuide: never throws on malformed YAML frontmatter', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('generateStyleGuide: conflicts banner does NOT count entries from "## Active Conflicts (archived)" or similar parenthetical headings', () => {
+  // The Active-Conflicts H2 must match exactly. A user who archives old
+  // conflicts under "## Active Conflicts (archived)" should see only the
+  // current section feeding the banner count.
+  const dir = mkBrandDir('conflicts-archived', {
+    'conflicts.md': [
+      '# Conflicts',
+      '',
+      '## Active Conflicts (archived)',
+      '',
+      '### Old conflict A',
+      '',
+      '### Old conflict B',
+      '',
+      '## Active Conflicts',
+      '',
+      '### Current conflict',
+      '',
+    ].join('\n'),
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    assert.match(html, /1 active conflict\b/);
+    assert.ok(!/3 active conflict/.test(html), 'expected archived entries to be excluded from the banner count');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
