@@ -2,10 +2,10 @@
 
 Companion to [`2026-06-16-de-xd-cleanup.md`](2026-06-16-de-xd-cleanup.md) (the implementation plan — **not yet written**, see "Resume from here" below).
 
-**Status:** brainstorm complete; spec committed; **plan-writing was interrupted by API errors mid-session and needs to be resumed in a fresh session.**
+**Status:** ready for merge into `main`.
 **Branch:** `feat/de-xd-cleanup`
 **Branch base:** `main` at commit `6b87652` (post-C9-merge tip).
-**Branch tip at handoff:** `25e3300` (spec commit).
+**Branch tip at handoff:** `0bfcf85` (docs propagation commit, 17 commits total).
 **Spec:** [`../specs/2026-06-16-de-xd-cleanup-design.md`](../specs/2026-06-16-de-xd-cleanup-design.md)
 **Precedent (D-letter pattern reference):** [`2026-06-15-industry-signal-progress.md`](2026-06-15-industry-signal-progress.md)
 
@@ -15,22 +15,35 @@ Companion to [`2026-06-16-de-xd-cleanup.md`](2026-06-16-de-xd-cleanup.md) (the i
 
 ```
 $ git log --oneline main..HEAD
+0bfcf85 docs: propagate de-XD renames to README, inventory, tasks.md
+b160d94 fix(init): strip leading ./ from --asset-dir input
+458cca8 schema: cleanup batch + sources.asset_dir configurable
+402494d fix(refresh-context): seed dedup Set with brand.md to coalesce duplicates
+9647fc1 feat(refresh-context): generalize --impeccable to --also-write + outputs
+396f200 docs(readme): align Stage 6 tier-gate prose with SKILL decoupling
+a2a52f9 fix(skill): catch top-level "comprehensive tier only" pipeline bullet
+2c33ed4 skill(stage-6): decouple DS-repo scan from comprehensive tier
+469d961 fix(skill): rename §4f pitch-mode prose to public-sources-only
+b3bc68c refactor(mode): rename pitch -> public-sources-only
+c6f56bf fix(brandrc-loader): treat empty-string `brand` as unset
+5b333fc refactor(brandrc): extract loader + rename client -> brand
+1296c3c docs: baseline 112 tests at de-XD cleanup HEAD
 e916917 docs: implementation plan for de-XD cleanup
 039b695 docs: progress doc shell for de-XD cleanup + tasks.md state
 25e3300 docs: spec for de-XD cleanup (Bucket A — pre-1.0 contract residue)
 
 $ npm test 2>&1 | tail -5
-# pass 112
+# pass 132
 # fail 0
 ```
 
-Baseline locked: 112 tests at HEAD `e916917`. New tests by task tracked below.
+Baseline locked: 112 tests at HEAD `e916917`. Final state: 132 tests (+20) at HEAD `0bfcf85`.
 
 ---
 
-## Resume from here (read first when picking back up)
+## Brainstorm decisions (locked during planning phase)
 
-The session that produced the spec hit recurring API errors during plan-writing — only in this project's chat, not user's other sessions. To get unblocked the user is restarting; this doc captures all decisions made so the next session doesn't re-litigate any of them.
+The session that produced the spec hit recurring API errors during plan-writing — only in this project's chat, not user's other sessions. To get unblocked the user restarted; this doc captured all decisions made so the implementation session didn't re-litigate any of them. All decisions below were preserved through implementation.
 
 **What's already locked (do NOT re-brainstorm):**
 
@@ -151,6 +164,62 @@ No open questions remain. Plan-write can proceed without further user input.
 
 ---
 
-## Final-stage handoff (after plan execution lands — placeholder until then)
+## Final-stage handoff
 
-Will be populated when all 7 tasks merge. Mirror format used by the #5 progress doc.
+**Branch:** `feat/de-xd-cleanup` ready for merge.
+**Commits:** 17 commits ahead of `main` (1 spec + 1 plan + 1 progress-doc shell + 1 baseline + 12 task implementation/refinement commits + 1 docs-propagation commit).
+**Test delta:** 112 → 132 (+20).
+**Closes:** XD-inventory items #2, #3 (partial), #4, #6, #7, #10, #12, #14, #18.
+
+### Commits in landing order
+
+```
+0bfcf85 docs: propagate de-XD renames to README, inventory, tasks.md
+b160d94 fix(init): strip leading ./ from --asset-dir input
+458cca8 schema: cleanup batch + sources.asset_dir configurable
+402494d fix(refresh-context): seed dedup Set with brand.md to coalesce duplicates
+9647fc1 feat(refresh-context): generalize --impeccable to --also-write + outputs
+396f200 docs(readme): align Stage 6 tier-gate prose with SKILL decoupling
+a2a52f9 fix(skill): catch top-level "comprehensive tier only" pipeline bullet
+2c33ed4 skill(stage-6): decouple DS-repo scan from comprehensive tier
+469d961 fix(skill): rename §4f pitch-mode prose to public-sources-only
+b3bc68c refactor(mode): rename pitch -> public-sources-only
+c6f56bf fix(brandrc-loader): treat empty-string `brand` as unset
+5b333fc refactor(brandrc): extract loader + rename client -> brand
+1296c3c docs: baseline 112 tests at de-XD cleanup HEAD
+e916917 docs: implementation plan for de-XD cleanup
+039b695 docs: progress doc shell for de-XD cleanup + tasks.md state
+25e3300 docs: spec for de-XD cleanup (Bucket A — pre-1.0 contract residue)
+```
+
+(Plus this commit = 17 total.)
+
+### What shipped (by task)
+
+- **Task 1 (1296c3c)** — baseline: 112/112 tests at `e916917`.
+- **Task 2 (5b333fc + c6f56bf)** — `brandrc-loader.js` extraction + `client` → `brand` rename + `deprecations.js` warn-once helper + empty-`brand` edge-case fix. +9 tests.
+- **Task 3 (b3bc68c + 469d961)** — `mode: pitch` → `public-sources-only` across init prompt, SKILL §4f/§5c/§6e/§8f, +4 parity tests.
+- **Task 4 (2c33ed4 + a2a52f9 + 396f200)** — Stage 6 gate decoupled from `tier == comprehensive` (now gated on `sources.design_system_repo`). README pipeline table updated. +1 parity test.
+- **Task 5 (9647fc1 + 402494d)** — `--impeccable` → `--also-write <path>` (repeatable) + `outputs:` brandrc field; deduped via `Set` seeded with `brand.md` (regression test pins this). +4 tests.
+- **Task 6 (458cca8 + b160d94)** — schema-doc cleanup (`tools.agent` enum→string, drop `extensions` + `tools.storybook`, add `sources.asset_dir`) + `--asset-dir` flag + leading-`./` normalization. +1 parity test.
+- **Task 7 (0bfcf85)** — README quick-start + Impeccable interop reframe; xd-assumption-inventory close-out lines; tasks.md ready-for-merge state. +0 tests (docs only).
+
+### Cross-branch contracts preserved
+
+- Manifest schema stays `version: "2"` ([D0]). `brandrc.brand` translates to `manifest.client` at write time.
+- Scope schema (`schema/brand/scope.schema.json`) untouched.
+- MCP fallback contract untouched.
+- Goldens at `cli/test/golden/manifest-from-{populated,skill}.json:216` still show `"client": "acme"` (manifest-side artifact field name preserved).
+- `package.json` version still `0.4.0` — release commit (v0.5.0) lands separately post-merge.
+
+### Decisions made during implementation (D-letter pattern)
+
+- **[D0–D3]** Locked in the brainstorm phase, captured in the progress-doc "Resume from here" section. All preserved through implementation.
+- **[D4] Refinement subagent dispatch on Critical/Important findings.** Tasks 2, 3, 4, 5, 6 each had at least one refinement commit catching either a missed file (Task 3 §4f, Task 4 line 13 + README) or an edge-case bug (Task 2 empty-string `brand`, Task 5 dedup-bug, Task 6 path normalization). The two-stage review caught all of them.
+
+### Next branch / next session
+
+- v0.5.0 release commit on a separate branch: bump `package.json`, `marketplace.json` (×2 fields), `cli/bin/brand-cli.js`, plus update both manifest goldens' `generator` field. CLAUDE.md "Versioning + release" section has the canonical list of places.
+- 1.0 milestone planning: npm publish + first real-install validation walk + C2 (`brand-cli doctor`).
+- Bucket B (prose-only de-XD): README quick-start, Wendy's example pass, "personal GitHub" reword, Layout CLI clarification, conflicts hierarchy rewording. Independent branch.
+- Bucket C (post-1.0): architectural rethink of `comprehensive` tier; "practitioner" → "you" prose pass; 50-component cap docs; `figma_variable_collections` clarification.
