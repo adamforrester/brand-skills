@@ -12,7 +12,7 @@
     "generated_at": { "type": "string", "format": "date-time" },
     "generator": { "type": "string", "pattern": "^(brand-cli|brand-extract-skill)@\\S+$" },
     "tier": { "enum": ["minimum", "standard", "comprehensive"] },
-    "client": { "type": "string" },
+    "client": { "type": "string", "description": "Brand name as recorded in the manifest. Sourced from .brandrc.yaml `brand` (or its deprecated alias `client`). The field name on the manifest is preserved as `client` for back-compat with v2 manifest consumers." },
     "files": {
       "type": "object",
       "additionalProperties": {

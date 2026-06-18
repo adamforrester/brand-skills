@@ -67,3 +67,72 @@ test('SKILL prose explains the soft-prior tie-breaker rule (#5)', () => {
     'SKILL.md must explicitly state the prior may not lower thresholds or invent claims'
   );
 });
+
+test('SKILL prose uses PUBLIC-SOURCES-ONLY MODE banner (de-XD #4)', () => {
+  // The disclaimer banner reads PUBLIC-SOURCES-ONLY MODE in three places (sections 5c, 6e, 8f).
+  // Drift here would mean the SKILL silently reverted to the agency-pitch label.
+  assert.ok(
+    skill.includes('PUBLIC-SOURCES-ONLY MODE'),
+    'SKILL.md must use the PUBLIC-SOURCES-ONLY MODE banner (renamed from PITCH MODE in de-XD cleanup)'
+  );
+});
+
+test('SKILL prose does not contain legacy PITCH MODE banner (de-XD #4)', () => {
+  // The bare "PITCH MODE" banner (case-sensitive) should be absent — the alias note
+  // mentioning `mode: pitch` is fine, but the banner shouldn't appear.
+  assert.ok(
+    !skill.includes('PITCH MODE'),
+    'SKILL.md must not contain the legacy PITCH MODE banner; rename to PUBLIC-SOURCES-ONLY MODE'
+  );
+});
+
+test('SKILL prose mentions public-sources-only mode value by name (de-XD #4)', () => {
+  assert.ok(
+    skill.includes('public-sources-only'),
+    'SKILL.md must reference the new mode value `public-sources-only` so prose drift is caught early'
+  );
+});
+
+test('SKILL prose has no stale "Pitch mode" headings or prose blocks (de-XD #4)', () => {
+  // Catches title-case "Pitch mode" prose that the all-caps PITCH MODE check misses.
+  // Pattern matches `**Pitch mode**` (bold) and `Pitch mode` (heading-style) but NOT
+  // the lowercase `mode: pitch` token, which is preserved as a deprecated alias mention.
+  const stalePitchHeading = /\*\*Pitch mode\*\*|^### \d[a-z]?\. Pitch mode/m;
+  assert.ok(
+    !stalePitchHeading.test(skill),
+    'SKILL.md must not contain "**Pitch mode**" or "### Nx. Pitch mode" — rename to Public-sources-only mode'
+  );
+});
+
+test('SKILL Stage 6 gate is decoupled from comprehensive tier (de-XD #3 + #7)', () => {
+  // The Stage 6 header should say "(any tier)" — this is the post-decoupling marker.
+  // The legacy phrase "(comprehensive tier only)" must be absent from the Stage 6 header.
+  assert.ok(
+    /Stage 6 — Design-system repo scan \(any tier\)/.test(skill),
+    'SKILL.md Stage 6 header must read "(any tier)" — the gate is now sources.design_system_repo, not tier'
+  );
+  assert.ok(
+    !/Stage 6 — Design-system repo scan \(comprehensive tier only\)/.test(skill),
+    'SKILL.md must not retain the legacy "(comprehensive tier only)" Stage 6 header'
+  );
+  // The §0d list must not require comprehensive tier for the DS-repo question.
+  assert.ok(
+    !/Design-system repo.*tier == comprehensive/.test(skill),
+    'SKILL.md §0d must not gate the design-system repo question on tier == comprehensive'
+  );
+  // Catch any other "(comprehensive tier only)" parenthetical anywhere in the SKILL —
+  // the Stage 6 header is one place; the top-level pipeline-output list bullet is another.
+  // Both must say "any tier" or similar to reflect the decoupling.
+  assert.ok(
+    !/\(comprehensive tier only\)/.test(skill),
+    'SKILL.md must not contain any "(comprehensive tier only)" parenthetical — Stage 6 is now gated by sources.design_system_repo, not tier'
+  );
+});
+
+test('SKILL §0b honors sources.asset_dir override (de-XD #14)', () => {
+  // The Stage 0b scan must reference sources.asset_dir as the primary scan target.
+  assert.ok(
+    skill.includes('sources.asset_dir'),
+    'SKILL.md §0b must reference sources.asset_dir as the override path for the asset scan'
+  );
+});

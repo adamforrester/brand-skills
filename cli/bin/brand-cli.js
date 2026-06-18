@@ -10,6 +10,10 @@ import { emitManifestCommand } from '../src/commands/emit-manifest.js';
 import { importTokensCommand } from '../src/commands/import-tokens.js';
 import { scopeCommand } from '../src/commands/scope.js';
 
+function collectAlsoWrite(value, previous) {
+  return previous.concat([value]);
+}
+
 program
   .name('brand-cli')
   .description('Standalone CLI for the brand-skills toolkit — scaffold .brand/, regenerate root artifacts, score completeness')
@@ -23,9 +27,11 @@ program
 
 program
   .command('init')
-  .description('Scaffold a new client project: .brand/, .brandrc.yaml, brand.md, design.md')
-  .option('--client <name>', 'Client name (non-interactive when set)')
-  .option('--mode <mode>', 'standard | pitch | comprehensive', 'standard')
+  .description('Scaffold a new project: .brand/, .brandrc.yaml, brand.md, design.md')
+  .option('--brand <name>', 'Brand name (non-interactive when set)')
+  .option('--client <name>', 'Deprecated alias of --brand; will be removed in 2.0')
+  .option('--asset-dir <path>', 'Directory to create for brand assets (default: ./assets)')
+  .option('--mode <mode>', 'standard | public-sources-only | comprehensive (pitch is a deprecated alias of public-sources-only)', 'standard')
   .option('--force', 'Overwrite existing .brand/, brand.md, design.md without prompting')
   .option('--json', 'Output results as JSON')
   .action(initCommand);
@@ -39,9 +45,10 @@ program
 
 program
   .command('refresh-context')
-  .description('Regenerate brand.md (and optionally .impeccable.md) at project root from .brand/')
+  .description('Regenerate brand.md at project root from .brand/, optionally mirroring to additional paths')
   .option('--brand-path <path>', 'Override path to .brand/ directory')
-  .option('--impeccable', 'Also write .impeccable.md (same content as brand.md, Impeccable-conventional filename)')
+  .option('--also-write <path>', 'Mirror brand.md to an additional path (repeatable)', collectAlsoWrite, [])
+  .option('--impeccable', 'Deprecated alias of --also-write .impeccable.md; will be removed in 2.0')
   .option('--json', 'Output results as JSON')
   .action(refreshContextCommand);
 

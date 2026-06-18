@@ -1,11 +1,12 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { stringify as yamlStringify } from 'yaml';
 import { generateDesignMd } from '../utils/design-md-generator.js';
 import { generateBrandContext } from '../utils/brand-context-generator.js';
+import { warnDeprecated } from '../utils/deprecations.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SCHEMA_DIR = resolve(__dirname, '../../../schema/brand');
@@ -39,13 +40,14 @@ const BRAND_FILES = {
 };
 
 const TIER_FOR_MODE = {
-  pitch: 'minimum',
+  'public-sources-only': 'minimum',
+  pitch: 'minimum', // deprecated alias; loader normalizes but init's --mode also accepts
   standard: 'standard',
   comprehensive: 'comprehensive',
 };
 
-const PITCH_DISCLAIMER =
-  '> ⚠️ **PITCH MODE** — derived from public sources only. Not validated against internal brand standards.\n\n';
+const PUBLIC_SOURCES_ONLY_DISCLAIMER =
+  '> ⚠️ **PUBLIC-SOURCES-ONLY MODE** — derived from public sources only. Not validated against internal brand standards.\n\n';
 
 const TOKEN_FRONTMATTER = {
   'tokens/colors.md': `---\ncolors:\n  # primary: "#000000"\n  # neutral: "#FFFFFF"\n  # error: "#D32F2F"\n---\n\n`,
@@ -55,7 +57,7 @@ const TOKEN_FRONTMATTER = {
 };
 
 export async function initCommand(opts) {
-  const results = { created: [], tier: '', mode: '', client: '' };
+  const results = { created: [], tier: '', mode: '', brand: '' };
   const projectDir = process.cwd();
 
   console.log('');
@@ -63,17 +65,38 @@ export async function initCommand(opts) {
   console.log('');
 
   const answers = {};
-  if (opts.client) {
-    answers.client = opts.client;
+  const dirnameDefault = basename(projectDir) || 'Brand';
+  if (opts.brand) {
+    answers.brand = opts.brand;
+  } else if (opts.client) {
+    warnDeprecated(
+      'init.flag.client',
+      '--client is deprecated; use --brand instead. The alias is read but will be removed in 2.0.'
+    );
+    answers.brand = opts.client;
   } else {
-    const { client } = await inquirer.prompt([
-      { type: 'input', name: 'client', message: 'Client name:', validate: v => v.trim().length > 0 || 'Required' },
+    const { brand } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'brand',
+        message: 'Brand name:',
+        default: dirnameDefault,
+        validate: v => v.trim().length > 0 || 'Required',
+      },
     ]);
-    answers.client = client.trim();
+    answers.brand = brand.trim();
   }
 
-  if (opts.mode && ['standard', 'pitch', 'comprehensive'].includes(opts.mode)) {
-    answers.mode = opts.mode;
+  if (opts.mode && ['standard', 'public-sources-only', 'pitch', 'comprehensive'].includes(opts.mode)) {
+    if (opts.mode === 'pitch') {
+      warnDeprecated(
+        'init.flag.mode.pitch',
+        '--mode pitch is deprecated; use --mode public-sources-only instead. The alias is read but will be removed in 2.0.'
+      );
+      answers.mode = 'public-sources-only';
+    } else {
+      answers.mode = opts.mode;
+    }
   } else if (!opts.mode || opts.mode === 'standard') {
     const { mode } = await inquirer.prompt([
       {
@@ -81,9 +104,9 @@ export async function initCommand(opts) {
         name: 'mode',
         message: 'Project mode:',
         choices: [
-          { name: `standard      ${chalk.dim('— You have brand assets: style guide, Figma, live site')}`, value: 'standard' },
-          { name: `pitch         ${chalk.dim('— Public sources only: website, social, no internal access')}`, value: 'pitch' },
-          { name: `comprehensive ${chalk.dim('— Full access plus institutional knowledge capture')}`, value: 'comprehensive' },
+          { name: `standard             ${chalk.dim('— You have brand assets: style guide, Figma, live site')}`, value: 'standard' },
+          { name: `public-sources-only  ${chalk.dim('— Public sources only: website, social, no internal access')}`, value: 'public-sources-only' },
+          { name: `comprehensive        ${chalk.dim('— Full access plus institutional knowledge capture')}`, value: 'comprehensive' },
         ],
         default: 'standard',
       },
@@ -96,7 +119,7 @@ export async function initCommand(opts) {
   const tier = TIER_FOR_MODE[answers.mode];
   results.tier = tier;
   results.mode = answers.mode;
-  results.client = answers.client;
+  results.brand = answers.brand;
 
   // Detect existing files
   const existing = ['.brand', '.brandrc.yaml', 'brand.md', 'design.md'].filter(f => existsSync(join(projectDir, f)));
@@ -104,7 +127,7 @@ export async function initCommand(opts) {
     console.log(chalk.yellow('  Existing files detected:'));
     for (const f of existing) console.log(chalk.yellow(`    - ${f}`));
     console.log('');
-    if (opts.client) {
+    if (opts.brand || opts.client) {
       console.log(chalk.red('  Aborting: existing files would be overwritten.'));
       console.log(chalk.dim('  Re-run with --force to overwrite, or run from an empty directory.'));
       process.exit(1);
@@ -118,18 +141,18 @@ export async function initCommand(opts) {
     }
   }
 
-  console.log(chalk.bold(`  Scaffolding ${answers.client} (${answers.mode} mode)`));
+  console.log(chalk.bold(`  Scaffolding ${answers.brand} (${answers.mode} mode)`));
   console.log('');
 
   // 1. .brand/ directory
   const brandDir = join(projectDir, '.brand');
-  scaffoldBrandDirectory(brandDir, tier, answers.mode === 'pitch');
+  scaffoldBrandDirectory(brandDir, tier, answers.mode === 'public-sources-only');
   results.created.push('.brand/');
   console.log(chalk.green(`✓ .brand/ (${tier} tier)`));
 
   // 2. .brandrc.yaml
   const brandrc = {
-    client: answers.client,
+    brand: answers.brand,
     tier,
     mode: answers.mode,
     sources: {},
@@ -139,17 +162,23 @@ export async function initCommand(opts) {
   results.created.push('.brandrc.yaml');
 
   // 3. brand.md (project-root context, generated from .brand/ — placeholder shape)
-  writeFileSync(join(projectDir, 'brand.md'), generateBrandContext(brandDir, answers.client), 'utf-8');
+  writeFileSync(join(projectDir, 'brand.md'), generateBrandContext(brandDir, answers.brand), 'utf-8');
   console.log(chalk.green('✓ brand.md'));
   results.created.push('brand.md');
 
   // 4. design.md (spec-compliant, generated from .brand/)
-  writeFileSync(join(projectDir, 'design.md'), generateDesignMd(brandDir, answers.client), 'utf-8');
+  writeFileSync(join(projectDir, 'design.md'), generateDesignMd(brandDir, answers.brand), 'utf-8');
   console.log(chalk.green('✓ design.md (design.md spec)'));
   results.created.push('design.md');
 
-  // 5. assets/ directory with a brief README so practitioners know where to drop files
-  const assetsDir = join(projectDir, 'assets');
+  // 5. asset directory (default ./assets, override via --asset-dir or sources.asset_dir).
+  // Records the chosen path on .brandrc.yaml's sources.asset_dir so the SKILL's Stage 0
+  // scan honors the override on subsequent runs.
+  // Normalize a leading `./` from --asset-dir input so the path renders cleanly
+  // in the success log + Next steps output (which prepend `./` themselves) and
+  // is persisted to brandrc as a relative path without redundant slashes.
+  const assetDirRel = (opts.assetDir || 'assets').replace(/^\.\//, '');
+  const assetsDir = join(projectDir, assetDirRel);
   if (!existsSync(assetsDir)) {
     mkdirSync(assetsDir, { recursive: true });
     writeFileSync(
@@ -157,7 +186,7 @@ export async function initCommand(opts) {
       [
         '# Brand assets',
         '',
-        'Drop client brand assets here — `/brand-context:extract` (in Claude Code) will discover and use them automatically.',
+        'Drop brand assets here — `/brand-context:extract` (in Claude Code) will discover and use them automatically.',
         '',
         '**Supported:**',
         '- `.pdf` — brand guides, style guides, voice docs',
@@ -167,19 +196,24 @@ export async function initCommand(opts) {
         '**Not directly readable** (export to PDF first):',
         '- `.docx` / `.pptx` / `.key` / `.numbers`',
         '',
-        'You don\'t need to edit `.brandrc.yaml` by hand — the skill scans this directory, classifies what it finds, and asks you to confirm before extracting.',
+        "You don't need to edit `.brandrc.yaml` by hand — the skill scans this directory, classifies what it finds, and asks you to confirm before extracting.",
         '',
       ].join('\n'),
       'utf-8'
     );
-    console.log(chalk.green('✓ assets/ (drop brand files here)'));
-    results.created.push('assets/');
+    console.log(chalk.green(`✓ ${assetDirRel}/ (drop brand files here)`));
+    results.created.push(`${assetDirRel}/`);
+  }
+  if (assetDirRel !== 'assets') {
+    // Persist the override into sources.asset_dir so subsequent SKILL runs honor it.
+    brandrc.sources.asset_dir = assetDirRel;
+    writeFileSync(join(projectDir, '.brandrc.yaml'), yamlStringify(brandrc), 'utf-8');
   }
 
   console.log('');
   console.log(chalk.bold('  Next steps'));
   console.log('');
-  console.log(`  1. Drop brand assets (PDFs, screenshots, logos) into ${chalk.cyan('./assets/')}`);
+  console.log(`  1. Drop brand assets (PDFs, screenshots, logos) into ${chalk.cyan(`./${assetDirRel}/`)}`);
   console.log(`  2. In Claude Code, run ${chalk.cyan('/brand-context:extract')} — the skill scans assets, asks for any URLs (website, Figma, social), and runs the pipeline`);
   console.log(`  3. After editing ${chalk.cyan('.brand/')} files manually, re-run ${chalk.cyan('brand-cli refresh-design')} / ${chalk.cyan('brand-cli refresh-context')} to regenerate root artifacts`);
   console.log('');
@@ -189,7 +223,7 @@ export async function initCommand(opts) {
   }
 }
 
-function scaffoldBrandDirectory(brandDir, tier, isPitch) {
+function scaffoldBrandDirectory(brandDir, tier, isPublicSourcesOnly) {
   const filesToCreate = [...BRAND_FILES.minimum];
   if (tier === 'standard' || tier === 'comprehensive') filesToCreate.push(...BRAND_FILES.standard);
   if (tier === 'comprehensive') filesToCreate.push(...BRAND_FILES.comprehensive);
@@ -208,7 +242,7 @@ function scaffoldBrandDirectory(brandDir, tier, isPitch) {
     const schemaRef = `schema/brand/${filePath.replace(/\//g, '-').replace('.md', '')}.schema.md`;
     const frontmatter = TOKEN_FRONTMATTER[filePath] || '';
     let content = frontmatter + `# ${title}\n\n<!-- Fill this file following the schema at ${schemaRef} -->\n`;
-    if (isPitch) content = PITCH_DISCLAIMER + content;
+    if (isPublicSourcesOnly) content = PUBLIC_SOURCES_ONLY_DISCLAIMER + content;
     writeFileSync(fullPath, content, 'utf-8');
   }
 }

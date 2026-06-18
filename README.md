@@ -82,14 +82,14 @@ Why bother: Playwright gives you computed CSS for Stage 2 (web token extraction)
 ## Quick start
 
 ```bash
-mkdir my-client && cd my-client
-brand-cli init --client "ACME Corp"
+mkdir my-brand && cd my-brand
+brand-cli init --brand "ACME Corp"  # `--client` is accepted as a deprecated alias
 ```
 
 Then add your sources to `.brandrc.yaml`:
 
 ```yaml
-client: ACME Corp
+brand: ACME Corp
 tier: standard
 mode: standard
 industry: B2B SaaS analytics       # optional, free-form; Stages 3+4 use it as a soft tie-breaker prior
@@ -101,7 +101,7 @@ sources:
   screenshots: [assets/hero.png]       # optional
   social:
     twitter: https://x.com/acmecorp
-  design_system_repo: ./packages/ds    # optional, comprehensive tier
+  design_system_repo: ./packages/ds    # optional; when set, Stage 6 runs at any tier
 ```
 
 In Claude Code:
@@ -123,7 +123,7 @@ The skill walks you through scope confirmation, runs the pipeline, surfaces conf
 | 3 | Voice extraction (samples → attributes, tone, vocabulary) | `playwright` MCP (full) → Jina Reader `r.jina.ai` (degraded, keyless HTTP) → native `WebFetch` (degraded, SSR sites only). |
 | 4 | Multimodal analysis → `overview.md` | Native `Read` tool + brand-guide PDF or screenshots |
 | 5 | Cross-source conflict detection → `conflicts.md` | Outputs from Stages 1–4 |
-| 6 | Design-system repo scan → `components/*.md` | Local path or remote git URL (comprehensive tier only) |
+| 6 | Design-system repo scan → `components/*.md` | Local path or remote git URL. Runs whenever `sources.design_system_repo` is set, regardless of tier. |
 | 8 | Regenerate `design.md` + `brand.md` | `brand-cli refresh-design` and `refresh-context` (or inline fallback) |
 
 **Always also emitted:**
@@ -148,7 +148,7 @@ This package is intentionally minimal-dependency:
 - **No required MCP installs.** Playwright is recommended (Stage 2/3 quality), Figma Console is optional (only when Figma is a source). Without any MCPs, the skill runs Stages 4, 5, 6, 8 plus a degraded Stage 3 via native WebFetch.
 - **No required CLI install.** The skill falls back to inline regeneration when `brand-cli` is absent.
 - **No tie to any specific agent toolchain.** Output files are generic markdown the skill writes via `Write`/`Edit`. Other tools (Cursor, Copilot, Cline, generic Claude Code) consume them by reading project-root `brand.md` and `design.md` — the same way they consume `CLAUDE.md` or `.cursorrules`.
-- **Impeccable interop.** If you use [Impeccable](https://github.com/pbakaus/impeccable), pass `--impeccable` to `brand-cli refresh-context` and the same content is mirrored to `.impeccable.md`.
+- **AI-agent context-gathering interop.** Mirror `brand.md` to additional paths via `brand-cli refresh-context --also-write <path>` (repeatable) or by listing them under `outputs: [path, ...]` in `.brandrc.yaml`. Common targets: `.impeccable.md` ([Impeccable](https://github.com/pbakaus/impeccable)), `.cursor/rules/brand.md` (Cursor), `.github/copilot-instructions.md` (Copilot). The legacy `--impeccable` flag is preserved as a deprecated alias of `--also-write .impeccable.md`.
 
 ---
 

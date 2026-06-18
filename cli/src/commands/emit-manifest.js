@@ -1,11 +1,11 @@
 import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import chalk from 'chalk';
-import { parse as yamlParse } from 'yaml';
 import { writeManifest, validateManifest } from '../utils/manifest-writer.js';
 import { weightsForTier } from '../utils/tier-weights.js';
 import { classifyFile } from '../utils/file-status.js';
 import { loadContract, getDependency } from '../utils/contract-loader.js';
+import { loadBrandrc } from '../utils/brandrc-loader.js';
 
 function readStdin() {
   return new Promise((resolve, reject) => {
@@ -15,16 +15,6 @@ function readStdin() {
     process.stdin.on('end', () => resolve(data));
     process.stdin.on('error', reject);
   });
-}
-
-function readBrandrc(projectDir) {
-  const path = join(projectDir, '.brandrc.yaml');
-  if (!existsSync(path)) return {};
-  try {
-    return yamlParse(readFileSync(path, 'utf-8')) ?? {};
-  } catch {
-    return {};
-  }
 }
 
 function generatorString() {
@@ -136,9 +126,13 @@ export async function emitManifestCommand(opts) {
     process.exit(1);
   }
 
-  const brandrc = readBrandrc(projectDir);
+  const brandrc = loadBrandrc(projectDir);
   const tier = input.tier ?? brandrc.tier ?? 'minimum';
-  const client = input.client ?? brandrc.client ?? '';
+  // The manifest schema has historically used `client` as the brand-name field.
+  // Brandrc's user-facing surface is now `brand` (`client` is a deprecated alias).
+  // Manifest stays v2; we translate brandrc's normalized `brand` to manifest.client
+  // at write time so existing manifest consumers don't need to migrate.
+  const client = input.client ?? brandrc.brand ?? '';
 
   if (!VALID_TIERS.includes(tier)) {
     console.error(chalk.red(

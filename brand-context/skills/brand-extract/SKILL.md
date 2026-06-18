@@ -10,7 +10,7 @@ You are running the brand-extract skill end to end. The full pipeline writes/ref
 - `.brand/tokens/{colors,typography,spacing,surfaces}.md`
 - `.brand/voice.md` (additive Stage 3)
 - `.brand/overview.md`
-- `.brand/components/*.md` + `.brand/components/inventory.md` (comprehensive tier only)
+- `.brand/components/*.md` + `.brand/components/inventory.md` (when `sources.design_system_repo` is set, any tier)
 - `.brand/conflicts.md` (additive Stage 5)
 - `design.md` (project root, [design.md spec](https://github.com/google-labs-code/design.md))
 - `brand.md` (project root, dense brand context loaded by AI agents)
@@ -27,8 +27,8 @@ Discover sources by reading `.brandrc.yaml`, scanning the project for asset file
 
 ### 0a. Read existing config
 
-1. Confirm `.brandrc.yaml` exists at the project root. If not, run `brand-cli init` via `Bash` to scaffold it (it'll prompt for client name and tier). If `brand-cli` is not available, write a minimal `.brandrc.yaml` inline using the YAML library or just `Write` with the right shape: `client`, `tier: standard`, `mode: standard`, empty `sources:`.
-2. Read the file. Note `client`, `tier`, `mode`, and any `sources.*` already populated. Existing values are kept unless the practitioner explicitly says otherwise. Also note `industry` if present (free-form string, e.g. "fast-food QSR", "B2B SaaS analytics"). When set, Stages 3 and 4 use it as a soft tie-breaker prior on inference. When absent, behavior is identical to today.
+1. Confirm `.brandrc.yaml` exists at the project root. If not, run `brand-cli init` via `Bash` to scaffold it (it'll prompt for brand name and tier). If `brand-cli` is not available, write a minimal `.brandrc.yaml` inline using the YAML library or just `Write` with the right shape: `brand`, `tier: standard`, `mode: standard`, empty `sources:`.
+2. Read the file. Note `brand` (with `client` accepted as a deprecated alias), `tier`, `mode`, and any `sources.*` already populated. Existing values are kept unless the practitioner explicitly says otherwise. Also note `industry` if present (free-form string, e.g. "fast-food QSR", "B2B SaaS analytics"). When set, Stages 3 and 4 use it as a soft tie-breaker prior on inference. When absent, behavior is identical to today.
 
 ### 0a.5. Read `.brand/.scope.json` (if present) and pre-fill brandrc
 
@@ -64,13 +64,18 @@ Exit 1. **Do not delete the scope file** — the host needs it to fix and retry.
 
 ### 0b. Scan the project for asset files
 
-Look for assets the practitioner may have dropped into the project. Check these directories in order; use whichever exists:
-- `./assets/`
-- `./brand-assets/`
-- `./.brand-assets/`
-- `./inputs/`
-- `./sources/`
-- Project root (loose files only — be selective; ignore obvious code/config/dotfiles)
+Look for assets the practitioner may have dropped into the project. The scan order:
+
+1. **`sources.asset_dir`** from `.brandrc.yaml` if set (e.g. `./brand-inputs/`).
+2. **`./assets/`** — the default scaffold path.
+3. **Legacy fallbacks** — checked only when neither (1) nor (2) yields any assets:
+   - `./brand-assets/`
+   - `./.brand-assets/`
+   - `./inputs/`
+   - `./sources/`
+   - Project root (loose files only — be selective; ignore obvious code/config/dotfiles)
+
+When `sources.asset_dir` is set, prefer it for the "drop your assets here" prompt and any rescan loops. The legacy fallback list is preserved for projects that never ran `brand-cli init` and have assets sitting in older conventional locations.
 
 For each file found, classify by extension:
 - **`.pdf`** → brand guide candidate. Read the **first page** with the `Read` tool (`pages: "1"`) to confirm. Brand-guide covers usually have the brand name + "Brand Guidelines" / "Brand Identity" / "Style Guide". A pitch deck or other PDF will look obviously different — categorize accordingly. Multiple PDFs are fine; pick the one that reads as a brand guide; treat the rest as supporting context (campaign decks, voice docs).
@@ -98,7 +103,7 @@ Three cases — handle each explicitly. **Don't silently skip the asset step** e
 
 **Case 2: `./assets/` exists but is empty (or only contains the scaffold README).** Prompt explicitly:
 
-> Your `./assets/` directory is empty. If you have **any** of these for {client}, drop them in now — I'll wait:
+> Your `./assets/` directory is empty. If you have **any** of these for {brand}, drop them in now — I'll wait:
 > - Brand guide PDF
 > - Style guide / voice doc PDF
 > - Reference screenshots (homepage, key pages, hero shots)
@@ -128,7 +133,7 @@ These can't be discovered on disk. Ask conversationally — one question at a ti
 2. **Figma file URL** — optional. Paste a URL like `https://figma.com/design/<fileKey>/...` and the skill extracts the file key. Skip if no Figma access.
 3. **Social profiles** — optional. Twitter/X, Instagram, LinkedIn, Facebook, TikTok. Accept any combination. Skip if none.
 4. **App store listings** — optional. iOS App Store and/or Google Play URLs. Skip if no app.
-5. **Design-system repo** — only ask if `tier == comprehensive`. Local path or remote git URL.
+5. **Design-system repo** — local path or remote git URL. When set, Stage 6 produces `.brand/components/*.md` regardless of tier.
 
 For each one, validate the answer minimally (URL looks like a URL; local path exists if given). Don't over-validate — bad URLs will surface as Stage failures with clear errors.
 
@@ -252,7 +257,7 @@ Stop only when no useful input is available at all (no website, no PDFs, no scre
 
 Tell the user what you're about to do, in one short paragraph:
 
-> I'll extract design tokens for {client}. Sources: {website}, {figmaCount} Figma file(s){, plus N pages: ...}. This will populate `.brand/tokens/colors.md`, `.brand/tokens/typography.md`, `.brand/tokens/spacing.md`, and `.brand/tokens/surfaces.md`. Estimated time: 2–4 minutes. Continue?
+> I'll extract design tokens for {brand}. Sources: {website}, {figmaCount} Figma file(s){, plus N pages: ...}. This will populate `.brand/tokens/colors.md`, `.brand/tokens/typography.md`, `.brand/tokens/spacing.md`, and `.brand/tokens/surfaces.md`. Estimated time: 2–4 minutes. Continue?
 
 If they decline, stop. Don't proceed without explicit confirmation.
 
@@ -453,7 +458,7 @@ This is different from token files. Tokens are values — replacing them is fine
 
 Include the divergences subsection only when there are real divergences to surface. Otherwise omit it.
 
-**Pitch mode** (when `mode: pitch`): inside the section, append a confidence-cap note: `> Pitch mode — confidence capped at MEDIUM.` Do not touch the file's top-level pitch disclaimer (if any) — that's owned by other stages.
+**Public-sources-only mode** (when `mode: public-sources-only`, or its deprecated alias `mode: pitch`): inside the section, append a confidence-cap note: `> Public-sources-only mode — confidence capped at MEDIUM.` Do not touch the file's top-level public-sources-only disclaimer (if any) — that's owned by other stages.
 
 **Provenance block** (only when writing the section for the first time, case 1 or 2): immediately after the `## Observed Voice (live channels)` content, before any subsequent section, place:
 
@@ -527,13 +532,15 @@ colors:
 
 Apply the same shape to `typography.md`, `spacing.md`, `surfaces.md` per their schemas in `schema/brand/`.
 
-### 5c. Pitch mode
+### 5c. Public-sources-only mode
 
-If `mode: pitch` in `.brandrc.yaml`, prepend the disclaimer:
+If `mode: public-sources-only` in `.brandrc.yaml`, prepend the disclaimer:
 
 ```
-> ⚠️ **PITCH MODE** — derived from public sources only. Not validated against internal brand standards.
+> ⚠️ **PUBLIC-SOURCES-ONLY MODE** — derived from public sources only. Not validated against internal brand standards.
 ```
+
+(The legacy `mode: pitch` value is normalized by the brandrc loader to `public-sources-only` before this stage runs; treat them identically.)
 
 ### 5d. Write the file
 
@@ -626,12 +633,12 @@ Sources:
 
 When in doubt, default to **skip** and leave the file alone.
 
-### 6e. Pitch mode
+### 6e. Public-sources-only mode
 
-In pitch mode (`mode: pitch`), prepend the disclaimer block to `overview.md`:
+In public-sources-only mode (`mode: public-sources-only`, or its deprecated alias `mode: pitch`), prepend the disclaimer block to `overview.md`:
 
 ```markdown
-> ⚠️ **PITCH MODE** — derived from public sources only. Not validated against internal brand standards.
+> ⚠️ **PUBLIC-SOURCES-ONLY MODE** — derived from public sources only. Not validated against internal brand standards.
 ```
 
 Cap inferred confidence: if a personality trait or audience claim relies on inference (rather than a direct guide quote), note it inline as `*(inferred from public materials)*`.
@@ -642,13 +649,12 @@ Use the `Write` tool when overwriting (or scaffolding from placeholder). Use `Ed
 
 After writing, verify the file is no longer the placeholder by checking that the brand identity, personality, and visual language sections are populated.
 
-## 7. Stage 6 — Design-system repo scan (comprehensive tier only)
+## 7. Stage 6 — Design-system repo scan (any tier)
 
-This stage runs only when **both** are true:
-- `.brandrc.yaml` `tier` is `comprehensive`
+This stage runs when:
 - `.brandrc.yaml` `sources.design_system_repo` is set (local path or remote git URL)
 
-If either is false, skip Stage 6 with a one-line log and move to Section 8 (design.md regen).
+Tier no longer gates Stage 6. Any project that points at a design-system repo gets the inventory — `comprehensive` tier no longer carries an implicit DS-scan opt-in. If `sources.design_system_repo` is unset, skip Stage 6 with a one-line log and move to Section 8 (design.md regen).
 
 The job: inventory what components actually exist in the client's design system codebase and write per-component descriptions into `.brand/components/<name>.md`. This describes what's there for agents working on visual implementation — it does **not** audit quality, completeness, or DS conformance. That's a DS Pack concern.
 
@@ -835,12 +841,12 @@ Read the existing `conflicts.md` first. Build the new file as:
 
 **Never delete entries from Intentional Adaptations or Resolved Conflicts Archive.** Use the `Edit` tool to surgically update sections, or `Write` to rebuild the file from in-memory state — but verify the diff in either case.
 
-### 8f. Pitch mode
+### 8f. Public-sources-only mode
 
-In pitch mode (`mode: pitch`), do not run the practitioner walkthrough — there's no internal access to resolve conflicts authoritatively. Instead:
+In public-sources-only mode (`mode: public-sources-only`, or its deprecated alias `mode: pitch`), do not run the practitioner walkthrough — there's no internal access to resolve conflicts authoritatively. Instead:
 - Detect conflicts as usual
-- Write all detected items as `unresolved` with `Recommended resolution: pending — pitch mode (public sources only)`
-- Surface the count in the Final summary so the practitioner can resolve later when client access is available
+- Write all detected items as `unresolved` with `Recommended resolution: pending — public-sources-only mode (public sources only)`
+- Surface the count in the Final summary so the practitioner can resolve later when internal access is available
 
 ### 8g. Provenance
 
@@ -891,7 +897,7 @@ Build the stage payload from what just ran. Pass via stdin:
 cat <<'JSON' | brand-cli emit-manifest
 {
   "tier": "{tier}",
-  "client": "{client}",
+  "client": "{brand}",
   "stages": {
     "1_figma":     { "ran": <bool>, "wrote": [<paths>], "reason": "<if skipped>",
                      "fallback_decision": "<none|DOWNGRADE|SKIP>",
@@ -930,7 +936,7 @@ The non-derivable fields the SKILL must set itself (manifest schema `version: "2
 - `version`: `"2"` (literal — schema enforces a const)
 - `generated_at`: ISO-8601 datetime (e.g. `"2026-06-13T15:30:00Z"`)
 - `generator`: `brand-extract-skill@<plugin-version>`
-- `tier`, `client`: from `.brandrc.yaml`
+- `tier`: from `.brandrc.yaml`'s `tier`. `client` (the manifest field name): from `.brandrc.yaml`'s `brand` (or its deprecated alias `client`). The manifest field name stays `client` for v2 back-compat; only the brandrc UX surface was renamed.
 - `stages`: per-stage object keyed by stage key (`1_figma` … `8_brand_md`, no `7_*`). Every entry has `ran` (bool) and `fallback_decision` (one of `"none" | "DOWNGRADE" | "SKIP" | "HALT"`). When `ran: true`, also include `chain_entry_used: { kind, name, quality_label }`. When `fallback_decision: "SKIP"`, set `chain_entry_used: null`. Always include `required_dependencies` (names from the contract chain marked `quality_label: "full"`) and `available_dependencies` (names you detected as available in §0.5). Stage-specific extras (`wrote`, `samples`, `confidence`, `sources`, `active`) are unchanged from `version: "1"`.
 - `dependencies`: object keyed by dependency name (must match a name in `schema/mcp-fallback-contract.json` `dependencies` — typos hard-reject the manifest at validation). Each entry has `kind` (must equal the contract's `kind` for that name), `available` (bool), `used_by` (array of stage keys that consumed this dependency). For `user_artifact` entries, also include `expected_path_glob` mirroring the contract.
 - `files`: object keyed by relative path under `.brand/`, with each entry `{ "status": "<enum>", "bytes": <integer> }` (and an optional `"note": "<reason>"` for `defaults`/`partial`). Apply the same content-scan logic the CLI uses — placeholder marker, frontmatter inspection, body length — to assign one of `complete | partial | placeholder | missing | defaults`. Include every file under `.brand/`, not just the ones listed in `file_overrides`.
@@ -969,7 +975,6 @@ Be concise. The summary is one short message, not a wall of text.
 | Stage 5: practitioner can't resolve right now | Leave the conflict as `unresolved`. They can re-run later. |
 | Stage 5: a previously-resolved conflict re-surfaces | Treat as a new active conflict. Note in the new entry that it had been resolved on a prior date. |
 | Stage 5: only one source is present (e.g., no Figma, no PDF) | Cannot detect cross-source conflicts. Stage 5 writes "_No active conflicts as of {date}._" and notes the limited input in the provenance block. |
-| Stage 6: tier is not comprehensive | Skip silently. Note in summary. |
 | Stage 6: `sources.design_system_repo` not set | Skip silently. Note in summary. |
 | Stage 6: local path not found | Log "Stage 6: path not found", skip. Don't error the pipeline. |
 | Stage 6: remote git clone fails (auth, 404, network) | Log the error, skip Stage 6, continue. |
@@ -989,7 +994,7 @@ Implemented (complete pipeline):
 - Stage 3: Voice extraction → voice.md `## Observed Voice` section (additive)
 - Stage 4: Multimodal analysis → overview.md
 - Stage 5: Conflict detection → conflicts.md (additive, with practitioner walkthrough)
-- Stage 6: Design-system repo scan → components/*.md + components/inventory.md (comprehensive tier only)
+- Stage 6: Design-system repo scan → components/*.md + components/inventory.md (when `sources.design_system_repo` is set, any tier)
 - Stage 8: `brand.md` regeneration (always runs)
 - design.md regeneration
 - Manifest emission (Section 10b) — every extract run now writes `.brand/manifest.json`

@@ -1,20 +1,10 @@
 import chalk from 'chalk';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { parse as yamlParse } from 'yaml';
 import { weightsForTier } from '../utils/tier-weights.js';
 import { classifyFile } from '../utils/file-status.js';
 import { buildHealth, writeHealth } from '../utils/health-writer.js';
-
-function readBrandrc(projectDir) {
-  const path = join(projectDir, '.brandrc.yaml');
-  if (!existsSync(path)) return {};
-  try {
-    return yamlParse(readFileSync(path, 'utf-8')) ?? {};
-  } catch {
-    return {};
-  }
-}
+import { loadBrandrc } from '../utils/brandrc-loader.js';
 
 function readManifest(brandDir) {
   const path = join(brandDir, 'manifest.json');
@@ -83,9 +73,12 @@ export async function scoreCommand(opts) {
   console.log(chalk.bold('  brand-skills — Brand Package Score'));
   console.log('');
 
-  const brandrc = readBrandrc(projectDir);
+  const brandrc = loadBrandrc(projectDir);
   const tier = brandrc.tier ?? 'standard';
-  const client = brandrc.client ?? '';
+  // health-writer's `client` parameter is the persisted field name in .health.json
+  // (decoupled from the brandrc rename, same asymmetry as manifest.client). Pass
+  // brandrc's normalized `brand` value through.
+  const client = brandrc.brand ?? '';
   const manifest = readManifest(brandDir);
 
   // Console output: unchanged tier-by-tier listing, but driven by classifyFile.

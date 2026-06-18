@@ -5,7 +5,7 @@
 **Tier:** Minimum
 **Loaded:** Every session (referenced directly in CLAUDE.md)
 **Target size:** ~200 tokens (keep it dense — this is always in context)
-**Auto-generates:** `.impeccable.md` in project root (for Impeccable skill brand context)
+**Mirrored by `brand-cli refresh-context`** — the same content as `brand.md` is mirrored into any paths declared in `.brandrc.yaml` `outputs:` or passed via `--also-write <path>`. Common targets include `.impeccable.md` (Impeccable), `.cursor/rules/brand.md` (Cursor), and `.github/copilot-instructions.md` (Copilot).
 
 ---
 
@@ -40,7 +40,7 @@ Who the brand speaks to. Agents use this to calibrate complexity, tone, and desi
 | `Primary audience` | required | Who the main users/customers are — demographics, psychographics, or behavioral description |
 | `Secondary audiences` | optional | Other important audience segments |
 | `Audience context` | optional | Key insight about the audience that should influence design (e.g., "primarily mobile, often in a hurry") |
-| `Key use cases` | optional | Primary tasks users perform — the jobs they're trying to get done (e.g., "order food for pickup", "check loyalty points", "browse the menu"). Used by Impeccable's context gathering protocol. |
+| `Key use cases` | optional | Primary tasks users perform — the jobs they're trying to get done (e.g., "order food for pickup", "check loyalty points", "browse the menu"). Used by AI-agent context-gathering protocols (Impeccable, Cursor, Copilot, etc.). |
 
 ### Visual Language (required)
 

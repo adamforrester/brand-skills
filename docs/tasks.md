@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-16 — C9 resolved on `feat/ajv-pattern-unification` (scope-loader's `errorsTextFn` closure removed; ajv now cached at module scope). Earlier today: #8 closed as won't-do (Token Press is the canonical DTCG producer; import direction in #3 is sufficient). Active backlog empty.
+**Last updated:** 2026-06-17 — De-XD cleanup (Bucket A) ready for merge on `feat/de-xd-cleanup`; closes XD-inventory items #2, #3, #4, #6, #7, #10, #12, #14, #18 and unblocks 1.0 release. 132/132 tests; 16 commits across loader extraction, mode rename, Stage 6 decoupling, --also-write generalization, and schema-doc cleanup. Final move to Completed lands in the post-merge cleanup commit per #4 precedent.
 
 ---
 
@@ -79,7 +79,12 @@ Spec: [2026-06-15-industry-signal-design.md](superpowers/specs/2026-06-15-indust
 
 ## Active backlog
 
-(empty — pick next work from "Candidate tasks" below)
+### In flight on branch `feat/de-xd-cleanup`
+
+#### De-XD cleanup (Bucket A — pre-1.0 contract residue)
+**Status:** ready for merge on `feat/de-xd-cleanup`. Plan: [`docs/superpowers/plans/2026-06-16-de-xd-cleanup.md`](superpowers/plans/2026-06-16-de-xd-cleanup.md). Spec: [2026-06-16-de-xd-cleanup-design.md](superpowers/specs/2026-06-16-de-xd-cleanup-design.md).
+
+Closes XD-inventory items #2, #3, #4, #6, #7, #10, #12, #14, #18 on land. Unblocks 1.0 release. Final move to Completed lands in the post-merge cleanup commit per #4 precedent.
 
 ### Blocked
 
