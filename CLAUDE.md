@@ -54,6 +54,8 @@ Every CLI command has a SKILL.md inline fallback. The contract:
 
 The CLI is the canonical implementation; the SKILL fallback is the spec in prose. If they disagree, fix the SKILL — users without the CLI shouldn't get a different artifact.
 
+The same contract applies to `cli/src/utils/style-guide-generator.js` ↔ `brand-extract/SKILL.md` Section 8a (the visual style guide). Both paths must produce byte-identical HTML for any given `.brand/` state — the spec at `docs/superpowers/specs/2026-06-18-visual-style-guide-design.md` §7a is load-bearing on this.
+
 ---
 
 ## File-write policies — additive vs. overwrite
@@ -71,7 +73,7 @@ This is the easiest thing to get wrong. Each `.brand/` file has a specific polic
 | `.scope.json` | **Read-once + delete-after-merge** — the SKILL `§0a.5` reads `.brand/.scope.json` if present, merges into the in-memory brandrc state, deletes the file only after `§0e` successfully writes `.brandrc.yaml`. Failure modes (parse, validation, embedded-mode bail, brandrc-write fail) do **not** delete. | Transient pre-fill for `.brandrc.yaml`; brandrc remains the single source of truth. Embedded hosts re-author it before each invocation. |
 | `manifest.json` | **Overwrite wholesale every run** | Generated artifact; source of truth is `.brand/*.md`. Same as `design.md`/`brand.md`. Emitted by `/brand-context:extract` end-of-pipeline. **Schema is `version: "2"` as of branch `feat/mcp-fallback-contract`** — `version: "1"` payloads/manifests are hard-rejected by both `emit-manifest` and `score`. See `docs/superpowers/specs/2026-06-13-mcp-fallback-contract-design.md` §4. |
 | `.health.json` | **Overwrite wholesale every run** | Verdict cache emitted by `/brand-context:check` (and `brand-cli score`). Reproducible from manifest + tier weights. |
-| `design.md`, `brand.md` | **Overwrite wholesale** every regen | Generated artifacts; source of truth is `.brand/` |
+| `design.md`, `brand.md`, `style-guide.html` | **Overwrite wholesale** every regen | Generated artifacts; source of truth is `.brand/`. `style-guide.html` is a self-contained HTML synthesis written by `brand-cli refresh-design` alongside `design.md`. Spec: `docs/superpowers/specs/2026-06-18-visual-style-guide-design.md`. |
 
 If you add a new `.brand/` file, decide its policy explicitly and document it in the SKILL.
 

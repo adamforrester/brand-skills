@@ -25,6 +25,7 @@ your-project/
 │   └── ...
 ├── design.md                 # generated, follows https://github.com/google-labs-code/design.md
 ├── brand.md                  # generated, dense brand context for any agent
+├── style-guide.html          # generated, single self-contained visual synthesis
 └── .brandrc.yaml             # project config (sources, tier, mode)
 ```
 
@@ -110,7 +111,7 @@ In Claude Code:
 /brand-context:extract
 ```
 
-The skill walks you through scope confirmation, runs the pipeline, surfaces conflicts for your decision, and writes everything. Then `/brand-context:check` to see completeness.
+The skill walks you through scope confirmation, runs the pipeline, surfaces conflicts for your decision, and writes everything. Then `/brand-context:check` to see completeness, or `open style-guide.html` to scan the brand visually in a browser.
 
 ---
 
