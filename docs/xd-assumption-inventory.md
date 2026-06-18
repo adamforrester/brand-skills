@@ -52,6 +52,8 @@ Findings are grouped by impact, not by file.
 
 **Disruption to loosen:** **Small.** Rename to `brand` (already what `brandName` is called in the generator). Make `init` accept the directory name as default. Frame the field as "the brand this package describes" instead of "client name." No structural change.
 
+**Status:** Closed in `feat/de-xd-cleanup`. `client` accepted as a deprecated alias; manifest schema retains `client` as the persisted artifact field name (see [D0] in the de-XD progress doc).
+
 ---
 
 ### 3. The "tier model" conflates extraction completeness with workflow elaboration
@@ -68,6 +70,8 @@ Findings are grouped by impact, not by file.
 
 **Disruption to loosen:** **Medium.** Decouple the two axes. Either: (a) introduce an "extensions" model where `xd-prototype-workflow` is one extension and the base tiers stay focused on brand knowledge, or (b) reorder tiers so the DS-repo scan moves to `standard` and `comprehensive` becomes purely the prototype-workflow extension.
 
+**Status:** Partially closed in `feat/de-xd-cleanup` — Stage 6 gate decoupled from tier (#7 below). The architectural rethink of the `comprehensive` tier itself is deferred to Bucket C / post-1.0.
+
 ---
 
 ### 4. The `mode: pitch` concept assumes agency-pitch context
@@ -83,6 +87,8 @@ Findings are grouped by impact, not by file.
 **Who it excludes:** Anyone running brand-extraction outside a sales/pitch context. The user understands the *capability* (extract from public sources only) but the *naming* implies the only reason to do that is during a pitch. A research-mode user, a competitive-analysis user, a prospective-employee-doing-a-design-exercise user — all need the same capability under a different label.
 
 **Disruption to loosen:** **Small.** Rename `mode: pitch` to `mode: public-sources-only` (or similar — `public`, `external`). Capability is unchanged. Disclaimer text updated. Probably worth keeping `pitch` as an alias for backward compat with xd-toolkit users.
+
+**Status:** Closed in `feat/de-xd-cleanup`. Loader-level alias keeps legacy `mode: pitch` brandrc files loading; SKILL §4f, §5c, §6e, §8f banner reworded to PUBLIC-SOURCES-ONLY MODE.
 
 ---
 
@@ -121,6 +127,8 @@ This assumes (a) there's a brand team, (b) Figma is part of the brand team's wor
 
 **Disruption to loosen:** **Medium.** Generalize to `--also-write <path>` or a `[outputs]` section in `.brandrc.yaml` listing additional files to mirror `brand.md` into. Keep `--impeccable` as a convenience alias. Schema files referencing Impeccable as an authoritative consumer should be reframed neutrally (`Used by AI agent context-gathering protocols`).
 
+**Status:** Closed in `feat/de-xd-cleanup`. `--also-write <path>` (repeatable) + `outputs: [path]` brandrc field replace the bespoke flag; `--impeccable` retained as a deprecated alias.
+
 ---
 
 ### 7. The `tier == comprehensive` gate on Stage 6 (DS repo scan) ties brand intelligence to prototyping
@@ -134,6 +142,8 @@ This assumes (a) there's a brand team, (b) Figma is part of the brand team's wor
 **Who it excludes:** A team with a real component library (most teams) who does *not* want their `.brand/` directory cluttered with deploy and QA workflow files they won't use.
 
 **Disruption to loosen:** **Medium.** Decouple Stage 6 from the tier gate. Make it conditional on `sources.design_system_repo` being set, not on `tier == comprehensive`. A user can then opt into the DS scan without opting into the prototype workflows. Pairs naturally with finding #3.
+
+**Status:** Closed in `feat/de-xd-cleanup`. SKILL §7 header now reads "(any tier)"; the `tier == comprehensive` gating clause is dropped from §0d, §7, the final-summary edge-case table, the pipeline-summary line, and the top-of-file pipeline-output bullet. README pipeline table updated to match.
 
 ---
 
@@ -173,6 +183,8 @@ This assumes (a) there's a brand team, (b) Figma is part of the brand team's wor
 
 **Disruption to loosen:** **Small.** Open the enum — change `enum` to `string` with the list as suggested values. Or drop `tools.agent` entirely; nothing in the codebase appears to read it.
 
+**Status:** Closed in `feat/de-xd-cleanup`. `tools.agent` opens to free-form string; suggested values include `cline`, `aider`, and `other`.
+
 ---
 
 ### 11. README's quick-start path assumes a per-client-project layout
@@ -196,6 +208,8 @@ This assumes (a) there's a brand team, (b) Figma is part of the brand team's wor
 **Who it excludes:** Anyone outside XD-toolkit. The field exists but is functionally for XD-toolkit users only.
 
 **Disruption to loosen:** **Medium.** Document an extension contract (what an extension can register, where it gets read) — or remove the field until the contract exists. Closed enums without an extension mechanism are worse than no field at all.
+
+**Status:** Closed in `feat/de-xd-cleanup`. `extensions` field removed; loader silently drops it from legacy brandrc files with a one-line warning. Re-introduced in a future minor when an extension contract ships.
 
 ---
 
@@ -222,6 +236,8 @@ This assumes (a) there's a brand team, (b) Figma is part of the brand team's wor
 **Who it excludes:** A project that already has an `assets/` directory used for something else (frontend asset pipeline, generated content). The init step would create a sibling README; the extract step would scan it and surface project-irrelevant files. Not a strict block, but awkward.
 
 **Disruption to loosen:** **Small.** Allow `.brandrc.yaml` `sources.asset_dir` to override the default. SKILL respects it; init creates only the configured directory.
+
+**Status:** Closed in `feat/de-xd-cleanup`. `sources.asset_dir` row added to brandrc schema; `brand-cli init --asset-dir <path>` persists the override; SKILL §0b honors it before falling back to legacy paths.
 
 ---
 
@@ -272,6 +288,8 @@ This assumes (a) there's a brand team, (b) Figma is part of the brand team's wor
 **Who it excludes:** Nobody — but presence-of-unused-fields makes the schema harder to trust.
 
 **Disruption to loosen:** **Small.** Drop or wire up.
+
+**Status:** Closed in `feat/de-xd-cleanup`. `tools.storybook` row removed from brandrc schema; loader silently drops it from legacy brandrc files.
 
 ---
 

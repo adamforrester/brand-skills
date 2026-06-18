@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-16 — De-XD cleanup brainstorm complete; spec committed on `feat/de-xd-cleanup`; **plan-writing paused mid-session due to recurring API errors**, will resume in fresh session. Earlier today: C9 resolved (scope-loader pattern unification); #8 closed as won't-do (Token Press canonical DTCG producer).
+**Last updated:** 2026-06-17 — De-XD cleanup (Bucket A) ready for merge on `feat/de-xd-cleanup`; closes XD-inventory items #2, #3, #4, #6, #7, #10, #12, #14, #18 and unblocks 1.0 release. 132/132 tests; 16 commits across loader extraction, mode rename, Stage 6 decoupling, --also-write generalization, and schema-doc cleanup. Final move to Completed lands in the post-merge cleanup commit per #4 precedent.
 
 ---
 
@@ -82,11 +82,9 @@ Spec: [2026-06-15-industry-signal-design.md](superpowers/specs/2026-06-15-indust
 ### In flight on branch `feat/de-xd-cleanup`
 
 #### De-XD cleanup (Bucket A — pre-1.0 contract residue)
-**Status:** spec committed (`25e3300`); plan-writing **paused** mid-session due to recurring API errors. Resume by reading [`docs/superpowers/plans/2026-06-16-de-xd-cleanup-progress.md`](superpowers/plans/2026-06-16-de-xd-cleanup-progress.md) "Resume from here" section. All brainstorm decisions locked in that progress doc — no re-litigation needed.
+**Status:** ready for merge on `feat/de-xd-cleanup`. Plan: [`docs/superpowers/plans/2026-06-16-de-xd-cleanup.md`](superpowers/plans/2026-06-16-de-xd-cleanup.md). Spec: [2026-06-16-de-xd-cleanup-design.md](superpowers/specs/2026-06-16-de-xd-cleanup-design.md).
 
-Closes XD-inventory items #2, #3, #4, #6, #7, #10, #12, #14, #18 on land. Unblocks 1.0 release.
-
-Spec: [2026-06-16-de-xd-cleanup-design.md](superpowers/specs/2026-06-16-de-xd-cleanup-design.md).
+Closes XD-inventory items #2, #3, #4, #6, #7, #10, #12, #14, #18 on land. Unblocks 1.0 release. Final move to Completed lands in the post-merge cleanup commit per #4 precedent.
 
 ### Blocked
 

@@ -82,14 +82,14 @@ Why bother: Playwright gives you computed CSS for Stage 2 (web token extraction)
 ## Quick start
 
 ```bash
-mkdir my-client && cd my-client
-brand-cli init --client "ACME Corp"
+mkdir my-brand && cd my-brand
+brand-cli init --brand "ACME Corp"  # `--client` is accepted as a deprecated alias
 ```
 
 Then add your sources to `.brandrc.yaml`:
 
 ```yaml
-client: ACME Corp
+brand: ACME Corp
 tier: standard
 mode: standard
 industry: B2B SaaS analytics       # optional, free-form; Stages 3+4 use it as a soft tie-breaker prior
@@ -148,7 +148,7 @@ This package is intentionally minimal-dependency:
 - **No required MCP installs.** Playwright is recommended (Stage 2/3 quality), Figma Console is optional (only when Figma is a source). Without any MCPs, the skill runs Stages 4, 5, 6, 8 plus a degraded Stage 3 via native WebFetch.
 - **No required CLI install.** The skill falls back to inline regeneration when `brand-cli` is absent.
 - **No tie to any specific agent toolchain.** Output files are generic markdown the skill writes via `Write`/`Edit`. Other tools (Cursor, Copilot, Cline, generic Claude Code) consume them by reading project-root `brand.md` and `design.md` — the same way they consume `CLAUDE.md` or `.cursorrules`.
-- **Impeccable interop.** If you use [Impeccable](https://github.com/pbakaus/impeccable), pass `--impeccable` to `brand-cli refresh-context` and the same content is mirrored to `.impeccable.md`.
+- **AI-agent context-gathering interop.** Mirror `brand.md` to additional paths via `brand-cli refresh-context --also-write <path>` (repeatable) or by listing them under `outputs: [path, ...]` in `.brandrc.yaml`. Common targets: `.impeccable.md` ([Impeccable](https://github.com/pbakaus/impeccable)), `.cursor/rules/brand.md` (Cursor), `.github/copilot-instructions.md` (Copilot). The legacy `--impeccable` flag is preserved as a deprecated alias of `--also-write .impeccable.md`.
 
 ---
 
