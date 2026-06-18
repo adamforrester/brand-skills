@@ -27,8 +27,8 @@ Discover sources by reading `.brandrc.yaml`, scanning the project for asset file
 
 ### 0a. Read existing config
 
-1. Confirm `.brandrc.yaml` exists at the project root. If not, run `brand-cli init` via `Bash` to scaffold it (it'll prompt for client name and tier). If `brand-cli` is not available, write a minimal `.brandrc.yaml` inline using the YAML library or just `Write` with the right shape: `client`, `tier: standard`, `mode: standard`, empty `sources:`.
-2. Read the file. Note `client`, `tier`, `mode`, and any `sources.*` already populated. Existing values are kept unless the practitioner explicitly says otherwise. Also note `industry` if present (free-form string, e.g. "fast-food QSR", "B2B SaaS analytics"). When set, Stages 3 and 4 use it as a soft tie-breaker prior on inference. When absent, behavior is identical to today.
+1. Confirm `.brandrc.yaml` exists at the project root. If not, run `brand-cli init` via `Bash` to scaffold it (it'll prompt for brand name and tier). If `brand-cli` is not available, write a minimal `.brandrc.yaml` inline using the YAML library or just `Write` with the right shape: `brand`, `tier: standard`, `mode: standard`, empty `sources:`.
+2. Read the file. Note `brand` (with `client` accepted as a deprecated alias), `tier`, `mode`, and any `sources.*` already populated. Existing values are kept unless the practitioner explicitly says otherwise. Also note `industry` if present (free-form string, e.g. "fast-food QSR", "B2B SaaS analytics"). When set, Stages 3 and 4 use it as a soft tie-breaker prior on inference. When absent, behavior is identical to today.
 
 ### 0a.5. Read `.brand/.scope.json` (if present) and pre-fill brandrc
 
@@ -103,7 +103,7 @@ Three cases — handle each explicitly. **Don't silently skip the asset step** e
 
 **Case 2: `./assets/` exists but is empty (or only contains the scaffold README).** Prompt explicitly:
 
-> Your `./assets/` directory is empty. If you have **any** of these for {client}, drop them in now — I'll wait:
+> Your `./assets/` directory is empty. If you have **any** of these for {brand}, drop them in now — I'll wait:
 > - Brand guide PDF
 > - Style guide / voice doc PDF
 > - Reference screenshots (homepage, key pages, hero shots)
@@ -257,7 +257,7 @@ Stop only when no useful input is available at all (no website, no PDFs, no scre
 
 Tell the user what you're about to do, in one short paragraph:
 
-> I'll extract design tokens for {client}. Sources: {website}, {figmaCount} Figma file(s){, plus N pages: ...}. This will populate `.brand/tokens/colors.md`, `.brand/tokens/typography.md`, `.brand/tokens/spacing.md`, and `.brand/tokens/surfaces.md`. Estimated time: 2–4 minutes. Continue?
+> I'll extract design tokens for {brand}. Sources: {website}, {figmaCount} Figma file(s){, plus N pages: ...}. This will populate `.brand/tokens/colors.md`, `.brand/tokens/typography.md`, `.brand/tokens/spacing.md`, and `.brand/tokens/surfaces.md`. Estimated time: 2–4 minutes. Continue?
 
 If they decline, stop. Don't proceed without explicit confirmation.
 
@@ -897,7 +897,7 @@ Build the stage payload from what just ran. Pass via stdin:
 cat <<'JSON' | brand-cli emit-manifest
 {
   "tier": "{tier}",
-  "client": "{client}",
+  "client": "{brand}",
   "stages": {
     "1_figma":     { "ran": <bool>, "wrote": [<paths>], "reason": "<if skipped>",
                      "fallback_decision": "<none|DOWNGRADE|SKIP>",
@@ -936,7 +936,7 @@ The non-derivable fields the SKILL must set itself (manifest schema `version: "2
 - `version`: `"2"` (literal — schema enforces a const)
 - `generated_at`: ISO-8601 datetime (e.g. `"2026-06-13T15:30:00Z"`)
 - `generator`: `brand-extract-skill@<plugin-version>`
-- `tier`, `client`: from `.brandrc.yaml`
+- `tier`: from `.brandrc.yaml`'s `tier`. `client` (the manifest field name): from `.brandrc.yaml`'s `brand` (or its deprecated alias `client`). The manifest field name stays `client` for v2 back-compat; only the brandrc UX surface was renamed.
 - `stages`: per-stage object keyed by stage key (`1_figma` … `8_brand_md`, no `7_*`). Every entry has `ran` (bool) and `fallback_decision` (one of `"none" | "DOWNGRADE" | "SKIP" | "HALT"`). When `ran: true`, also include `chain_entry_used: { kind, name, quality_label }`. When `fallback_decision: "SKIP"`, set `chain_entry_used: null`. Always include `required_dependencies` (names from the contract chain marked `quality_label: "full"`) and `available_dependencies` (names you detected as available in §0.5). Stage-specific extras (`wrote`, `samples`, `confidence`, `sources`, `active`) are unchanged from `version: "1"`.
 - `dependencies`: object keyed by dependency name (must match a name in `schema/mcp-fallback-contract.json` `dependencies` — typos hard-reject the manifest at validation). Each entry has `kind` (must equal the contract's `kind` for that name), `available` (bool), `used_by` (array of stage keys that consumed this dependency). For `user_artifact` entries, also include `expected_path_glob` mirroring the contract.
 - `files`: object keyed by relative path under `.brand/`, with each entry `{ "status": "<enum>", "bytes": <integer> }` (and an optional `"note": "<reason>"` for `defaults`/`partial`). Apply the same content-scan logic the CLI uses — placeholder marker, frontmatter inspection, body length — to assign one of `complete | partial | placeholder | missing | defaults`. Include every file under `.brand/`, not just the ones listed in `file_overrides`.

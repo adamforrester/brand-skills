@@ -31,7 +31,7 @@ program
   .option('--brand <name>', 'Brand name (non-interactive when set)')
   .option('--client <name>', 'Deprecated alias of --brand; will be removed in 2.0')
   .option('--asset-dir <path>', 'Directory to create for brand assets (default: ./assets)')
-  .option('--mode <mode>', 'standard | pitch | comprehensive', 'standard')
+  .option('--mode <mode>', 'standard | public-sources-only | comprehensive (pitch is a deprecated alias of public-sources-only)', 'standard')
   .option('--force', 'Overwrite existing .brand/, brand.md, design.md without prompting')
   .option('--json', 'Output results as JSON')
   .action(initCommand);
