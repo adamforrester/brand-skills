@@ -756,6 +756,39 @@ If `brand-cli` is not installed, fall back to building `design.md` inline: read 
 
 After regeneration, verify the file is no longer the placeholder by checking that the frontmatter contains at least one populated token map.
 
+### 8a. Also write `style-guide.html`
+
+`brand-cli refresh-design` writes a second project-root artifact alongside `design.md`: `style-guide.html`, a single self-contained HTML synthesis of `.brand/` aimed at designers / PMs / stakeholders who want to scan the brand visually rather than read through the markdown. The CLI command produces both files in one run; no separate command, no flag.
+
+If `brand-cli` is installed (the recommended path), the second write happens automatically — no additional Bash invocation needed. Confirm both files exist after `refresh-design`:
+
+```bash
+ls design.md style-guide.html
+```
+
+If `brand-cli` is **not** installed, build `style-guide.html` inline using the `Write` tool. The canonical implementation lives at `cli/src/utils/style-guide-generator.js` in the brand-skills repo; mirror its output exactly for byte-identical parity.
+
+**Section order (top to bottom):**
+
+1. Active-conflicts banner — only when `.brand/conflicts.md` has at least one entry under `## Active Conflicts` (count `### ` H3 headings or top-level `- ` bullets). Banner literal: `<p class="banner">⚠ N active conflicts — see <code>conflicts.md</code></p>`. Suppress when count is zero.
+2. Brand identity header — `<h1>${brand}</h1>` followed by `<p class="subtitle">${first paragraph from .brand/overview.md}</p>`. When `overview.md` is missing or only has the placeholder HTML comment, render the subtitle as `<p class="subtitle callout">No brand identity captured yet. Run /brand-context:extract.</p>`.
+3. Colors — `<h2>Colors</h2>` plus a swatch grid grouped by token name prefix (e.g. `primary-100`, `primary-300`, `primary-500` group under `primary`; tokens with no hyphen group under `other`). Each swatch: `<div class="swatch"><div class="swatch-block" style="background: ${value}"></div><span class="swatch-name">${name}</span><span class="swatch-value">${value}</span></div>`. When `tokens/colors.md` frontmatter is empty or all-commented, render `<p class="callout">No colors extracted yet. Run /brand-context:extract.</p>`.
+4. Typography — `<h2>Typography</h2>` plus one row per typography token: `<div class="type-row"><span style="font-family: ${fontFamily}; font-size: ${fontSize}; font-weight: ${fontWeight}; line-height: ${lineHeight}">The quick brown fox jumps over the lazy dog.</span><span class="type-row-meta">${name} · ${fontSize} / ${fontWeight} · ${fontFamily}</span></div>`. Empty-state callout when `tokens/typography.md` frontmatter is empty.
+5. Spacing — `<h2>Spacing</h2>` plus one row per spacing token: `<div class="spacing-row"><div class="spacing-bar" style="width: ${minOf(parsedPx, 400)}px"></div><span class="spacing-meta">${name} · ${value}</span></div>`. **Silent skip** the entire section when the frontmatter has no real values (no heading, no callout).
+6. Surfaces — `<h2>Surfaces</h2>` with two grids when populated: a `Rounded` group applying `border-radius: ${value}` to each sample, and an `Elevation` group applying `box-shadow: ${value}` to each sample. **Silent skip** when both `rounded:` and `elevation:` are empty.
+7. Voice — `<h2>Voice</h2>` plus up to three `<blockquote>` elements pulled from the markdown blockquotes inside `.brand/voice.md`'s `## Observed Voice (live channels)` section, in document order. **Silent skip** when the section is a stub or contains zero blockquotes.
+8. Footer — always renders. Three short paragraphs: generation timestamp (use `new Date().toISOString()` at write time), `Source: .brand/ directory; regenerate with brand-cli refresh-design.`, and the font-loading caveat from spec §2h.
+
+**Page chrome.** Wrap the body in `<main class="page">…</main>` and ship a single `<style>` block in `<head>` with the chrome CSS. The chrome is **brand-agnostic**: `system-ui` font stack, `#fafafa` background, `#0066cc` accent, `1px solid #e5e5e5` borders, `960px` max-width. **Do not** pull values from `.brand/tokens/colors.md` or `tokens/typography.md` for the wrapper — brand values appear only in the content samples.
+
+**Self-contained constraint.** The output must be a single HTML5 document: starts with `<!DOCTYPE html>`, has exactly one `<style>` block in `<head>`, has zero `<script>` tags, has zero `<link rel="stylesheet">` and zero external `<script src=...>`. No fonts loaded over the network; declared `fontFamily` values are used as-is and degrade to system fonts when absent.
+
+**Escape user-supplied content.** Brand name, token names, token values, voice quotes, and overview prose all flow through `escapeHtml` before being embedded in the output. Replace `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;`. For values that land in inline `style="…"` attributes (color swatch backgrounds, typography font-* properties, surface border-radius / box-shadow), additionally strip CSS-significant characters (`;`, `:`, `{`, `}`, `<`, `>`, `\n`, `\r`) before HTML-escaping — `escapeHtml` does not prevent CSS injection via semicolons.
+
+**Empty-state contract.** The file is always written, even on a fresh `brand-cli init` project. Sections without source data fall back to either an empty-state callout (identity, colors, typography) or a silent skip (spacing, surfaces, voice). The active-conflicts banner is always silent-suppressed when no Active Conflicts exist.
+
+After regeneration, verify the HTML is valid (it begins with `<!DOCTYPE html>` and ends with `</html>`) and contains the brand name in the `<h1>`.
+
 ## 9. Stage 5 — Conflict detection (`conflicts.md`)
 
 Reconcile what Stages 1–4 surfaced. Three things land in `.brand/conflicts.md`:
