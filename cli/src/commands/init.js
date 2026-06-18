@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { stringify as yamlStringify } from 'yaml';
 import { generateDesignMd } from '../utils/design-md-generator.js';
+import { generateStyleGuide } from '../utils/style-guide-generator.js';
 import { generateBrandContext } from '../utils/brand-context-generator.js';
 import { warnDeprecated } from '../utils/deprecations.js';
 
@@ -122,7 +123,7 @@ export async function initCommand(opts) {
   results.brand = answers.brand;
 
   // Detect existing files
-  const existing = ['.brand', '.brandrc.yaml', 'brand.md', 'design.md'].filter(f => existsSync(join(projectDir, f)));
+  const existing = ['.brand', '.brandrc.yaml', 'brand.md', 'design.md', 'style-guide.html'].filter(f => existsSync(join(projectDir, f)));
   if (existing.length > 0 && !opts.force) {
     console.log(chalk.yellow('  Existing files detected:'));
     for (const f of existing) console.log(chalk.yellow(`    - ${f}`));
@@ -171,7 +172,13 @@ export async function initCommand(opts) {
   console.log(chalk.green('✓ design.md (design.md spec)'));
   results.created.push('design.md');
 
-  // 5. asset directory (default ./assets, override via --asset-dir or sources.asset_dir).
+  // 5. style-guide.html (sibling artifact, same overwrite policy as design.md)
+  const now = new Date().toISOString();
+  writeFileSync(join(projectDir, 'style-guide.html'), generateStyleGuide(brandDir, answers.brand, now), 'utf-8');
+  console.log(chalk.green('✓ style-guide.html'));
+  results.created.push('style-guide.html');
+
+  // 6. asset directory (default ./assets, override via --asset-dir or sources.asset_dir).
   // Records the chosen path on .brandrc.yaml's sources.asset_dir so the SKILL's Stage 0
   // scan honors the override on subsequent runs.
   // Normalize a leading `./` from --asset-dir input so the path renders cleanly
