@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-18 — Visual style guide merged to `main` at `c29ba08` (`--no-ff` from `feat/visual-style-guide`; feature branch preserved on origin). First real-brand tryout (Wendy's: order.wendys.com + Fresh DS Foundations Figma + 4 PDFs) revealed three SKILL-prose bugs: stale `style-guide.html` not regenerated post-extract; conflict-resolution walkthrough never triggered; URL collection UX is awkward. Filed as R1 / R2 / R3 in Active backlog below.
+**Last updated:** 2026-06-20 — R1 (SKILL §10c trigger for end-of-pipeline `brand-cli refresh-design`) merged to `main` at `2f7fab3` (`--no-ff` from `feat/skill-refresh-design-final`; feature branch preserved on origin). Tests 154 → 156 (+2 parity assertions). R2 (conflict-resolution walkthrough gate) and R3 (source-collection UX rewrite) remain in Active backlog.
 
 ---
 
@@ -97,6 +97,19 @@ Progress: [2026-06-16-de-xd-cleanup-progress.md](superpowers/plans/2026-06-16-de
 
 ---
 
+### R1 — SKILL §10c triggers `brand-cli refresh-design` at end of pipeline ✅
+**Output:** branch `feat/skill-refresh-design-final` merged to `main` via `--no-ff` local merge commit `2f7fab3` (no PR — feature branch preserved on origin).
+
+What landed:
+- New SKILL section `§10c Final design-surface refresh (required — do not skip)` between `§10b` (manifest emission) and `§11` (Final summary). Calls `brand-cli refresh-design` once more after Stage 5 conflict resolution + Stage 8 `brand.md` refresh so `style-guide.html`'s active-conflicts banner reflects post-walkthrough state.
+- Forward-pointer note in `§8` previewing the second pass so a future reader can't collapse the two regen passes into one and reintroduce the bug.
+- Two opportunistic prose cleanups in the same diff: `§10` closing line ("Stages 7 and 8" — there is no Stage 7) rewrote to point at `§10b → §10c`; `§11` Files-written bullet's `(comprehensive tier)` parenthetical (residue from pre-de-XD) replaced with `(when sources.design_system_repo is set)` and `style-guide.html` added to the list.
+- Two parity-test assertions in `cli/test/unit/skill-scope-parity.test.js`: `§10c` header + refresh-design/style-guide.html proximity + "required, do not skip" wording, AND a `§8`-section-scoped check for the forward-pointer (tightened post-review so removing the note actually fails the assertion).
+
+Test delta: 154 → 156 (+2). No schema changes, no new CLI surface, no new generator code. Pure SKILL-prose fix.
+
+Closes the first of three SKILL-prose bugs surfaced by the Wendy's tryout.
+
 ### Visual style guide (`style-guide.html` synthesis artifact) ✅
 **Output:** branch `feat/visual-style-guide` merged to `main` via `--no-ff` local merge commit `c29ba08` (no PR — feature branch preserved on origin).
 
@@ -123,18 +136,6 @@ Plan: [2026-06-18-visual-style-guide.md](superpowers/plans/2026-06-18-visual-sty
 ### Pending — first real-brand tryout findings
 
 These three items came out of the first real-brand `/brand-context:extract` run (Wendy's: `order.wendys.com` + `Fresh-DS-Foundations` Figma + 4 PDFs in `./assets/`, on 2026-06-18 in `~/Documents/brand-tryout/`). All three are SKILL-prose fixes — no schema changes, no new CLI surface, no new generator code. Run produced rich `.brand/` content (12 files, 73% standard-tier completeness, 6 conflicts logged), so the underlying pipeline works; these fixes tighten the post-extraction UX.
-
-#### R1 — SKILL §8 must call `brand-cli refresh-design` at end of extract (HIGH)
-
-**Symptom:** Wendy's tryout regenerated `design.md` (34 KB, populated) and `brand.md` (933 B, populated) at the end of extraction, but `style-guide.html` stayed at 3,741 B (the empty-state file from `brand-cli init`). Practitioner had to manually run `brand-cli refresh-design` post-extract to populate the third artifact.
-
-**Root cause:** SKILL §8 (`Regenerate design.md`) and §10 (`Regenerate brand.md`) tell the skill to regenerate those two files independently, but never tell it to invoke `brand-cli refresh-design` (which produces all three at once). The skill probably did inline regeneration of design.md/brand.md and never picked up the new style-guide.html sibling.
-
-**Fix:** SKILL §8 final step should explicitly say "after Stage 5 conflict resolution, run `brand-cli refresh-design` via Bash — this regenerates `design.md` AND `style-guide.html` in one pass." When `brand-cli` is absent, the inline-fallback path needs to also write style-guide.html (the SKILL §8a fallback prose already documents how — just need the trigger).
-
-**Why HIGH:** The bug visibly breaks the user's first impression of the visual style guide feature — they see the placeholder, not the real synthesis.
-
-**Effort:** ~30 min, one task. Branch suggestion: `feat/skill-refresh-design-final`. Probably a parity-test addition asserting SKILL §8 mentions both `brand-cli refresh-design` AND `style-guide.html`.
 
 #### R2 — SKILL §8 must pause for practitioner conflict resolution (MEDIUM)
 
@@ -205,7 +206,7 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 
 **Sequence (recommended) — remaining active backlog only:**
 
-R1 → R2 → R3, in that order. R1 is the smallest fix to a real bug a user just hit; R2 is the next most user-visible UX gap; R3 is the bigger conversational rewrite. Each is a self-contained SKILL-prose change (no schema, no new code) so each lands on its own short branch with one parity test. After all three land, candidates C2 and C8 remain most fileable.
+R2 → R3, in that order. R1 landed at `2f7fab3`. R2 is the next most user-visible UX gap; R3 is the bigger conversational rewrite. Each is a self-contained SKILL-prose change (no schema, no new code) so each lands on its own short branch with one parity test. After R2 and R3 land, candidates C2 and C8 remain most fileable.
 
 **Cross-task contracts to preserve:**
 - **#2 ↔ #6 status vocabulary:** must match exactly. `complete | partial | placeholder | missing | defaults`.
