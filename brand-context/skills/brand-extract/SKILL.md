@@ -860,7 +860,7 @@ Before writing `conflicts.md`, present each detected item to the practitioner on
 
 > Stage 5 detected **{N} conflicts**, **{M} intentional-adaptation candidates**, and **{K} auto-resolutions** to confirm. I'll walk through them one at a time — for each, you can **Resolve** (accept the recommended resolution), **Override** (provide your own rationale), **Mark intentional** (it's not really a conflict), or **Skip for now** (leave as `unresolved`). After the walkthrough I'll write `conflicts.md` and the rest of the pipeline runs.
 
-If `N + M + K == 0`, post `_No active conflicts detected — skipping walkthrough._` and jump to §8e to write the empty-state file. Otherwise the walkthrough runs in three passes, in this order:
+If `N + M + K == 0`, post `_No active conflicts detected — skipping walkthrough._` as a chat message and jump to §8e to write the empty-state file. The on-disk literal §8e writes for the Active Conflicts section in that case is `_No active conflicts as of {today}._` (per `schema/brand/conflicts.schema.md` §"Active Conflicts") — not the chat-message string. Otherwise the walkthrough runs in three passes, in this order:
 
 **Pass 1 — Conflicts (one at a time).** For each detected `severity: token-level | voice-level | structural` conflict:
 
@@ -878,7 +878,7 @@ If `N + M + K == 0`, post `_No active conflicts detected — skipping walkthroug
 2. Ask: `Confirm intentional / It's actually a conflict / Skip`.
 3. Capture:
    - **Confirm intentional** → ask for the rationale; write to Intentional Adaptations with `Date documented: {today}`.
-   - **It's actually a conflict** → demote into the conflicts list with status `unresolved` and surface it in Pass 1 retroactively (or simply add to the unresolved set if Pass 1 has already completed — don't re-prompt).
+   - **It's actually a conflict** → add to the unresolved set with status `unresolved`. Don't re-prompt — Pass 1 has already completed at this point, and the practitioner can resolve the demoted entry in a later run.
    - **Skip** → drop silently; the next run will re-detect.
 
 **Pass 3 — Auto-resolutions.** For each previously-flagged `unresolved` entry that no longer reproduces (i.e., the divergence wasn't detected this run):
@@ -890,7 +890,7 @@ If `N + M + K == 0`, post `_No active conflicts detected — skipping walkthroug
    - **Re-add as active** → keep as `unresolved` in Active Conflicts.
    - **Skip** → keep as `unresolved`; the next run will re-evaluate.
 
-**Walkthrough discipline.** Keep prompts crisp and **one item at a time** — never batch-prompt. The four-option set per pass is fixed (`Resolve / Override / Mark intentional / Skip for now` for conflicts; `Confirm intentional / It's actually a conflict / Skip` for candidates; `Confirm auto-resolved / Re-add as active / Skip` for auto-resolutions); paraphrase the labels but keep the four / three / three semantic choices intact. After the last item, post a one-line confirmation (`Walkthrough complete: X resolved, Y intentional, Z skipped, W auto-resolved.`) so the practitioner sees the gate cleared, then proceed to §8e.
+**Walkthrough discipline.** Keep prompts crisp and **one item at a time** — never batch-prompt. The option sets per pass are fixed (`Resolve / Override / Mark intentional / Skip for now` for conflicts; `Confirm intentional / It's actually a conflict / Skip` for candidates; `Confirm auto-resolved / Re-add as active / Skip` for auto-resolutions); paraphrase the labels but keep the four / three / three semantic choices intact. After the last item, post a one-line confirmation (`Walkthrough complete: X resolved, Y intentional, Z skipped, W auto-resolved.`) so the practitioner sees the gate cleared, then proceed to §8e. `X resolved` folds Resolve and Override together (both produce `resolved-with-rationale` entries); `W auto-resolved` counts only Pass 3 confirmations.
 
 **If the practitioner aborts mid-walkthrough** (e.g., says "stop" or "I'll resolve these later"), capture whatever responses landed so far, treat all remaining items as "Skip for now," post the confirmation line with the partial counts, and proceed. Don't leave the pipeline stuck.
 
@@ -902,7 +902,7 @@ Read the existing `conflicts.md` first. Build the new file as:
 
 1. **Header** — regenerate (date stamp, skill provenance)
 2. **Source Authority Hierarchy** — preserve any practitioner overrides; otherwise regenerate the standard table
-3. **Active Conflicts** — start fresh; populate from §8d's in-memory state: items with status `unresolved` (Skip for now) and items with status `resolved-with-rationale` (Resolve, Override). Items the practitioner re-classified as **Mark intentional** are NOT written here — they land in section 4 instead.
+3. **Active Conflicts** — start fresh; populate from §8d's in-memory state: items with status `unresolved` (Skip for now) and items with status `resolved-with-rationale` (Resolve, Override). Items the practitioner re-classified as **Mark intentional** are NOT written here — they land in section 4 instead. If §8d reported zero items (`N + M + K == 0`), write the literal `_No active conflicts as of {today}._` per `schema/brand/conflicts.schema.md` §"Active Conflicts" — not the chat-message string §8d posted.
 4. **Intentional Adaptations** — preserve all existing entries; append newly-confirmed ones from Pass 2 of the walkthrough AND items re-classified from Pass 1's "Mark intentional" choice
 5. **Resolved Conflicts Archive** — preserve all existing entries; append confirmed auto-resolutions from Pass 3 of the walkthrough
 

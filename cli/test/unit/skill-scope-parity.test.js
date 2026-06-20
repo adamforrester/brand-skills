@@ -202,13 +202,19 @@ test('SKILL §8d conflict walkthrough is a hard pipeline gate (R2)', () => {
     '§8d must declare itself a hard pipeline gate that blocks summary emission'
   );
 
-  // 2. The four-option set for conflicts must be visible verbatim in the prose so
-  //    the agent renders the same UI every run. Paraphrasing is allowed in
-  //    practice, but the canonical labels must appear in the SKILL itself.
-  for (const label of ['Resolve', 'Override', 'Mark intentional', 'Skip for now']) {
+  // 2. The full label set across all three passes must be visible verbatim in
+  //    the prose so the agent renders the same UI every run. Paraphrasing is
+  //    allowed in practice, but the canonical labels must appear in the SKILL
+  //    itself. The §8d "Walkthrough discipline" block calls these out as
+  //    "the four / three / three semantic choices" — guarding all ten matches
+  //    that contract.
+  const pass1Labels = ['Resolve', 'Override', 'Mark intentional', 'Skip for now'];
+  const pass2Labels = ['Confirm intentional', "It's actually a conflict", 'Skip'];
+  const pass3Labels = ['Confirm auto-resolved', 'Re-add as active', 'Skip'];
+  for (const label of [...pass1Labels, ...pass2Labels, ...pass3Labels]) {
     assert.ok(
       section8d.includes(label),
-      `§8d must include the canonical conflict-walkthrough label "${label}"`
+      `§8d must include the canonical walkthrough label "${label}"`
     );
   }
 
