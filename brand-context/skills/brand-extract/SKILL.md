@@ -756,6 +756,8 @@ If `brand-cli` is not installed, fall back to building `design.md` inline: read 
 
 After regeneration, verify the file is no longer the placeholder by checking that the frontmatter contains at least one populated token map.
 
+> **Note — this regen runs twice in the pipeline.** The first pass here picks up the token files just written in Stages 1–4. A second, mandatory pass runs at the end of the pipeline (`§10c`, after Stage 5 conflict resolution and Stage 8 `brand.md` refresh) so `style-guide.html`'s active-conflicts banner reflects post-walkthrough state and any token edits made during conflict resolution flow into both artifacts. Skip the §10c pass and the practitioner sees a stale `style-guide.html` — the bug the trigger exists to prevent.
+
 ### Also write `style-guide.html` (visual style guide)
 
 `brand-cli refresh-design` writes a second project-root artifact alongside `design.md`: `style-guide.html`, a single self-contained HTML synthesis of `.brand/` aimed at designers / PMs / stakeholders who want to scan the brand visually rather than read through the markdown. The CLI command produces both files in one run; no separate command, no flag.
@@ -916,7 +918,7 @@ That writes the same content to both `brand.md` and `.impeccable.md`. Detect Imp
 
 **If `brand-cli` is not installed,** fall back to building the file inline: read `.brand/overview.md` and condense it to ~200–400 tokens of dense brand context, with pointers (`See \`.brand/voice.md\` for full voice rules`) to deeper files. Density matters — agents load this file on every interaction.
 
-After Stages 7 (design.md) and 8 (brand.md) run, the project's interop surface reflects the latest extraction.
+After Stage 8 (`brand.md`) runs, control flows to `§10b` (manifest emission) and then `§10c` (final `refresh-design` pass that regenerates `design.md` AND `style-guide.html` together). Only after `§10c` is the project's interop surface fully consistent with the post-conflict-resolution `.brand/` state.
 
 ## 10b. Emit `.brand/manifest.json`
 
@@ -974,6 +976,26 @@ The non-derivable fields the SKILL must set itself (manifest schema `version: "2
 - `dependencies`: object keyed by dependency name (must match a name in `schema/mcp-fallback-contract.json` `dependencies` — typos hard-reject the manifest at validation). Each entry has `kind` (must equal the contract's `kind` for that name), `available` (bool), `used_by` (array of stage keys that consumed this dependency). For `user_artifact` entries, also include `expected_path_glob` mirroring the contract.
 - `files`: object keyed by relative path under `.brand/`, with each entry `{ "status": "<enum>", "bytes": <integer> }` (and an optional `"note": "<reason>"` for `defaults`/`partial`). Apply the same content-scan logic the CLI uses — placeholder marker, frontmatter inspection, body length — to assign one of `complete | partial | placeholder | missing | defaults`. Include every file under `.brand/`, not just the ones listed in `file_overrides`.
 
+## 10c. Final design-surface refresh (required — do not skip)
+
+After Stage 5 (`conflicts.md` walkthrough) and Stage 8 (`brand.md` refresh) complete, run `brand-cli refresh-design` once more to regenerate **both** `design.md` AND `style-guide.html` from the now-final `.brand/` state. This second pass is required, not optional — without it the practitioner sees a stale `style-guide.html` (the empty-state file from `brand-cli init` if they never edited it, or the §8 first-pass output that pre-dates the conflict walkthrough).
+
+CLI path:
+
+```bash
+brand-cli refresh-design
+```
+
+Run via the `Bash` tool. The command reads `.brand/` and overwrites `design.md` AND `style-guide.html` in one pass — both files always regenerate together; there is no flag to suppress one. After it runs, confirm both artifacts are current:
+
+```bash
+ls design.md style-guide.html
+```
+
+**If `brand-cli` is not installed,** repeat both inline fallbacks: §8 (regenerate `design.md` from frontmatter) AND §8 "Also write `style-guide.html`" (regenerate the visual style guide via the canonical generator at `cli/src/utils/style-guide-generator.js`, byte-identical to the CLI). Both must run; skipping `style-guide.html` is the regression this stage exists to prevent.
+
+After this pass, the project root has three current artifacts: `design.md`, `style-guide.html`, and `brand.md`. The Final summary's "Files written" list reflects all three.
+
 ## 11. Final summary
 
 Post a message to the user with:
@@ -983,7 +1005,7 @@ Post a message to the user with:
 - **Overview sources:** brand-guide PDF (yes/no, page count read), reference screenshots (count), web screenshots (count)
 - **Conflicts surfaced:** count of new `unresolved` conflicts, intentional adaptations confirmed, auto-resolutions
 - **Sources used (overall):** Figma, web pages, social, app stores, PDFs, screenshots
-- **Files written:** four token files + `voice.md` + `overview.md` + `components/*.md` (comprehensive tier) + `conflicts.md` + `design.md` + `brand.md`
+- **Files written:** four token files + `voice.md` + `overview.md` + `components/*.md` (when `sources.design_system_repo` is set) + `conflicts.md` + `design.md` + `style-guide.html` + `brand.md`
 - **Files skipped:** if any (with reason)
 - **Stage status:** Stage 1 / 2 / 3 / 4 / 5 / 6 / 8 — ran / skipped / partial / stub
 - **What's next:** "Phase 8 is the complete pipeline. Run `/brand-context:check` to see brand-package completeness and any remaining gaps."

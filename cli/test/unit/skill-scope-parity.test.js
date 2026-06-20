@@ -137,6 +137,46 @@ test('SKILL §0b honors sources.asset_dir override (de-XD #14)', () => {
   );
 });
 
+test('SKILL pipeline-final §10c triggers refresh-design after Stage 5 + Stage 8 (R1)', () => {
+  // The bug R1 fixes: extraction wrote design.md and brand.md at the end but left
+  // style-guide.html as the empty-state init artifact. The fix is an explicit final
+  // pass that runs `brand-cli refresh-design` AFTER conflict resolution + brand.md
+  // refresh, regenerating BOTH design.md and style-guide.html from the final state.
+  // These three assertions guard the trigger against prose drift.
+
+  // 1. The §10c section header exists.
+  assert.ok(
+    /## 10c\. Final design-surface refresh/.test(skill),
+    'SKILL.md must contain a `## 10c. Final design-surface refresh` section header'
+  );
+  // 2. The §10c block names refresh-design AND style-guide.html in proximity, so the
+  //    trigger pairing is visible without scanning the whole SKILL.
+  const sectionMatch = skill.match(/## 10c\. Final design-surface refresh[\s\S]*?(?=^## )/m);
+  assert.ok(sectionMatch, '§10c section must be locatable for the proximity check');
+  const sectionText = sectionMatch[0];
+  assert.ok(
+    sectionText.includes('brand-cli refresh-design') && sectionText.includes('style-guide.html'),
+    '§10c must mention BOTH `brand-cli refresh-design` AND `style-guide.html` (the trigger pairing)'
+  );
+  // 3. The block is explicitly required (so the SKILL doesn't treat it as optional).
+  assert.ok(
+    /required.*do not skip|required, not optional/i.test(sectionText),
+    '§10c must mark itself as required (matches the §8 design.md regen wording precedent)'
+  );
+});
+
+test('SKILL §8 first-pass design.md regen forward-points at the §10c second pass (R1)', () => {
+  // §8 regenerates design.md after Stages 1–4 token writes — but conflicts.md hasn't
+  // been written yet at that point, so style-guide.html's active-conflicts banner
+  // would reflect placeholder state. The forward-pointer note documents that §10c
+  // re-runs the regen post-walkthrough. Without this signpost, a future reader may
+  // collapse the two passes into one and reintroduce the bug.
+  assert.ok(
+    /this regen runs twice in the pipeline|second.*mandatory pass|§10c/i.test(skill),
+    'SKILL.md §8 must signpost that refresh-design runs again at §10c (post-Stage 5)'
+  );
+});
+
 test('SKILL Stage 8 documents the style-guide.html inline-fallback (visual-style-guide #1)', () => {
   // Three load-bearing assertions:
   //   1. SKILL.md mentions style-guide.html somewhere in Stage 8 prose.
