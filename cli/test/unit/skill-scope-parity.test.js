@@ -246,6 +246,55 @@ test('SKILL §8e write policy mirrors §8d Mark-intentional re-classification (R
   );
 });
 
+test('SKILL §0d uses consolidated multi-line paste prompts with auto-classification (R3)', () => {
+  // The Wendy's tryout (2026-06-18) hit two friction points with the old §0d:
+  //   (a) single-URL pickers blocked multiple URLs of the same type;
+  //   (b) sequential per-source prompts felt slow when everything was ready upfront.
+  // R3 rewrote §0d as five consolidated multi-line paste prompts. These assertions
+  // pin the load-bearing contract so prose drift can't silently revert to the
+  // one-question-per-source-type flow.
+  const sectionMatch = skill.match(/### 0d\. Ask for non-file sources[\s\S]*?(?=^### 0e\. )/m);
+  assert.ok(sectionMatch, '§0d section must be locatable for the multi-paste-prompt check');
+  const section0d = sectionMatch[0];
+
+  // 1. The "one per line" multi-line paste affordance must appear at least three
+  //    times — once each for the three categories where multiple URLs are valid
+  //    (web, figma, social). If any of those collapses back to single-URL, this
+  //    fails.
+  const onePerLineCount = (section0d.match(/one per line/gi) || []).length;
+  assert.ok(
+    onePerLineCount >= 3,
+    `§0d must contain at least 3 "one per line" multi-line prompts (got ${onePerLineCount})`
+  );
+
+  // 2. Auto-classification by domain is the second load-bearing change. The
+  //    domain-rule list must name twitter.com, x.com, instagram.com, linkedin.com,
+  //    facebook.com, and tiktok.com for social, and apps.apple.com + play.google.com
+  //    for app stores. Without these names the SKILL prose has lost the routing
+  //    contract.
+  for (const host of ['twitter.com', 'x.com', 'instagram.com', 'linkedin.com', 'facebook.com', 'tiktok.com', 'apps.apple.com', 'play.google.com']) {
+    assert.ok(
+      section0d.includes(host),
+      `§0d must reference the auto-classification hostname "${host}"`
+    );
+  }
+
+  // 3. The conversational fallback must remain so practitioners who answer with
+  //    prose instead of a paste aren't blocked.
+  assert.ok(
+    /[Cc]onversational fallback/.test(section0d),
+    '§0d must keep the conversational-fallback path (prose answers, not just paste)'
+  );
+
+  // 4. Web URL prompt must split the first URL into sources.website and the rest
+  //    into sources.website_pages — the schema-aligned shape that #4 (scope.json)
+  //    set up. Drift here would re-introduce the single-URL friction.
+  assert.ok(
+    section0d.includes('sources.website') && section0d.includes('sources.website_pages'),
+    '§0d must reference both sources.website (primary) and sources.website_pages (additional) — the schema-aligned multi-page shape'
+  );
+});
+
 test('SKILL Stage 8 documents the style-guide.html inline-fallback (visual-style-guide #1)', () => {
   // Three load-bearing assertions:
   //   1. SKILL.md mentions style-guide.html somewhere in Stage 8 prose.
