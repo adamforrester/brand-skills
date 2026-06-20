@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-20 — R1 (SKILL §10c trigger for end-of-pipeline `brand-cli refresh-design`) merged to `main` at `2f7fab3` (`--no-ff` from `feat/skill-refresh-design-final`; feature branch preserved on origin). Tests 154 → 156 (+2 parity assertions). R2 (conflict-resolution walkthrough gate) and R3 (source-collection UX rewrite) remain in Active backlog.
+**Last updated:** 2026-06-20 — R2 (SKILL §8d hard pipeline gate for the conflict-resolution walkthrough) merged to `main` at `2b8dde1` (`--no-ff` from `feat/skill-conflict-walkthrough`; feature branch preserved on origin). Tests 156 → 158 (+2 parity assertions). R1 landed earlier the same day at `2f7fab3`. R3 (source-collection UX rewrite) remains in Active backlog.
 
 ---
 
@@ -97,6 +97,29 @@ Progress: [2026-06-16-de-xd-cleanup-progress.md](superpowers/plans/2026-06-16-de
 
 ---
 
+### R2 — SKILL §8d conflict-resolution walkthrough is a hard pipeline gate ✅
+**Output:** branch `feat/skill-conflict-walkthrough` merged to `main` via `--no-ff` local merge commit `2b8dde1` (no PR — feature branch preserved on origin).
+
+What landed:
+- Rewrite `§8d` as a "hard pipeline gate" with explicit blocking language ("must not advance to §8e/§10b/§10c/§11 until the walkthrough has run") and an inline note about the Wendy's bug so the failure mode is preserved as institutional memory.
+- Pre-walkthrough framing message that surfaces the N/M/K counts and the four-option set before the first prompt.
+- Three explicit passes, each with a fixed option set and clear status-enum mappings:
+  - **Pass 1 — Conflicts:** `Resolve / Override / Mark intentional / Skip for now`. Resolve and Override produce `resolved-with-rationale` entries that stay in Active Conflicts (per `schema/brand/conflicts.schema.md` §"Behavior on re-run"); Mark intentional moves the entry to Intentional Adaptations.
+  - **Pass 2 — Intentional adaptation candidates:** `Confirm intentional / It's actually a conflict / Skip`.
+  - **Pass 3 — Auto-resolutions:** `Confirm auto-resolved / Re-add as active / Skip`. Only Pass 3 confirmations move to the Resolved Conflicts Archive.
+- Post-walkthrough one-line confirmation (`Walkthrough complete: X resolved, Y intentional, Z skipped, W auto-resolved.`) so the practitioner sees the gate cleared. Disambiguates that `X resolved` folds Resolve+Override.
+- Mid-walkthrough abort handling (treat remaining items as Skip for now, post partial counts, proceed) so the pipeline doesn't deadlock.
+- `§8e` "Apply the additive policy" updated to mirror §8d's three passes — Active Conflicts populates from §8d's in-memory state including the Mark-intentional re-classification path; Intentional Adaptations appends from Pass 2 + Pass 1 re-classifications; Resolved Archive appends only from Pass 3 confirmations.
+- `§8e` step 3 also pins the schema's empty-state literal `_No active conflicts as of {today}._` so the chat-message string from §8d isn't accidentally written to disk.
+
+Two parity-test assertions guard against drift:
+- `§8d` gate language ("hard pipeline gate" / "must not advance"), all ten canonical labels across the three passes (4+3+3), one-item-at-a-time discipline, and abort handling.
+- `§8e` mirrors §8d's "Mark intentional" re-classification path.
+
+Test delta: 156 → 158 (+2). No schema changes, no new CLI surface, no new generator code. Pure SKILL-prose fix.
+
+Closes the second of three SKILL-prose bugs surfaced by the Wendy's tryout.
+
 ### R1 — SKILL §10c triggers `brand-cli refresh-design` at end of pipeline ✅
 **Output:** branch `feat/skill-refresh-design-final` merged to `main` via `--no-ff` local merge commit `2f7fab3` (no PR — feature branch preserved on origin).
 
@@ -136,18 +159,6 @@ Plan: [2026-06-18-visual-style-guide.md](superpowers/plans/2026-06-18-visual-sty
 ### Pending — first real-brand tryout findings
 
 These three items came out of the first real-brand `/brand-context:extract` run (Wendy's: `order.wendys.com` + `Fresh-DS-Foundations` Figma + 4 PDFs in `./assets/`, on 2026-06-18 in `~/Documents/brand-tryout/`). All three are SKILL-prose fixes — no schema changes, no new CLI surface, no new generator code. Run produced rich `.brand/` content (12 files, 73% standard-tier completeness, 6 conflicts logged), so the underlying pipeline works; these fixes tighten the post-extraction UX.
-
-#### R2 — SKILL §8 must pause for practitioner conflict resolution (MEDIUM)
-
-**Symptom:** Wendy's tryout logged 6 active conflicts in `.brand/conflicts.md` (3 token-level color disagreements between brand guide / Figma DS / live site, 1 voice/CTA-case disagreement, 1 structural "spacing values not yet sourced," 1 low-impact "wendysFresh barely used"). Skill never prompted the practitioner to triage them — it wrote them all as `unresolved` and moved on to the final summary. Practitioner had to ask "how do I resolve those?" after the run.
-
-**Root cause:** SKILL §8 (Stage 5 conflict detection) describes a "practitioner walkthrough" in prose but doesn't trigger reliably — likely because the conflict-walkthrough section is buried after a long stage and the skill agent treats the final summary as the natural endpoint.
-
-**Fix:** SKILL §8 should have an explicit pre-summary gate — "Before writing the Final Summary, walk the practitioner through Active Conflicts one at a time. For each conflict: present the divergence, the recommended resolution, and ask Resolve / Mark Intentional / Skip-for-now. Move accepted resolutions to ## Resolved Conflicts Archive with a YYYY-MM-DD line. Move intentional adaptations to ## Intentional Adaptations." Pin with a parity test asserting SKILL §8 mentions the walkthrough trigger.
-
-**Why MEDIUM:** Practitioners can resolve conflicts manually by editing `conflicts.md` (the file's structure already supports it — Active / Intentional / Resolved sections). The skill skipping the prompt is a UX gap, not a missing capability.
-
-**Effort:** ~1 hour, one task. Branch suggestion: `feat/skill-conflict-walkthrough`.
 
 #### R3 — SKILL §0d source-collection UX rewrite (MEDIUM)
 
@@ -206,7 +217,7 @@ Held to avoid backlog bloat. Re-evaluate after the active backlog clears. From r
 
 **Sequence (recommended) — remaining active backlog only:**
 
-R2 → R3, in that order. R1 landed at `2f7fab3`. R2 is the next most user-visible UX gap; R3 is the bigger conversational rewrite. Each is a self-contained SKILL-prose change (no schema, no new code) so each lands on its own short branch with one parity test. After R2 and R3 land, candidates C2 and C8 remain most fileable.
+R3 next. R1 landed at `2f7fab3`; R2 landed at `2b8dde1`. R3 is the bigger conversational rewrite (consolidated multi-line URL paste + auto-classification by domain). Self-contained SKILL-prose change (no schema, no new code), lands on its own short branch with one parity test. After R3, candidates C2 and C8 remain most fileable.
 
 **Cross-task contracts to preserve:**
 - **#2 ↔ #6 status vocabulary:** must match exactly. `complete | partial | placeholder | missing | defaults`.
