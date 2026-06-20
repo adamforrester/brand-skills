@@ -850,17 +850,49 @@ If the project has a hierarchy override at the top of `conflicts.md`, use that i
 
 The recommended resolution should be one paragraph: which source wins, why, and what the consequence is for the prototype/build.
 
-### 8d. Walk the practitioner through (required interaction)
+### 8d. Walk the practitioner through (required gate — do not skip to summary)
 
-Before writing `conflicts.md`, present each detected item to the practitioner and get explicit input:
+**This is a hard pipeline gate.** Stage 5 must not advance to §8e (write `conflicts.md`), §10b (manifest emission), §10c (final design-surface refresh), or §11 (Final summary) until the walkthrough has run. The Wendy's tryout (2026-06-18) skipped this step — the agent treated the Final summary as the natural endpoint and the practitioner had to ask "how do I resolve those?" after the run. Don't repeat that.
 
-- For each **conflict**: show the title, sources in tension, recommended resolution. Ask: confirm the resolution, override it (and capture rationale), or mark it as `intentional-adaptation` if the practitioner says it's not actually a conflict.
-- For each **intentional adaptation candidate**: confirm it's intentional + capture the rationale.
-- For each conflict that previously existed and no longer reproduces: confirm the auto-resolution and move to the archive.
+Before writing `conflicts.md`, present each detected item to the practitioner one at a time and get explicit input. The walkthrough is interactive in standalone mode; in public-sources-only mode it's bypassed (see §8f), but in every other case it runs.
 
-This is the "structured conflict resolution" practitioners care about — keep the prompts crisp and one item at a time. Do not batch-prompt.
+**Pre-walkthrough framing message.** Before the first item, post a single short framing message so the practitioner knows what's coming and how long it'll take:
 
-If there are zero detected items, skip the walkthrough and write `_No active conflicts as of {date}._`.
+> Stage 5 detected **{N} conflicts**, **{M} intentional-adaptation candidates**, and **{K} auto-resolutions** to confirm. I'll walk through them one at a time — for each, you can **Resolve** (accept the recommended resolution), **Override** (provide your own rationale), **Mark intentional** (it's not really a conflict), or **Skip for now** (leave as `unresolved`). After the walkthrough I'll write `conflicts.md` and the rest of the pipeline runs.
+
+If `N + M + K == 0`, post `_No active conflicts detected — skipping walkthrough._` as a chat message and jump to §8e to write the empty-state file. The on-disk literal §8e writes for the Active Conflicts section in that case is `_No active conflicts as of {today}._` (per `schema/brand/conflicts.schema.md` §"Active Conflicts") — not the chat-message string. Otherwise the walkthrough runs in three passes, in this order:
+
+**Pass 1 — Conflicts (one at a time).** For each detected `severity: token-level | voice-level | structural` conflict:
+
+1. Show the title, sources in tension (with citations), and the recommended resolution from §8c.
+2. Ask: `Resolve / Override / Mark intentional / Skip for now`.
+3. Capture the response into in-memory state for §8e:
+   - **Resolve** → status `resolved-with-rationale`, rationale = the recommended-resolution paragraph, `Date resolved: {today}`. Stays in Active Conflicts (not moved to the archive — per `schema/brand/conflicts.schema.md` §"Behavior on re-run", only auto-resolutions get archived).
+   - **Override** → ask for the practitioner's rationale in their own words; status `resolved-with-rationale`, rationale = their text, `Date resolved: {today}`. Stays in Active Conflicts.
+   - **Mark intentional** → ask for the rationale; the entry is rebuilt as an Intentional Adaptation (per the schema's Intentional Adaptations field list — `What`, `Why intentional`, `Where it applies`, `Date documented: {today}`) and moved to that section.
+   - **Skip for now** → status stays `unresolved`. Practitioner can resolve in a later run.
+
+**Pass 2 — Intentional adaptation candidates.** For each candidate from §8b's "Intentional adaptation candidates" rule (font substitution, palette simplification, tone shift):
+
+1. Show the title and why §8b inferred it was intentional.
+2. Ask: `Confirm intentional / It's actually a conflict / Skip`.
+3. Capture:
+   - **Confirm intentional** → ask for the rationale; write to Intentional Adaptations with `Date documented: {today}`.
+   - **It's actually a conflict** → add to the unresolved set with status `unresolved`. Don't re-prompt — Pass 1 has already completed at this point, and the practitioner can resolve the demoted entry in a later run.
+   - **Skip** → drop silently; the next run will re-detect.
+
+**Pass 3 — Auto-resolutions.** For each previously-flagged `unresolved` entry that no longer reproduces (i.e., the divergence wasn't detected this run):
+
+1. Show the title and the prior resolution context.
+2. Ask: `Confirm auto-resolved / Re-add as active / Skip`.
+3. Capture:
+   - **Confirm auto-resolved** → status `resolved-with-rationale`, rationale = `Auto-resolved: source disagreement no longer reproduces as of {today}.`, move to Resolved Conflicts Archive.
+   - **Re-add as active** → keep as `unresolved` in Active Conflicts.
+   - **Skip** → keep as `unresolved`; the next run will re-evaluate.
+
+**Walkthrough discipline.** Keep prompts crisp and **one item at a time** — never batch-prompt. The option sets per pass are fixed (`Resolve / Override / Mark intentional / Skip for now` for conflicts; `Confirm intentional / It's actually a conflict / Skip` for candidates; `Confirm auto-resolved / Re-add as active / Skip` for auto-resolutions); paraphrase the labels but keep the four / three / three semantic choices intact. After the last item, post a one-line confirmation (`Walkthrough complete: X resolved, Y intentional, Z skipped, W auto-resolved.`) so the practitioner sees the gate cleared, then proceed to §8e. `X resolved` folds Resolve and Override together (both produce `resolved-with-rationale` entries); `W auto-resolved` counts only Pass 3 confirmations.
+
+**If the practitioner aborts mid-walkthrough** (e.g., says "stop" or "I'll resolve these later"), capture whatever responses landed so far, treat all remaining items as "Skip for now," post the confirmation line with the partial counts, and proceed. Don't leave the pipeline stuck.
 
 ### 8e. Apply the additive policy
 
@@ -870,9 +902,9 @@ Read the existing `conflicts.md` first. Build the new file as:
 
 1. **Header** — regenerate (date stamp, skill provenance)
 2. **Source Authority Hierarchy** — preserve any practitioner overrides; otherwise regenerate the standard table
-3. **Active Conflicts** — start fresh; populate with currently-detected `unresolved` items + any practitioner-overridden resolutions captured during the walkthrough
-4. **Intentional Adaptations** — preserve all existing entries; append newly-confirmed ones
-5. **Resolved Conflicts Archive** — preserve all existing entries; append any auto-resolutions detected this run
+3. **Active Conflicts** — start fresh; populate from §8d's in-memory state: items with status `unresolved` (Skip for now) and items with status `resolved-with-rationale` (Resolve, Override). Items the practitioner re-classified as **Mark intentional** are NOT written here — they land in section 4 instead. If §8d reported zero items (`N + M + K == 0`), write the literal `_No active conflicts as of {today}._` per `schema/brand/conflicts.schema.md` §"Active Conflicts" — not the chat-message string §8d posted.
+4. **Intentional Adaptations** — preserve all existing entries; append newly-confirmed ones from Pass 2 of the walkthrough AND items re-classified from Pass 1's "Mark intentional" choice
+5. **Resolved Conflicts Archive** — preserve all existing entries; append confirmed auto-resolutions from Pass 3 of the walkthrough
 
 **Never delete entries from Intentional Adaptations or Resolved Conflicts Archive.** Use the `Edit` tool to surgically update sections, or `Write` to rebuild the file from in-memory state — but verify the diff in either case.
 
