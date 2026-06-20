@@ -293,6 +293,16 @@ test('SKILL §0d uses consolidated multi-line paste prompts with auto-classifica
     section0d.includes('sources.website') && section0d.includes('sources.website_pages'),
     '§0d must reference both sources.website (primary) and sources.website_pages (additional) — the schema-aligned multi-page shape'
   );
+
+  // 5. The pre-fill skip rule must use the "primary key" framing — not "all keys
+  //    pre-filled." Reviewer S1: with scope.json filling only sources.website,
+  //    the old rule would have re-prompted because website_pages was empty.
+  //    The fix is to skip when the primary required key is pre-filled and treat
+  //    multi-URL extras as additive-not-required.
+  assert.ok(
+    /primary key/i.test(section0d) && /additive/i.test(section0d),
+    '§0d must use the "primary key + additive keys" framing for the pre-fill skip rule (S1)'
+  );
 });
 
 test('SKILL Stage 8 documents the style-guide.html inline-fallback (visual-style-guide #1)', () => {
