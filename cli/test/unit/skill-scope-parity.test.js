@@ -171,8 +171,15 @@ test('SKILL §8 first-pass design.md regen forward-points at the §10c second pa
   // would reflect placeholder state. The forward-pointer note documents that §10c
   // re-runs the regen post-walkthrough. Without this signpost, a future reader may
   // collapse the two passes into one and reintroduce the bug.
+  //
+  // Scope the assertion to the §8 section body so deleting the forward-pointer is
+  // actually caught — `§10c` appears in the §10c block itself, so a SKILL-wide
+  // `includes('§10c')` would pass even after the §8 note was removed.
+  const sectionMatch = skill.match(/## 8\. Regenerate design\.md[\s\S]*?(?=^## (?:9|10|10b|10c|11)\. )/m);
+  assert.ok(sectionMatch, 'SKILL.md §8 section must be locatable for the forward-pointer check');
+  const section8 = sectionMatch[0];
   assert.ok(
-    /this regen runs twice in the pipeline|second.*mandatory pass|§10c/i.test(skill),
+    /this regen runs twice in the pipeline|second.*mandatory pass|§10c/i.test(section8),
     'SKILL.md §8 must signpost that refresh-design runs again at §10c (post-Stage 5)'
   );
 });

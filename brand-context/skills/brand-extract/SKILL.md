@@ -756,7 +756,7 @@ If `brand-cli` is not installed, fall back to building `design.md` inline: read 
 
 After regeneration, verify the file is no longer the placeholder by checking that the frontmatter contains at least one populated token map.
 
-> **Note — this regen runs twice in the pipeline.** The first pass here picks up the token files just written in Stages 1–4. A second, mandatory pass runs at the end of the pipeline (`§10c`, after Stage 5 conflict resolution and Stage 8 `brand.md` refresh) so `style-guide.html`'s active-conflicts banner reflects post-walkthrough state and any token edits made during conflict resolution flow into both artifacts. Skip the §10c pass and the practitioner sees a stale `style-guide.html` — the bug the trigger exists to prevent.
+> **Note — this regen runs twice in the pipeline.** The first pass here picks up the token files just written in Stages 1–4. A second, mandatory pass runs at the end of the pipeline (`§10c`, after Stage 5 conflict resolution and Stage 8 `brand.md` refresh) so `style-guide.html`'s active-conflicts banner reflects post-walkthrough state. Skip the §10c pass and the practitioner sees a stale `style-guide.html` — the bug the trigger exists to prevent.
 
 ### Also write `style-guide.html` (visual style guide)
 
