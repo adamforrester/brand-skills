@@ -184,6 +184,62 @@ test('SKILL §8 first-pass design.md regen forward-points at the §10c second pa
   );
 });
 
+test('SKILL §8d conflict walkthrough is a hard pipeline gate (R2)', () => {
+  // The Wendy's tryout (2026-06-18) detected 6 active conflicts and skipped the
+  // walkthrough, writing them all as `unresolved` and proceeding to Final summary.
+  // Practitioner had to ask "how do I resolve those?" after the run. The fix is an
+  // explicit pre-summary gate that the agent cannot slip past — these assertions
+  // pin the load-bearing prose against drift.
+  const sectionMatch = skill.match(/### 8d\. Walk the practitioner through[\s\S]*?(?=^### 8e\. )/m);
+  assert.ok(sectionMatch, '§8d section must be locatable for the gate-language check');
+  const section8d = sectionMatch[0];
+
+  // 1. The gate framing must call out that the pipeline cannot advance until the
+  //    walkthrough has run. Without this, the agent treats Final summary as the
+  //    natural endpoint (the bug R2 fixes).
+  assert.ok(
+    /hard pipeline gate|must not advance|do not skip to summary/i.test(section8d),
+    '§8d must declare itself a hard pipeline gate that blocks summary emission'
+  );
+
+  // 2. The four-option set for conflicts must be visible verbatim in the prose so
+  //    the agent renders the same UI every run. Paraphrasing is allowed in
+  //    practice, but the canonical labels must appear in the SKILL itself.
+  for (const label of ['Resolve', 'Override', 'Mark intentional', 'Skip for now']) {
+    assert.ok(
+      section8d.includes(label),
+      `§8d must include the canonical conflict-walkthrough label "${label}"`
+    );
+  }
+
+  // 3. Discipline: prompts go one at a time, never batched. Drift here would
+  //    re-introduce the batch-prompt failure mode the Wendy's run actually hit.
+  assert.ok(
+    /one item at a time|never batch-prompt|do not batch-prompt/i.test(section8d),
+    '§8d must enforce one-item-at-a-time prompting (no batch-prompt)'
+  );
+
+  // 4. Mid-walkthrough abort handling must be documented so the pipeline doesn't
+  //    deadlock if the practitioner says "stop" or "I'll resolve later."
+  assert.ok(
+    /aborts mid-walkthrough|abort mid-walkthrough|practitioner.*stop/i.test(section8d),
+    '§8d must document the mid-walkthrough abort path'
+  );
+});
+
+test('SKILL §8e write policy mirrors §8d Mark-intentional re-classification (R2)', () => {
+  // §8d's Pass 1 "Mark intentional" choice rebuilds the conflict as an Intentional
+  // Adaptation. §8e's Active Conflicts / Intentional Adaptations lists must agree
+  // with that — otherwise the in-memory state diverges from what gets written.
+  const sectionMatch = skill.match(/### 8e\. Apply the additive policy[\s\S]*?(?=^### 8f\. )/m);
+  assert.ok(sectionMatch, '§8e section must be locatable for the write-policy check');
+  const section8e = sectionMatch[0];
+  assert.ok(
+    /Mark intentional/i.test(section8e),
+    '§8e must reference §8d\'s "Mark intentional" choice so the write policy mirrors the walkthrough state'
+  );
+});
+
 test('SKILL Stage 8 documents the style-guide.html inline-fallback (visual-style-guide #1)', () => {
   // Three load-bearing assertions:
   //   1. SKILL.md mentions style-guide.html somewhere in Stage 8 prose.
