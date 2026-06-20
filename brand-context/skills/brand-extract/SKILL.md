@@ -125,17 +125,66 @@ If yes, `mkdir ./assets/` via Bash and write the same scaffold README that `bran
 
 ### 0d. Ask for non-file sources
 
-**Pre-filled-from-scope fields:** for each question below, check whether the corresponding `sources.*` key is in `filledFromScope` (from `§0a.5`). If yes, skip the question silently — the value is already in the merged brandrc state. If `interactive_preflight: false` AND a required field (per `§0a.5` runtime requirements) is still empty, bail with the structured error from `§0a.5` rather than asking. Otherwise, ask conversationally.
+**Pre-filled-from-scope fields:** every prompt below names a **primary key** (the one that satisfies the prompt) and zero or more **additive keys** (multi-URL extras the prompt can also fill). Skip the prompt silently when the primary key is in `filledFromScope` (from `§0a.5`); the additive keys can stay empty without re-prompting. The five primary keys: prompt 1 → `sources.website` (additive: `website_pages`); prompt 2 → `sources.figma` (no additive — entire array is the primary); prompt 3 → any single `sources.social.*` subfield set (additive: the rest); prompt 4 → any single `sources.app_store.*` subfield set (additive: the other); prompt 5 → `sources.design_system_repo` (no additive).
 
-These can't be discovered on disk. Ask conversationally — one question at a time, accept "skip" or empty as valid answers:
+Bail-vs-ask precedence: §0a.5 already enforces the embedded-mode bail before §0d runs — when `interactive_preflight: false` and no required field (per the §0a.5 runtime-required set: `website | figma | brand_guide | screenshots | design_system_repo`) is set, §0a.5 emits the structured error and §0d is unreachable. So in practice every §0d prompt below runs in interactive mode; if you got here, ask conversationally.
 
-1. **Live website URL** — required for Stages 2 and 3 (token sampling, voice extraction). Skip is OK if the brand has no public web presence; the skill will run on PDF/screenshot inputs only.
-2. **Figma file URL** — optional. Paste a URL like `https://figma.com/design/<fileKey>/...` and the skill extracts the file key. Skip if no Figma access.
-3. **Social profiles** — optional. Twitter/X, Instagram, LinkedIn, Facebook, TikTok. Accept any combination. Skip if none.
-4. **App store listings** — optional. iOS App Store and/or Google Play URLs. Skip if no app.
-5. **Design-system repo** — local path or remote git URL. When set, Stage 6 produces `.brand/components/*.md` regardless of tier.
+These can't be discovered on disk. Each prompt below covers **one source category** and accepts a multi-line paste so the practitioner can drop in everything they have for that category at once. The Wendy's tryout (2026-06-18) hit two friction points the previous one-question-per-source-type flow caused: (a) single-URL pickers blocked the practitioner from supplying multiple website pages or multiple Figma files in a category; (b) sequential per-source prompts felt slow when the practitioner had everything ready upfront. Multi-line paste + domain-based auto-classification fixes both.
 
-For each one, validate the answer minimally (URL looks like a URL; local path exists if given). Don't over-validate — bad URLs will surface as Stage failures with clear errors.
+For every prompt, the SKILL must:
+
+- Accept `skip`, an empty message, or zero URLs as a valid response — don't loop or insist.
+- Minimally validate each URL: starts with `http://` or `https://`, parses, has a recognizable host. Don't over-validate — bad URLs surface as Stage failures with clear errors later. Silently drop non-URL lines (blanks, comments, prose interjections); if any were dropped, surface a one-line summary (`Dropped 2 non-URL lines from your paste.`) so the practitioner can re-paste if something was meant to be a URL.
+- Echo back what got parsed and where it landed in `sources.*` so the practitioner can correct mid-flow.
+
+Run the five prompts in this order:
+
+**1. Web URLs (consolidated).** Required source category — Stages 2 and 3 (token sampling, voice extraction) depend on at least one web URL.
+
+> Paste any web URLs for {brand}, one per line. Anything goes — homepage, marketing pages, product pages, locator, blog. The first URL becomes `sources.website` (the primary surface); the rest go into `sources.website_pages` for additional voice + token sampling. Reply `skip` if the brand has no public web presence.
+
+Parse the multi-line block. The first valid URL becomes `sources.website`; subsequent URLs become entries in the `sources.website_pages` array. Echo the assignment:
+
+> Picked up: primary `https://example.com`, additional pages `["https://example.com/about", "https://example.com/menu"]`.
+
+**2. Figma URLs (consolidated).** Optional. Multiple files supported.
+
+> Paste any Figma file URLs, one per line. Format: `https://figma.com/design/<fileKey>/...` or `https://figma.com/file/<fileKey>/...`. Each becomes an entry in `sources.figma`. Reply `skip` if no Figma access.
+
+Parse each line. For each, extract the `<fileKey>` segment between `/design/` or `/file/` and the next `/`; if extraction fails, keep the URL as-is and let Stage 1 surface the issue. Append all to `sources.figma`.
+
+**3. Social URLs (consolidated, auto-classified).** Optional. Each URL is auto-classified by domain into the right `sources.social.*` subfield.
+
+> Paste any social profile URLs, one per line. I'll classify them by domain — `x.com` / `twitter.com` → `social.twitter`, `instagram.com` → `social.instagram`, `linkedin.com` → `social.linkedin`, `facebook.com` → `social.facebook`, `tiktok.com` → `social.tiktok`. Reply `skip` if none.
+
+Auto-classification rules — match by hostname (case-insensitive). Strip leading `www.` AND `m.` subdomains before matching (so `m.facebook.com` and `www.facebook.com` both classify as `facebook.com`). Path is irrelevant — `linkedin.com/company/foo` and `linkedin.com/in/foo` both land at `social.linkedin`. Trailing slashes and query strings are ignored too — match on hostname only.
+
+- `twitter.com` OR `x.com` → `sources.social.twitter`
+- `instagram.com` → `sources.social.instagram`
+- `linkedin.com` → `sources.social.linkedin`
+- `facebook.com` OR `fb.com` → `sources.social.facebook`
+- `tiktok.com` → `sources.social.tiktok`
+
+If a URL doesn't match any known social hostname, ask once: `Where should "${url}" land — twitter / instagram / linkedin / facebook / tiktok / skip?`. If the practitioner answers `skip`, drop it silently. If two URLs map to the same subfield (rare; e.g. two Instagram handles), keep the first and surface a one-line note: `Note: kept "${first}" for social.instagram; ignored later "${second}" — only one URL per platform is supported.`
+
+**4. App store URLs (consolidated, auto-classified).** Optional.
+
+> Paste any app store URLs, one per line. I'll classify by domain — `apps.apple.com` → `app_store.ios`, `play.google.com` → `app_store.android`. Reply `skip` if no app.
+
+Auto-classification rules — match by hostname:
+
+- `apps.apple.com` → `sources.app_store.ios`
+- `play.google.com` → `sources.app_store.android`
+
+If a URL doesn't match either hostname, ask once: `Where should "${url}" land — ios / android / skip?`.
+
+**5. Design-system repo.** Optional. Single value (local path or remote git URL).
+
+> Path or URL of a design-system repo I should scan for components? Local path (e.g. `~/code/my-ds`) or remote git URL (e.g. `https://github.com/org/ds.git`). Reply `skip` if none. When set, Stage 6 produces `.brand/components/*.md` regardless of tier.
+
+Single-value field; no multi-line parsing.
+
+**Conversational fallback.** If the practitioner replies with prose instead of a paste (e.g. "we don't really have social, but the website is example.com"), extract URLs with the same `https?://[^\s]+` match used for paste validation and apply the same auto-classification. Bare-domain mentions (`example.com` without a scheme) are NOT extracted automatically — if the message has only bare-domain mentions, ask the practitioner to paste the full URL(s) once. Don't re-prompt for a clean paste when at least one valid URL was extracted, and don't re-prompt when the practitioner said `skip`.
 
 ### 0e. Write the populated config
 
