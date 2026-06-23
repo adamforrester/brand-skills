@@ -17,7 +17,7 @@ function collectAlsoWrite(value, previous) {
 program
   .name('brand-cli')
   .description('Standalone CLI for the brand-skills toolkit — scaffold .brand/, regenerate root artifacts, score completeness')
-  .version('0.4.0');
+  .version('0.5.0');
 
 program
   .command('setup')

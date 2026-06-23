@@ -2,7 +2,7 @@
   "_comment": "Reference shape — what the SKILL fallback should produce. Sync with manifest-from-populated.json on edit.",
   "version": "2",
   "generated_at": "2026-06-13T00:00:00.000Z",
-  "generator": "brand-extract-skill@0.4.0",
+  "generator": "brand-extract-skill@0.5.0",
   "tier": "standard",
   "files": {
     "overview.md": {

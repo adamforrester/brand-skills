@@ -120,10 +120,20 @@ Same posture applies to design-oracle, Agent-Reach, or any peer that emerges lat
 
 ## Versioning + release
 
-- **One version, three places.** `package.json` `version`, `.claude-plugin/marketplace.json` `metadata.version` AND `plugins[0].version`, and `cli/bin/brand-cli.js` `program.version()`. All three must match. Easy to miss the CLI bin file.
-  - Two test goldens also pin the version literally in their `generator` field — `cli/test/golden/manifest-from-populated.json` (`brand-cli@<version>`) and `cli/test/golden/manifest-from-skill.json` (`brand-extract-skill@<version>`). Stale goldens don't break tests (the strip list deletes `generator` before deepEqual) but mislead readers. Bump them with the others.
+- **One version, ten places.** Authoritative inventory (audit-friendly: `grep -rn "<current-version>"` in code excluding `docs/superpowers/` should yield exactly these matches):
+  1. `package.json` `version`
+  2. `.claude-plugin/marketplace.json` `metadata.version`
+  3. `.claude-plugin/marketplace.json` `plugins[0].version`
+  4. `cli/bin/brand-cli.js` `program.version()`
+  5. `cli/test/golden/manifest-from-populated.json` `generator: "brand-cli@<version>"`
+  6. `cli/test/golden/manifest-from-skill.json` `generator: "brand-extract-skill@<version>"`
+  7. `cli/test/golden/health-from-populated.json` `generator: "brand-cli@<version>"`
+  8. `cli/test/unit/health-writer.test.js` `generator: 'brand-cli@<version>'` (fixture in `makeManifest()`)
+  9. `cli/test/unit/manifest-writer.test.js` `generator: 'brand-cli@<version>'` (fixture in `validPayload()`)
+  10. `cli/test/integration/score-emits-health.test.js` `generator: 'brand-cli@<version>'` (v1 fixture for rejection test)
+  Places 1–4 are the runtime version. Places 5–10 pin the version as a string inside test data; tests strip `generator` before `deepEqual` so staleness doesn't break CI, but readers using the goldens or test fixtures as documentation see the wrong version. Bump them with the others. Plan/spec docs under `docs/superpowers/` reference the version that was current at authoring — those are historical artifacts, leave alone.
   - The MCP-fallback contract at `schema/mcp-fallback-contract.json` has its own `version: "1"` field, independent from the package version. Bump it (and the corresponding `version` const in `schema/mcp-fallback-contract.schema.json`) only on breaking shape changes. The manifest's `version: "2"` is similarly independent — bump on shape changes to `manifest.schema.json`.
-- **Tests cover the CLI, not the SKILLs.** `npm test` runs the suite (`node --test 'cli/test/**/*.test.js'` — 108 tests as of v0.4.0, all green). Run `npm install` first; with no `node_modules` the suite fails wholesale on missing deps (ajv/js-yaml/commander), which looks like a red suite but isn't. The SKILL fallback prose is **not** under test — when you change a SKILL, manually walk the affected stage end-to-end rather than claiming the suite verifies it.
+- **Tests cover the CLI, not the SKILLs.** `npm test` runs the suite (`node --test 'cli/test/**/*.test.js'` — 159 tests as of v0.5.0, all green). Run `npm install` first; with no `node_modules` the suite fails wholesale on missing deps (ajv/js-yaml/commander), which looks like a red suite but isn't. The SKILL fallback prose is **not** under test directly — SKILL ↔ CLI parity assertions in `cli/test/unit/skill-scope-parity.test.js` guard load-bearing prose contracts via regex, but a full SKILL change still needs a manual stage-end-to-end walk.
 - **Not yet on npm.** Install path today is GitHub-direct via `claude plugin marketplace add adamforrester/brand-skills`. The CLI is intended to publish to npm but hasn't yet (roadmap item in README).
 - **Don't bump the version proactively.** Wait for explicit instruction — release cadence is being decided.
 
@@ -145,7 +155,7 @@ When you change anything in this repo, walk this list before declaring done:
 2. **SKILL change?** → README "How the pipeline works" table or "Three slash commands" list still accurate?
 3. **CLI change?** → Inline-fallback instructions in the corresponding SKILL section still match the CLI's behavior?
 4. **New file in `.brand/`?** → Overwrite policy declared in the SKILL? Init scaffolding writes a placeholder?
-5. **Version bumped?** → All three places (`package.json`, `marketplace.json` × 2 fields, `brand-cli.js`)? Two test goldens (`cli/test/golden/manifest-from-{populated,skill}.json` `generator` field) bumped to match?
+5. **Version bumped?** → All ten places per the "Versioning + release" inventory above? Easiest verification: `grep -rn "<old-version>" --include="*.json" --include="*.js" .` should return zero hits outside `docs/superpowers/`.
 6. **XD residue introduced?** → Re-read your diff for XD-specific framing or vocabulary; rewrite to general-purpose.
 
 ---
