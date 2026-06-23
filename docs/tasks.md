@@ -4,7 +4,7 @@ Canonical task state for the de-XD-coupling and multi-tenant work. Survives cont
 
 The session task tool (TaskList) is ephemeral. This file is the durable record. When work moves between sessions, sync this file first.
 
-**Last updated:** 2026-06-20 — R3 (SKILL §0d consolidated multi-line paste prompts + URL auto-classification) merged to `main` at `84757bb` (`--no-ff` from `feat/skill-source-collection-ux`; feature branch preserved on origin). Tests 158 → 159 (+1 parity assertion). All three Wendy's-tryout SKILL-prose bugs now closed: R1 at `2f7fab3`, R2 at `2b8dde1`, R3 at `84757bb`. Active backlog is empty. Next: v0.5.0 release commit covering the three R-task SKILL changes (separate post-merge step), then 1.0 milestone (npm publish + first real-install validation walk + C2 doctor command).
+**Last updated:** 2026-06-23 — v0.5.0 release commit (one commit on `release/v0.5.0` branch, then merged to `main`). Bumps the package version across all ten literal places in actual code (4 runtime + 3 goldens + 3 test fixtures); updates `CLAUDE.md` "Versioning + release" with the audit-friendly ten-place inventory (was three) so the next release commit isn't blindsided. Covers the three Wendy's-tryout SKILL-prose fixes (R1 `2f7fab3`, R2 `2b8dde1`, R3 `84757bb`) plus the prior visual-style-guide release (`c29ba08`). Tests 159/159. Active backlog still empty. Next: 1.0 milestone (npm publish + first real-install validation walk + C2 doctor command).
 
 ---
 

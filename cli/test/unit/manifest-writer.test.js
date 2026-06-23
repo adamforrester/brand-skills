@@ -9,7 +9,7 @@ function validPayload() {
   return {
     version: '2',
     generated_at: '2026-06-10T14:23:11Z',
-    generator: 'brand-cli@0.4.0',
+    generator: 'brand-cli@0.5.0',
     tier: 'minimum',
     client: 'acme',
     files: {

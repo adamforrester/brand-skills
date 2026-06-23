@@ -62,7 +62,7 @@ test('score rejects v1 manifest with migration message', async () => {
     const v1Manifest = {
       version: '1',
       generated_at: '2026-06-10T00:00:00.000Z',
-      generator: 'brand-cli@0.4.0',
+      generator: 'brand-cli@0.5.0',
       tier: 'minimum',
       files: {},
       stages: {},
