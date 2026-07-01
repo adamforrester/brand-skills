@@ -2,6 +2,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
 
+/** True for a plain object (not null, not an array). Used to guard passthrough
+ *  blocks whose intent is "a map" — arrays and scalars must not slip through. */
+const isPlainObject = (v) => v != null && typeof v === 'object' && !Array.isArray(v);
+
 /**
  * Generate a design.md file at project root from a .brand/ directory.
  *
@@ -20,7 +24,7 @@ import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
  *
  * Frontmatter merges colors / typography / spacing / rounded from token file
  * frontmatters. Two extension blocks are included as well — `elevation` (shadows)
- * and, when present, `x-prism3` (Prism3 engine levers, passed through verbatim from
+ * and, when present, `x-prism3` (Prism3 engine levers, passed through by value from
  * surfaces.md). Spec consumers ignore unknown keys per the design.md spec.
  *
  * The function is forgiving — missing files, empty placeholders, and
@@ -34,7 +38,7 @@ export function generateDesignMd(brandDir, brandName = 'Brand') {
     rounded: readTokensFromFile(brandDir, 'tokens/surfaces.md', 'rounded'),
     elevation: readTokensFromFile(brandDir, 'tokens/surfaces.md', 'elevation'),
     // Optional Prism3 engine-levers block — hand-authored in surfaces.md, passed
-    // through verbatim. Non-Prism3 consumers ignore the unknown key.
+    // through by value. Non-Prism3 consumers ignore the unknown key.
     xPrism3: readTokensFromFile(brandDir, 'tokens/surfaces.md', 'x-prism3'),
   };
 
@@ -94,7 +98,9 @@ function buildFrontmatter(brandName, tokens) {
   if (tokens.spacing && Object.keys(tokens.spacing).length > 0) fm.spacing = tokens.spacing;
   if (tokens.elevation && Object.keys(tokens.elevation).length > 0) fm.elevation = tokens.elevation;
   // Prism3 engine levers (optional) — emitted last as a top-level namespaced key.
-  if (tokens.xPrism3 && typeof tokens.xPrism3 === 'object' && Object.keys(tokens.xPrism3).length > 0) fm['x-prism3'] = tokens.xPrism3;
+  // Guard is "a non-empty plain object" — arrays/scalars/null are ignored (a
+  // malformed x-prism3 must not emit a top-level array or scalar into design.md).
+  if (isPlainObject(tokens.xPrism3) && Object.keys(tokens.xPrism3).length > 0) fm['x-prism3'] = tokens.xPrism3;
 
   return `---\n${yamlStringify(fm).trimEnd()}\n---\n`;
 }

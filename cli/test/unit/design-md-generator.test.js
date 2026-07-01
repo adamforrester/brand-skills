@@ -72,3 +72,37 @@ test('generateDesignMd: no x-prism3 key when surfaces.md carries no block (plain
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('generateDesignMd: a malformed x-prism3 (array / scalar) does not emit a top-level key', () => {
+  // The guard is "non-empty plain object"; arrays and scalars must be ignored so
+  // a malformed block never emits a top-level array/scalar into design.md.
+  for (const bad of ['- radiusScale: 2\n- typeScale: expressive', 'expressive']) {
+    const dir = mkBrandDir(`x-prism3-bad-${bad.length}`, {
+      'tokens/surfaces.md': `---\nrounded:\n  md: 8px\nx-prism3:\n  ${bad.replace(/\n/g, '\n  ')}\n---\n`,
+    });
+    try {
+      const fm = frontmatterOf(generateDesignMd(dir, 'Acme'));
+      assert.ok(!('x-prism3' in fm), `expected no x-prism3 key for malformed input: ${JSON.stringify(bad)}`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test('generateDesignMd: all six frontmatter blocks populated merge in one file', () => {
+  const dir = mkBrandDir('all-six-blocks', {
+    'tokens/colors.md': '---\ncolors:\n  primary: "#C8102E"\n---\n',
+    'tokens/typography.md': '---\ntypography:\n  display-lg:\n    fontFamily: Inter\n    fontSize: 48px\n    fontWeight: 700\n    lineHeight: 1.1\n---\n',
+    'tokens/spacing.md': '---\nspacing:\n  m: 16px\n---\n',
+    'tokens/surfaces.md': '---\nrounded:\n  md: 8px\nelevation:\n  flat: none\nx-prism3:\n  radiusScale: 2\n---\n',
+  });
+  try {
+    const fm = frontmatterOf(generateDesignMd(dir, 'Acme'));
+    for (const key of ['colors', 'typography', 'spacing', 'rounded', 'elevation', 'x-prism3']) {
+      assert.ok(key in fm, `expected ${key} in merged frontmatter`);
+    }
+    assert.equal(fm['x-prism3'].radiusScale, 2);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

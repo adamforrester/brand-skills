@@ -325,3 +325,33 @@ test('SKILL Stage 8 documents the style-guide.html inline-fallback (visual-style
     'SKILL.md must surface the byte-identical parity contract for the visual style guide'
   );
 });
+
+// --- Prism3 engine-alignment contracts (design.md interchange) ---------------
+
+test('SKILL §8 fallback documents the x-prism3 passthrough (design.md merge parity)', () => {
+  // The §8 inline fallback is the only prose spec of the no-CLI design.md build.
+  // It must name x-prism3 as an optional passthrough block so the fallback path
+  // matches design-md-generator.js (which emits a top-level x-prism3 key).
+  assert.ok(
+    skill.includes('x-prism3') && /pass it through if present|passed through by value/i.test(skill),
+    'SKILL.md §8 must document the optional x-prism3 passthrough so the inline fallback matches the CLI'
+  );
+});
+
+test('SKILL §5d preserves a hand-authored x-prism3 block on surfaces.md rewrite', () => {
+  // The schema promises x-prism3 is never overwritten; Stage 5 must honor it by
+  // using Edit (not Write) when the block is present.
+  assert.ok(
+    skill.includes('x-prism3') && /never overwrit|Edit.*not.*Write|preserve/i.test(skill),
+    'SKILL.md §5d must state x-prism3 is preserved (Edit, not Write) so re-extraction cannot clobber it'
+  );
+});
+
+test('SKILL Stage 1 documents the engine type-role vocabulary + mapping guidance', () => {
+  // The type-role vocabulary is the interchange contract with the Prism3 engine;
+  // it must name the engine roles and the observed-name mapping so drift is caught.
+  const namesEngineRoles = skill.includes('display-*') && skill.includes('title-*') && skill.includes('label-*');
+  const namesMapping = /mega-\*.*display|button-\*.*label/i.test(skill);
+  assert.ok(namesEngineRoles && namesMapping,
+    'SKILL.md Stage 1 must name the engine type roles (display-*/title-*/label-*) and the mega→display / button→label mapping');
+});

@@ -64,7 +64,7 @@ This is the easiest thing to get wrong. Each `.brand/` file has a specific polic
 
 | File | Policy | Why |
 |---|---|---|
-| `tokens/{colors,typography,spacing,surfaces}.md` | **Overwrite** unprompted if placeholder marker present; otherwise prompt overwrite/merge/skip | Tokens are values; replacing is fine when the file is scaffolding |
+| `tokens/{colors,typography,spacing,surfaces}.md` | **Overwrite** unprompted if placeholder marker present; otherwise prompt overwrite/merge/skip. **Exception:** an `x-prism3:` block in `surfaces.md` is **additive/preserved** — extraction owns only `rounded:`/`elevation:` there; Stage 5 (§5d) uses `Edit` to leave a hand-authored `x-prism3:` untouched, same as `voice.md`'s preserved sections | Tokens are values; replacing is fine when the file is scaffolding — but `x-prism3` is practitioner-authored engine config, not extracted, so it must survive re-extraction |
 | `voice.md` | **Additive** — `## Observed Voice (live channels)` section is the *only* section Stage 3 writes; all prescriptive sections are preserved | Practitioners add voice principles from brand guides; Stage 3 must not erase them. Use `Edit`, never `Write`. See `brand-extract/SKILL.md` Section 4f for the three cases. |
 | `overview.md` | **Overwrite** when placeholder; prompt overwrite/merge/skip when populated. Merge regenerates only the brand-self-test block. | Single coherent document, no descriptive/prescriptive split |
 | `conflicts.md` | **Additive** — Active Conflicts can be rebuilt; Intentional Adaptations and Resolved Conflicts Archive are *never* deleted | Practitioner-resolved entries are the audit trail |
