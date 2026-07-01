@@ -338,7 +338,9 @@ For each Figma file ID in `sources.figma` (figma-console path only):
    - **Typography** — text styles or grouped variables (font family + size + weight + lineHeight + letterSpacing). Each typography token is a Typography object per the design.md spec.
    - **Spacing** — type FLOAT or NUMBER variables in spacing/sizing collections. Output as `<name>: <px-value>px` (or unitless number for ratios/columns).
    - **Surfaces** — separate radius variables (`<name>: <px>` under `rounded`) from effect styles (shadows → CSS box-shadow strings under `elevation`).
-5. Normalize variable names to design.md-recommended conventions where reasonable (`primary-60` over `Primary/60`), but preserve the practitioner's naming if it's already sensible. Don't aggressively rename.
+5. Normalize variable names to design.md-recommended conventions where reasonable (`primary-60` over `Primary/60`), but preserve the practitioner's naming if it's already sensible. Don't aggressively rename. Two vocabularies are shared with the Prism3 generation engine so a `design.md` feeds it with no converter:
+   - **Type roles** — `display-*` / `title-*` / `body-*` / `label-*` / `caption-*` / `eyebrow` / `code`. Map observed names onto these rather than inventing new ones: `mega-*` → `display-*`, `button-*` → `label-*`, `headline-*` → `display-*` (hero) or `title-*` (UI headings).
+   - **Colour roles** — `primary` / `secondary` / `tertiary` / `neutral-<step>` / `success` / `warning` / `error` / `info`. Keep `error` (not `danger`) — it is the design.md semantic name, and the engine maps it to its internal `danger` role on read.
 
 **Hold these results in memory** for Stage 4 (token file writing). Do not write yet.
 
@@ -526,7 +528,7 @@ This section is regenerated on each Stage 3 run; the rest of voice.md is preserv
 
 ### 5a. Apply the overwrite policy
 
-Read the existing file. If it contains the placeholder marker `<!-- Fill this file following the schema at schema/brand/...schema.md -->`, the file is untouched scaffolding — overwrite without asking.
+Read the existing file. If it contains the placeholder marker `<!-- Fill this file following the schema at schema/brand/...schema.md -->`, the file is untouched scaffolding — overwrite without asking. (For `surfaces.md`, an `x-prism3:` block is always preserved regardless of this policy — see §5d; it can coexist with the placeholder marker.)
 
 If the marker is **absent** and the file has content beyond just frontmatter, ask the user:
 > `tokens/colors.md` has been edited. **Overwrite** (replace entirely), **merge** (refresh the YAML frontmatter, keep your prose), or **skip** (leave alone)?
@@ -541,7 +543,7 @@ Build the file as: YAML frontmatter (between `---` delimiters) + a markdown body
 - `colors.md` → `colors:` map (hex strings only)
 - `typography.md` → `typography:` map (Typography objects)
 - `spacing.md` → `spacing:` map (Dimensions or unitless numbers)
-- `surfaces.md` → `rounded:` and `elevation:` maps
+- `surfaces.md` → `rounded:` and `elevation:` maps (extraction writes **only** these two). `surfaces.md` may also carry an optional practitioner-authored `x-prism3:` engine-levers block — **do not generate it, and never overwrite it**; preserve it per §5d.
 
 Example frontmatter for `tokens/colors.md`:
 
@@ -594,6 +596,8 @@ If `mode: public-sources-only` in `.brandrc.yaml`, prepend the disclaimer:
 ### 5d. Write the file
 
 Use the `Write` tool to write the full content. Do not use `Edit` — token files are regenerated wholesale.
+
+**Exception — `surfaces.md` carrying an `x-prism3` block.** The optional `x-prism3:` frontmatter block is practitioner-authored engine-levers config (see `schema/brand/tokens-surfaces.schema.md`): it is **never extracted and never overwritten** — extraction owns only `rounded:` and `elevation:`. Before writing `surfaces.md`, read it; **if it already contains an `x-prism3:` key, use `Edit` (not `Write`)** to replace only the `rounded:` and `elevation:` blocks, leaving `x-prism3:` byte-for-byte untouched. Only `Write` `surfaces.md` wholesale when it has no `x-prism3` block. (Same additive-preservation shape as `voice.md`'s prescriptive sections — §4f.) Getting this wrong silently reverts the Prism3 engine to defaults on the next `refresh-design`.
 
 ## 6. Stage 4 — Multimodal analysis (overview.md)
 
@@ -801,7 +805,7 @@ brand-cli refresh-design
 
 Run it via the `Bash` tool. The command reads `.brand/` and overwrites `design.md`. It exits 0 on success and prints the brand directory it used.
 
-If `brand-cli` is not installed, fall back to building `design.md` inline: read each `.brand/` file, merge the `colors` / `typography` / `spacing` / `rounded` / `elevation` frontmatter blocks into a single design.md frontmatter, then assemble the body sections (Overview, Colors, Typography, Layout, Elevation, Shapes, Components, Do's and Don'ts) per the spec at https://github.com/google-labs-code/design.md/blob/main/docs/spec.md.
+If `brand-cli` is not installed, fall back to building `design.md` inline: read each `.brand/` file, merge the `colors` / `typography` / `spacing` / `rounded` / `elevation` frontmatter blocks — plus, if `surfaces.md` carries one, the optional top-level `x-prism3` engine-levers block, passed through by value (reparsed + re-emitted — values preserved, comments/flow-style not) — into a single design.md frontmatter, then assemble the body sections (Overview, Colors, Typography, Layout, Elevation, Shapes, Components, Do's and Don'ts) per the spec at https://github.com/google-labs-code/design.md/blob/main/docs/spec.md. The `x-prism3` block is optional and **hand-authored** (a namespaced extension the base spec ignores) — pass it through if present; never invent or auto-populate it.
 
 After regeneration, verify the file is no longer the placeholder by checking that the frontmatter contains at least one populated token map.
 
