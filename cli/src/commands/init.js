@@ -52,9 +52,9 @@ const PUBLIC_SOURCES_ONLY_DISCLAIMER =
 
 const TOKEN_FRONTMATTER = {
   'tokens/colors.md': `---\ncolors:\n  # primary: "#000000"\n  # neutral: "#FFFFFF"\n  # error: "#D32F2F"\n---\n\n`,
-  'tokens/typography.md': `---\ntypography:\n  # body-md:\n  #   fontFamily: Inter\n  #   fontSize: 16px\n  #   fontWeight: 400\n  #   lineHeight: 1.6\n---\n\n`,
+  'tokens/typography.md': `---\ntypography:\n  # display-lg:\n  #   fontFamily: Inter\n  #   fontSize: 48px\n  #   fontWeight: 700\n  #   lineHeight: 1.1\n  # body-md:\n  #   fontFamily: Inter\n  #   fontSize: 16px\n  #   fontWeight: 400\n  #   lineHeight: 1.6\n---\n\n`,
   'tokens/spacing.md': `---\nspacing:\n  # base: 16px\n  # xs: 4px\n  # sm: 8px\n  # md: 16px\n  # lg: 32px\n---\n\n`,
-  'tokens/surfaces.md': `---\nrounded:\n  # sm: 4px\n  # md: 8px\nelevation:\n  # flat: none\n  # md: "0 4px 8px rgba(0,0,0,0.06)"\n---\n\n`,
+  'tokens/surfaces.md': `---\nrounded:\n  # sm: 4px\n  # md: 8px\nelevation:\n  # flat: none\n  # md: "0 4px 8px rgba(0,0,0,0.06)"\n# x-prism3:  # optional Prism3 engine levers (hand-authored; passed through to design.md)\n#   radiusScale: 2      # 0 sharp .. 1 default .. 2 soft\n#   typeScale: expressive\n---\n\n`,
 };
 
 export async function initCommand(opts) {

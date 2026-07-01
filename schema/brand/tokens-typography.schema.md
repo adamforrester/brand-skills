@@ -17,13 +17,13 @@ A YAML block at the top of the file, between `---` delimiters. The `typography` 
 ```yaml
 ---
 typography:
-  headline-display:
+  display-lg:
     fontFamily: Plus Jakarta Sans
     fontSize: 48px
     fontWeight: 800
     lineHeight: 1.1
     letterSpacing: -0.03em
-  headline-lg:
+  title-lg:
     fontFamily: Plus Jakarta Sans
     fontSize: 36px
     fontWeight: 700
@@ -51,7 +51,9 @@ typography:
 - `fontFeature` (string, optional — sets `font-feature-settings`)
 - `fontVariation` (string, optional — sets `font-variation-settings`)
 
-**Recommended token names:** `headline-display`, `headline-lg`, `headline-md`, `body-lg`, `body-md`, `body-sm`, `label-lg`, `label-md`, `label-sm`. Custom names are allowed.
+**Recommended token names** follow the Prism3 engine's semantic vocabulary, so a `design.md` speaks one type language across extraction and generation: `display-*` (hero / marketing headlines), `title-*` (UI headings — H1–H5, component titles), `body-*` (reading / UI prose), `label-*` (buttons, form labels, dense UI text), `caption-*` (metadata, helper text, fine print), plus `eyebrow` (over-line kicker) and `code` (monospace / tabular). Use t-shirt size suffixes (`-lg` / `-md` / `-sm`, with `-xl` / `-xs` as needed), e.g. `display-lg`, `title-md`, `body-md`, `label-sm`, `caption-sm`.
+
+Custom names are allowed. When a brand's own names differ, map them onto these roles rather than inventing a parallel vocabulary: `mega-*` → `display-*` (the top rungs), `button-*` → `label-*`, `headline-*` → `display-*` (hero) or `title-*` (UI headings). The Prism3 colour/type classifier reads these roles by convention.
 
 ---
 
@@ -115,19 +117,19 @@ Constraints for type application.
 ```markdown
 ---
 typography:
-  headline-display:
+  display-lg:
     fontFamily: Plus Jakarta Sans
     fontSize: 48px
     fontWeight: 800
     lineHeight: 1.1
     letterSpacing: -0.03em
-  headline-lg:
+  title-lg:
     fontFamily: Plus Jakarta Sans
     fontSize: 36px
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: -0.02em
-  headline-md:
+  title-md:
     fontFamily: Plus Jakarta Sans
     fontSize: 30px
     fontWeight: 700

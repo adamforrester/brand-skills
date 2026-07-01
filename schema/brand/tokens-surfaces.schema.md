@@ -17,7 +17,8 @@ In design.md terms, this file populates the `## Shapes` (radius) and `## Elevati
 A YAML block at the top of the file, between `---` delimiters.
 
 - `rounded`: a map from scale identifier to a Dimension (per design.md spec). Recommended identifiers: `none`, `sm`, `md`, `lg`, `xl`, `full`.
-- `elevation` (XD Toolkit extension — not in design.md spec but read by our tools): a map from elevation level to a CSS box-shadow string.
+- `elevation` (extension — not in design.md spec but read by our tools): a map from elevation level to a CSS box-shadow string.
+- `x-prism3` (optional, extension — Prism3 engine levers): a namespaced block of generation controls the Prism3 engine reads. Optional and **hand-authored** — `refresh-design` copies it verbatim to a top-level `x-prism3` key in `design.md`; it is never auto-generated or overwritten. Non-Prism3 consumers ignore it (unknown-key rule). See the `x-prism3` section below.
 
 ```yaml
 ---
@@ -40,6 +41,32 @@ elevation:
 - `rounded` values must be Dimensions (`px`, `em`, `rem`) or the integer `0`.
 - `elevation` values are CSS box-shadow strings. Use `none` for the flat level.
 - If the brand is strictly flat, define only `elevation.flat: none` and explain in prose.
+
+### `x-prism3` (optional — Prism3 engine levers)
+
+An optional, namespaced block for the Prism3 generation engine. Where `rounded` / `elevation`
+are *observed* values, `x-prism3` carries *authoring choices* the engine can't infer from assets —
+form factor, motion personality, which palette drives actions, a non-white page surface, etc. It is
+**hand-authored** by a practitioner who intends to run the engine, **passed through verbatim** by
+`refresh-design` to a top-level `x-prism3` key in `design.md`, and **ignored** by tools that don't
+know it. `brand-skills` does not validate the values — the engine's own schema is the authority — so
+a plain file with no block compiles on engine defaults.
+
+```yaml
+x-prism3:
+  radiusScale: 2          # corner softness: 0 sharp … 1 default … 2 soft
+  typeScale: expressive   # heading scale: compact | default | expressive
+  density: comfortable    # component density: comfortable | compact
+  motionTempo: standard   # motion personality: snappy | standard | relaxed
+  actionPalette: primary  # which palette drives interactive/action colour
+  iconContrast: text      # icon contrast floor: text (4.5:1) | "3:1"
+  surfaces:               # non-white page surface → moves the contrast floor
+    light: { base: 50 }
+  gradients: false        # opt-in gradients: false | true | an explicit list
+```
+
+All keys are optional; include only the levers this brand needs. Because it rides in
+`surfaces.md`'s frontmatter, it adds no new `.brand/` file and no manifest/health impact.
 
 ---
 

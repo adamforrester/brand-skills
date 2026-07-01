@@ -338,7 +338,9 @@ For each Figma file ID in `sources.figma` (figma-console path only):
    - **Typography** — text styles or grouped variables (font family + size + weight + lineHeight + letterSpacing). Each typography token is a Typography object per the design.md spec.
    - **Spacing** — type FLOAT or NUMBER variables in spacing/sizing collections. Output as `<name>: <px-value>px` (or unitless number for ratios/columns).
    - **Surfaces** — separate radius variables (`<name>: <px>` under `rounded`) from effect styles (shadows → CSS box-shadow strings under `elevation`).
-5. Normalize variable names to design.md-recommended conventions where reasonable (`primary-60` over `Primary/60`), but preserve the practitioner's naming if it's already sensible. Don't aggressively rename.
+5. Normalize variable names to design.md-recommended conventions where reasonable (`primary-60` over `Primary/60`), but preserve the practitioner's naming if it's already sensible. Don't aggressively rename. Two vocabularies are shared with the Prism3 generation engine so a `design.md` feeds it with no converter:
+   - **Type roles** — `display-*` / `title-*` / `body-*` / `label-*` / `caption-*` / `eyebrow` / `code`. Map observed names onto these rather than inventing new ones: `mega-*` → `display-*`, `button-*` → `label-*`, `headline-*` → `display-*` (hero) or `title-*` (UI headings).
+   - **Colour roles** — `primary` / `secondary` / `tertiary` / `neutral-<step>` / `success` / `warning` / `error` / `info`. Keep `error` (not `danger`) — it is the design.md semantic name, and the engine maps it to its internal `danger` role on read.
 
 **Hold these results in memory** for Stage 4 (token file writing). Do not write yet.
 
@@ -801,7 +803,7 @@ brand-cli refresh-design
 
 Run it via the `Bash` tool. The command reads `.brand/` and overwrites `design.md`. It exits 0 on success and prints the brand directory it used.
 
-If `brand-cli` is not installed, fall back to building `design.md` inline: read each `.brand/` file, merge the `colors` / `typography` / `spacing` / `rounded` / `elevation` frontmatter blocks into a single design.md frontmatter, then assemble the body sections (Overview, Colors, Typography, Layout, Elevation, Shapes, Components, Do's and Don'ts) per the spec at https://github.com/google-labs-code/design.md/blob/main/docs/spec.md.
+If `brand-cli` is not installed, fall back to building `design.md` inline: read each `.brand/` file, merge the `colors` / `typography` / `spacing` / `rounded` / `elevation` frontmatter blocks — plus, if `surfaces.md` carries one, the optional top-level `x-prism3` engine-levers block, copied through verbatim — into a single design.md frontmatter, then assemble the body sections (Overview, Colors, Typography, Layout, Elevation, Shapes, Components, Do's and Don'ts) per the spec at https://github.com/google-labs-code/design.md/blob/main/docs/spec.md. The `x-prism3` block is optional and **hand-authored** (a namespaced extension the base spec ignores) — pass it through if present; never invent or auto-populate it.
 
 After regeneration, verify the file is no longer the placeholder by checking that the frontmatter contains at least one populated token map.
 

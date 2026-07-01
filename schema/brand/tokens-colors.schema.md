@@ -14,6 +14,8 @@ The frontmatter values are normative. The prose explains *how* to apply them. To
 
 A YAML block at the top of the file, between `---` delimiters. The `colors` key is a flat map from token name to hex value (sRGB). Token names should follow a consistent convention; the recommended set is `primary`, `secondary`, `tertiary`, `neutral`, `surface`, `on-surface`, `error`, plus scale variants like `primary-50`, `primary-60`, etc.
 
+**Interchange contract (Prism3 engine bridge).** These role names are also what the Prism3 generation engine's colour-role classifier reads by convention, so a `design.md` produced here feeds the engine with no converter: `primary` / `secondary` / `tertiary` are brand anchors, `neutral-<step>` derives the neutral ramp, and `success` / `warning` / `error` / `info` are the status roles. Two things to know: (1) **scale and state variants** (`primary-dark`, `primary-50`, `neutral-900`, …) are *descriptive* observed ramp points — the engine regenerates its own contrast-verified ramp from the anchor and reports divergence, so keep emitting them for completeness but don't expect them to survive verbatim; (2) the engine's internal destructive role is named `danger`, and it maps `error` → `danger` on read — so **keep using `error`** (the DTCG / design.md semantic name); no rename is needed here.
+
 ```yaml
 ---
 colors:
