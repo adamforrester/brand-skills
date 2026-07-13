@@ -73,6 +73,27 @@ test('stripLeadingNonFrontmatter: plain frontmatter (--- already line 1) is unch
   assert.equal(stripLeadingNonFrontmatter(COLORS), COLORS);
 });
 
+test('stripLeadingNonFrontmatter: guard — disclaimer above a BODY --- thematic break (no real frontmatter) is left unchanged', () => {
+  // Finding 1: without the mapping guard, stripping the leading blockquote would
+  // expose "\n\nsection one\n\n---\n..." and the downstream parser would mistake
+  // the body thematic break for a frontmatter opener, swallowing the prose.
+  const proseWithLeadingQuote = '> Editor note: draft.\n\n---\n\nsection one\n\n---\n\nsection two\n';
+  assert.equal(
+    stripLeadingNonFrontmatter(proseWithLeadingQuote),
+    proseWithLeadingQuote,
+    'must return content unchanged when the exposed --- block is a prose thematic break, not a YAML mapping'
+  );
+});
+
+test('stripLeadingNonFrontmatter: unterminated HTML comment does not hang or over-consume (ReDoS guard)', () => {
+  const start = Date.now();
+  const unterminated = '<!--' + 'x'.repeat(200000) + '\n' + DISCLAIMER + COLORS;
+  const out = stripLeadingNonFrontmatter(unterminated);
+  assert.ok(Date.now() - start < 1000, 'must complete well under a second');
+  // The comment is never closed, so nothing is safely strippable → unchanged.
+  assert.equal(out, unterminated);
+});
+
 test('generateDesignMd: token maps survive a leading disclaimer (Bug #2)', () => {
   const dir = mkBrandDir('design-disc', {
     'tokens/colors.md': DISCLAIMER + COLORS,
