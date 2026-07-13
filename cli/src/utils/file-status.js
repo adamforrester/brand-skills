@@ -6,6 +6,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
+import { stripLeadingNonFrontmatter } from './frontmatter.js';
 
 const PLACEHOLDER_MARKER = '<!-- Fill this file following the schema';
 
@@ -25,8 +26,13 @@ export function classifyFile(absPath) {
 
   if (raw.includes(PLACEHOLDER_MARKER)) return 'placeholder';
 
+  // Tolerate a leading disclaimer above the frontmatter (public-sources-only
+  // mode prepends one) so both the body strip and the anchored frontmatter
+  // check below see the block as if it opened line 1.
+  const normalized = stripLeadingNonFrontmatter(raw);
+
   // Strip frontmatter and inspect remaining body.
-  let body = raw;
+  let body = normalized;
   const trimmed = body.trimStart();
   if (trimmed.startsWith('---')) {
     const rest = trimmed.slice(3);
@@ -51,7 +57,7 @@ export function classifyFile(absPath) {
   // we require non-whitespace after the first colon. If no real value is
   // present, fall through to the body-length check (→ 'placeholder' when
   // the body is short).
-  const fm = raw.match(/^---\n([\s\S]*?)\n---/);
+  const fm = normalized.match(/^---\n([\s\S]*?)\n---/);
   if (fm) {
     const fmLines = fm[1].split('\n').filter((l) => l.trim());
     const uncommentedValueLines = fmLines.filter((l) => {

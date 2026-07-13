@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { stripLeadingNonFrontmatter } from './frontmatter.js';
 
 /**
  * Generate condensed brand context for any agent that loads project-root
@@ -44,8 +45,8 @@ function readBrandFile(brandDir, relPath) {
   const fullPath = join(brandDir, relPath);
   if (!existsSync(fullPath)) return '';
   let content = readFileSync(fullPath, 'utf-8');
-  // Strip frontmatter
-  const trimmed = content.trimStart();
+  // Strip frontmatter (tolerating a leading disclaimer above it)
+  const trimmed = stripLeadingNonFrontmatter(content).trimStart();
   if (trimmed.startsWith('---')) {
     const rest = trimmed.slice(3);
     const end = rest.indexOf('\n---');

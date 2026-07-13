@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
+import { stripLeadingNonFrontmatter } from './frontmatter.js';
 
 /** True for a plain object (not null, not an array). Used to guard passthrough
  *  blocks whose intent is "a map" — arrays and scalars must not slip through. */
@@ -74,7 +75,7 @@ function readTokensFromFile(brandDir, relPath, key) {
  * Returns the inner YAML text, or null if no frontmatter is present.
  */
 function extractFrontmatter(content) {
-  const trimmed = content.trimStart();
+  const trimmed = stripLeadingNonFrontmatter(content).trimStart();
   if (!trimmed.startsWith('---')) return null;
   const rest = trimmed.slice(3);
   const end = rest.indexOf('\n---');
@@ -133,8 +134,8 @@ function readProse(brandDir, relPath) {
 
   let content = readFileSync(fullPath, 'utf-8');
 
-  // Strip frontmatter
-  const trimmed = content.trimStart();
+  // Strip frontmatter (tolerating a leading disclaimer above it)
+  const trimmed = stripLeadingNonFrontmatter(content).trimStart();
   if (trimmed.startsWith('---')) {
     const rest = trimmed.slice(3);
     const end = rest.indexOf('\n---');
