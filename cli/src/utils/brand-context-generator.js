@@ -105,9 +105,28 @@ function buildAntiPatternsBlock(overview) {
   if (!competitive) return '';
 
   // Try to extract the anti-pattern lines if they're called out specifically.
-  const antiMatch = competitive.match(/(?:Aesthetic anti-patterns?|Anti-patterns?|NOT)[^\n]*\n([\s\S]*?)(?=\n\*\*|$)/i);
-  if (antiMatch) {
-    return `## Aesthetic anti-patterns\n\n${antiMatch[0].trim()}`;
+  // The label is usually a bold inline heading inside Competitive Context, in
+  // one of two shapes:
+  //   **Aesthetic anti-patterns:**            (block form — bullets follow)
+  //   - NOT flashy …
+  //   **Aesthetic anti-patterns:** NOT foo, NOT bar.   (inline form)
+  // Consume the optional `**` wrapper AND the label itself, capturing ONLY the
+  // body in group 1 — returning the whole match (`m[0]`) re-emitted the label
+  // and orphaned the trailing `**` under the `## Aesthetic anti-patterns`
+  // heading. Stop at a blank line or the next bold label so we don't swallow a
+  // following field.
+  // Anchor the label to the start of a line via `(?:^|\n)` (NOT the `m` flag —
+  // under `m`, the `$` in the stop-lookahead would match end-of-LINE and
+  // truncate a bulleted block to its first item). This way `$` means end-of-
+  // string, so a mid-sentence mention of "anti-patterns" is not promoted, and
+  // the whole bulleted block (up to a blank line or the next bold label) is
+  // captured. Only group 1 (the body) is emitted — returning the whole match
+  // re-emitted the label and orphaned its trailing `**`.
+  const antiMatch = competitive.match(
+    /(?:^|\n)\*{0,2}(?:Aesthetic\s+)?anti-patterns?:?\*{0,2}[ \t]*\n?([\s\S]*?)(?=\n[ \t]*\n|\n\*\*|$)/i
+  );
+  if (antiMatch && antiMatch[1].trim()) {
+    return `## Aesthetic anti-patterns\n\n${antiMatch[1].trim()}`;
   }
   return `## Competitive context\n\n${competitive}`;
 }
