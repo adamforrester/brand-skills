@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as yamlParse } from 'yaml';
+import { stripLeadingNonFrontmatter } from './frontmatter.js';
 
 /**
  * Generate a self-contained HTML style guide from a .brand/ directory.
@@ -474,7 +475,7 @@ function readFileSafe(brandDir, relPath) {
 
 function extractFrontmatter(content) {
   if (!content) return null;
-  const trimmed = content.trimStart();
+  const trimmed = stripLeadingNonFrontmatter(content).trimStart();
   if (!trimmed.startsWith('---')) return null;
   const rest = trimmed.slice(3);
   const end = rest.indexOf('\n---');
@@ -497,9 +498,9 @@ function readFrontmatterKey(brandDir, relPath, key) {
 
 function extractIdentitySubtitle(overviewContent) {
   if (!overviewContent) return '';
-  // Strip frontmatter.
+  // Strip frontmatter (tolerating a leading disclaimer above it).
   let body = overviewContent;
-  const trimmed = body.trimStart();
+  const trimmed = stripLeadingNonFrontmatter(body).trimStart();
   if (trimmed.startsWith('---')) {
     const rest = trimmed.slice(3);
     const end = rest.indexOf('\n---');
