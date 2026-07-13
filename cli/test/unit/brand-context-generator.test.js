@@ -126,6 +126,67 @@ test('generateBrandContext: handles the schema-canonical inline anti-patterns sh
   }
 });
 
+test('generateBrandContext: a loose (blank-line-separated) anti-patterns list is captured whole, not truncated', () => {
+  // Review finding #2: a blank line between bullets (valid CommonMark "loose"
+  // list) must not end the block at the first item.
+  const overview = `# Brand Overview
+
+## Competitive Context
+**Aesthetic anti-patterns:**
+- NOT flashy.
+
+- NOT sterile.
+
+- NOT jargon-forward.
+`;
+  const dir = mkBrandDir('anti-loose', { 'overview.md': overview });
+  try {
+    const md = generateBrandContext(dir, 'Evergy');
+    assert.match(md, /- NOT flashy\./, 'first loose-list item present');
+    assert.match(md, /- NOT sterile\./, 'second loose-list item present');
+    assert.match(md, /- NOT jargon-forward\./, 'third loose-list item must not be dropped');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateBrandContext: a trailing prose paragraph after the anti-patterns list is NOT swallowed', () => {
+  // The complement of the loose-list rule: a blank line followed by PROSE (not a
+  // bullet) still ends the block, so competitive-context prose stays put.
+  const overview = `# Brand Overview
+
+## Competitive Context
+**Aesthetic anti-patterns:**
+- NOT loud.
+- NOT dull.
+
+This trailing paragraph is separate competitive context.
+`;
+  const dir = mkBrandDir('anti-trailing', { 'overview.md': overview });
+  try {
+    const md = generateBrandContext(dir, 'Evergy');
+    assert.match(md, /- NOT dull\./, 'list items captured');
+    assert.doesNotMatch(md, /## Aesthetic anti-patterns[\s\S]*trailing paragraph/, 'trailing prose must not be swallowed into the anti-patterns section');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateBrandContext: a CRLF-authored anti-patterns block extracts cleanly (no over-capture, no stray \\r)', () => {
+  // Review finding #1: Windows line endings must not defeat the blank-line stop
+  // or leak `\r` into the extracted content.
+  const overview = '# Brand Overview\r\n\r\n## Competitive Context\r\n**Aesthetic anti-patterns:**\r\n- NOT flashy.\r\n- NOT sterile.\r\n\r\nThis trailing paragraph is separate competitive context.\r\n';
+  const dir = mkBrandDir('anti-crlf', { 'overview.md': overview });
+  try {
+    const md = generateBrandContext(dir, 'Evergy');
+    assert.match(md, /- NOT flashy\.\n- NOT sterile\./, 'both bullets captured with LF boundaries');
+    assert.doesNotMatch(md, /\r/, 'no stray carriage returns in output');
+    assert.doesNotMatch(md, /## Aesthetic anti-patterns[\s\S]*trailing paragraph/, 'CRLF blank line must still end the block');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('generateBrandContext: a mid-sentence "anti-pattern" mention is NOT promoted to a section', () => {
   // Guard against over-eager matching: only a line-leading label callout should
   // become the Aesthetic anti-patterns section. A prose mention keeps the whole
