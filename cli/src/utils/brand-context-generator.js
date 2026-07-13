@@ -57,12 +57,19 @@ function readBrandFile(brandDir, relPath) {
 /**
  * Pull a section by H2 heading. Returns the body text (without the heading)
  * up to the next H2 or end of file. Returns empty string if not found.
+ *
+ * The body is captured in a NAMED group (`body`) rather than a positional one:
+ * every caller passes a parenthesised heading alternation (e.g.
+ * `(Brand Identity|Identity)`), which is itself a capturing group. A positional
+ * `m[1]` would return the matched heading text, not the section body — so each
+ * block would render its own heading label as its content. Naming the body
+ * group makes extraction robust to however many groups the heading pattern adds.
  */
 function pullSection(content, headingPattern) {
   if (!content) return '';
-  const re = new RegExp(`##\\s+${headingPattern}[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s|$)`, 'i');
+  const re = new RegExp(`##\\s+${headingPattern}[^\\n]*\\n(?<body>[\\s\\S]*?)(?=\\n##\\s|$)`, 'i');
   const m = content.match(re);
-  return m ? m[1].trim() : '';
+  return m ? m.groups.body.trim() : '';
 }
 
 function buildIdentityBlock(overview) {
