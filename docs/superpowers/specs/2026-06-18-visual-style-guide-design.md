@@ -112,6 +112,7 @@ Always renders at bottom:
 - Generator string (e.g. `brand-cli@0.4.0`).
 - Source-file pointers: short text noting "Source: `.brand/` directory; regenerate with `brand-cli refresh-design`."
 - Font-loading caveat: "Typography samples use the brand's declared `fontFamily`. If your system doesn't have the font, your browser falls back to its default."
+  > **Amendment (2026-07-14):** superseded to match the §2d generic-fallback change. Current caveat text: *"Typography samples use the brand's declared `fontFamily` with a generic fallback (sans-serif / serif / monospace). If your system doesn't have the font, the sample renders in that generic family — not the exact brand typeface. The meta line under each sample names the declared family."* This is the string `buildFooter` emits and the SKILL §8 footer mirrors verbatim.
 
 ---
 

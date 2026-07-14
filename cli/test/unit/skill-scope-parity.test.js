@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SKILL_PATH = resolve(__dirname, '../../../brand-context/skills/brand-extract/SKILL.md');
 const skill = readFileSync(SKILL_PATH, 'utf-8');
+const STYLE_GUIDE_GEN_PATH = resolve(__dirname, '../../src/utils/style-guide-generator.js');
+const styleGuideGen = readFileSync(STYLE_GUIDE_GEN_PATH, 'utf-8');
 
 test('SKILL prose mentions the .brand/.scope.json file path', () => {
   assert.ok(skill.includes('.brand/.scope.json'), 'SKILL.md must reference .brand/.scope.json by path');
@@ -324,6 +326,33 @@ test('SKILL Stage 8 documents the style-guide.html inline-fallback (visual-style
     /byte-identical/i.test(skill),
     'SKILL.md must surface the byte-identical parity contract for the visual style guide'
   );
+});
+
+test('SKILL §4 font-fallback lists mirror the CLI SERIF_FONTS / MONOSPACE_FONTS / GENERIC_KEYWORDS sets verbatim (font-fallback parity)', () => {
+  // withFontFallback's classification is a byte-identical parity surface: an
+  // abbreviated SKILL list ("Playfair Display, …") would make the no-CLI
+  // fallback path emit `, sans-serif` for a tail serif/mono font (e.g. Bitter),
+  // diverging from the CLI AND reintroducing the wrong-family-class bug. Extract
+  // each Set literal from the generator source and assert every family appears
+  // in the SKILL prose. Fails if the CLI adds a family the SKILL doesn't list.
+  function familiesInSet(setName) {
+    const m = styleGuideGen.match(new RegExp(`const ${setName} = new Set\\(\\[([\\s\\S]*?)\\]\\)`));
+    assert.ok(m, `expected to locate the ${setName} Set literal in style-guide-generator.js`);
+    return [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]);
+  }
+  // Scope to the §4 typography item so the check is anchored to the right prose.
+  const sectionMatch = skill.match(/4\. Typography —[\s\S]*?(?=\n5\. Spacing —)/);
+  assert.ok(sectionMatch, 'SKILL §4 Typography item must be locatable for the font-list parity check');
+  const section4 = sectionMatch[0].toLowerCase();
+
+  for (const setName of ['SERIF_FONTS', 'MONOSPACE_FONTS', 'GENERIC_KEYWORDS']) {
+    for (const family of familiesInSet(setName)) {
+      assert.ok(
+        section4.includes(family.toLowerCase()),
+        `SKILL §4 must list the ${setName} family "${family}" verbatim (byte-identical fallback parity)`
+      );
+    }
+  }
 });
 
 // --- Prism3 engine-alignment contracts (design.md interchange) ---------------
