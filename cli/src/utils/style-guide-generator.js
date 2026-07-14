@@ -220,6 +220,56 @@ function buildColorsSection(brandDir) {
   ].join('\n');
 }
 
+// Known families whose generic class isn't sans-serif. Everything not listed
+// here (and every unknown family) defaults to sans-serif — the safe majority
+// case, and specifically NOT serif, which is the browser default the bare
+// declaration was silently falling back to. Keys are lowercased family names.
+const SERIF_FONTS = new Set([
+  'playfair display', 'playfair', 'georgia', 'merriweather', 'lora', 'pt serif',
+  'source serif pro', 'source serif 4', 'noto serif', 'roboto slab', 'slabo 27px',
+  'libre baskerville', 'crimson text', 'crimson pro', 'eb garamond', 'garamond',
+  'cormorant', 'cormorant garamond', 'bitter', 'domine', 'zilla slab',
+  'times new roman', 'times', 'droid serif', 'vollkorn', 'spectral',
+]);
+const MONOSPACE_FONTS = new Set([
+  'jetbrains mono', 'fira code', 'fira mono', 'source code pro', 'ibm plex mono',
+  'roboto mono', 'space mono', 'inconsolata', 'ubuntu mono', 'courier new',
+  'courier', 'menlo', 'monaco', 'consolas', 'sf mono', 'cascadia code',
+  'dejavu sans mono', 'liberation mono',
+]);
+const GENERIC_KEYWORDS = new Set([
+  'serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui',
+  'ui-serif', 'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji',
+  'fangsong', 'inherit', 'initial', 'unset', 'revert',
+]);
+
+/**
+ * Append a generic CSS font-family fallback to a declared family so the style-
+ * guide sample degrades to the correct family class when the font isn't
+ * installed. Bare `Roboto` otherwise falls back to the browser default (serif),
+ * which mislabels the sample.
+ *
+ * - If the value already contains a comma (an author-provided stack) or already
+ *   ends in a generic/system keyword, it is returned UNCHANGED — we never
+ *   double-append or override an intentional stack.
+ * - `inherit` / `initial` / etc. pass through untouched.
+ * - Otherwise the generic is chosen from the known-font maps (serif/monospace),
+ *   defaulting to `sans-serif`.
+ */
+function withFontFallback(family) {
+  const raw = String(family).trim();
+  if (!raw) return raw;
+  const lower = raw.toLowerCase();
+  // A CSS keyword on its own (inherit/serif/…) needs no fallback.
+  if (GENERIC_KEYWORDS.has(lower)) return raw;
+  // An author-provided stack already declares its own fallback order.
+  if (raw.includes(',')) return raw;
+  let generic = 'sans-serif';
+  if (SERIF_FONTS.has(lower)) generic = 'serif';
+  else if (MONOSPACE_FONTS.has(lower)) generic = 'monospace';
+  return `${raw}, ${generic}`;
+}
+
 function buildTypographySection(brandDir) {
   const typography = readFrontmatterKey(brandDir, 'tokens/typography.md', 'typography');
   if (!typography || Object.keys(typography).length === 0) {
@@ -235,8 +285,13 @@ function buildTypographySection(brandDir) {
     const fontSize = spec.fontSize ? String(spec.fontSize) : 'inherit';
     const fontWeight = spec.fontWeight !== undefined ? String(spec.fontWeight) : 'inherit';
     const lineHeight = spec.lineHeight !== undefined ? String(spec.lineHeight) : 'inherit';
+    // Append a generic fallback for the RENDERED sample so a font the viewer
+    // doesn't have degrades to the right family class (sans/serif/mono) instead
+    // of the browser default (which is serif — the reported bug). The meta line
+    // below still shows the declared family name, unqualified.
+    const renderedFamily = withFontFallback(fontFamily);
     const inlineStyle = [
-      `font-family: ${escapeHtml(escapeCss(fontFamily))}`,
+      `font-family: ${escapeHtml(escapeCss(renderedFamily))}`,
       `font-size: ${escapeHtml(escapeCss(fontSize))}`,
       `font-weight: ${escapeHtml(escapeCss(fontWeight))}`,
       `line-height: ${escapeHtml(escapeCss(lineHeight))}`,
@@ -416,7 +471,7 @@ function buildFooter(now) {
     '<footer>',
     `<p>Generated ${escapeHtml(now)}.</p>`,
     `<p>Source: <code>.brand/</code> directory; regenerate with <code>brand-cli refresh-design</code>.</p>`,
-    `<p>Typography samples use the brand&rsquo;s declared <code>fontFamily</code>. If your system doesn&rsquo;t have the font, your browser falls back to its default.</p>`,
+    `<p>Typography samples use the brand&rsquo;s declared <code>fontFamily</code> with a generic fallback (sans-serif / serif / monospace). If your system doesn&rsquo;t have the font, the sample renders in that generic family &mdash; not the exact brand typeface. The meta line under each sample names the declared family.</p>`,
     '</footer>',
   ].join('\n');
 }

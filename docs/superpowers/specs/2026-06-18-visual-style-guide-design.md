@@ -80,6 +80,8 @@ Type ramp. Each typography token renders as:
 
 Reads `.brand/tokens/typography.md` frontmatter `typography:` block. The font family declared in the token is used as-is — no font-loading. If the user's system doesn't have it, the browser falls back to its own default. (Document this in the page footer — see [§2h](#2h-footer).)
 
+> **Amendment (2026-07-14):** "used as-is" refined — the rendered sample now appends a generic CSS fallback (`sans-serif` by default; `serif`/`monospace` for known families of that kind) via `withFontFallback` in `cli/src/utils/style-guide-generator.js`, so an absent font degrades to the correct family class instead of the browser default (serif). Still no network font-loading; the self-contained invariant is unchanged. The `type-row-meta` line shows the declared family unqualified.
+
 ### 2e. Spacing (when present)
 
 Spacing scale rendered as colored bars. Each bar:
