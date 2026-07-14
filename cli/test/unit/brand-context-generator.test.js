@@ -76,6 +76,137 @@ test('generateBrandContext: section bodies contain source prose, not the heading
   }
 });
 
+test('generateBrandContext: promotes a bold "**Aesthetic anti-patterns:**" label to a clean section (block-list shape)', () => {
+  // Real Evergy shape: the anti-patterns are a bold inline label inside
+  // Competitive Context, followed by a bulleted block. The extractor promotes
+  // it to its own `## Aesthetic anti-patterns` section — it must NOT re-emit the
+  // label line, and must not orphan the `**` bold markers.
+  const overview = `# Brand Overview
+
+## Competitive Context
+**Differentiation:** Trust and local rootedness.
+
+**Aesthetic anti-patterns:**
+- NOT flashy or hype-driven.
+- NOT sterile corporate minimalism.
+- NOT jargon-forward.
+`;
+  const dir = mkBrandDir('anti-block', { 'overview.md': overview });
+  try {
+    const md = generateBrandContext(dir, 'Evergy');
+    assert.match(md, /## Aesthetic anti-patterns/, 'anti-patterns section heading present');
+    // The ENTIRE list content is intact (not truncated to the first bullet)...
+    assert.match(md, /- NOT flashy or hype-driven\./, 'first anti-pattern list item present');
+    assert.match(md, /- NOT sterile corporate minimalism\./, 'middle anti-pattern list item present');
+    assert.match(md, /- NOT jargon-forward\./, 'last anti-pattern list item present');
+    // ...but the malformed label line must be gone (no re-emitted label, no orphaned **).
+    assert.doesNotMatch(md, /Aesthetic anti-patterns:\*\*/, 'must not render the orphaned "Aesthetic anti-patterns:**" label');
+    assert.doesNotMatch(md, /## Aesthetic anti-patterns\n\n[^\n]*anti-patterns:/i, 'section body must start with content, not the label');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateBrandContext: handles the schema-canonical inline anti-patterns shape', () => {
+  // overview.schema.md:112 shape — inline label + comma-separated body on one line.
+  const overview = `# Brand Overview
+
+## Competitive Context
+**Differentiation:** Personality-driven.
+**Aesthetic anti-patterns:** NOT corporate minimalist (too sterile), NOT retro diner (too nostalgic). Modern and energetic.
+`;
+  const dir = mkBrandDir('anti-inline', { 'overview.md': overview });
+  try {
+    const md = generateBrandContext(dir, 'Evergy');
+    assert.match(md, /## Aesthetic anti-patterns/, 'anti-patterns section heading present');
+    assert.match(md, /NOT corporate minimalist \(too sterile\)/, 'inline anti-pattern body present');
+    assert.doesNotMatch(md, /Aesthetic anti-patterns:\*\*/, 'must not render an orphaned bold label');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateBrandContext: a loose (blank-line-separated) anti-patterns list is captured whole, not truncated', () => {
+  // Review finding #2: a blank line between bullets (valid CommonMark "loose"
+  // list) must not end the block at the first item.
+  const overview = `# Brand Overview
+
+## Competitive Context
+**Aesthetic anti-patterns:**
+- NOT flashy.
+
+- NOT sterile.
+
+- NOT jargon-forward.
+`;
+  const dir = mkBrandDir('anti-loose', { 'overview.md': overview });
+  try {
+    const md = generateBrandContext(dir, 'Evergy');
+    assert.match(md, /- NOT flashy\./, 'first loose-list item present');
+    assert.match(md, /- NOT sterile\./, 'second loose-list item present');
+    assert.match(md, /- NOT jargon-forward\./, 'third loose-list item must not be dropped');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateBrandContext: a trailing prose paragraph after the anti-patterns list is NOT swallowed', () => {
+  // The complement of the loose-list rule: a blank line followed by PROSE (not a
+  // bullet) still ends the block, so competitive-context prose stays put.
+  const overview = `# Brand Overview
+
+## Competitive Context
+**Aesthetic anti-patterns:**
+- NOT loud.
+- NOT dull.
+
+This trailing paragraph is separate competitive context.
+`;
+  const dir = mkBrandDir('anti-trailing', { 'overview.md': overview });
+  try {
+    const md = generateBrandContext(dir, 'Evergy');
+    assert.match(md, /- NOT dull\./, 'list items captured');
+    assert.doesNotMatch(md, /## Aesthetic anti-patterns[\s\S]*trailing paragraph/, 'trailing prose must not be swallowed into the anti-patterns section');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateBrandContext: a CRLF-authored anti-patterns block extracts cleanly (no over-capture, no stray \\r)', () => {
+  // Review finding #1: Windows line endings must not defeat the blank-line stop
+  // or leak `\r` into the extracted content.
+  const overview = '# Brand Overview\r\n\r\n## Competitive Context\r\n**Aesthetic anti-patterns:**\r\n- NOT flashy.\r\n- NOT sterile.\r\n\r\nThis trailing paragraph is separate competitive context.\r\n';
+  const dir = mkBrandDir('anti-crlf', { 'overview.md': overview });
+  try {
+    const md = generateBrandContext(dir, 'Evergy');
+    assert.match(md, /- NOT flashy\.\n- NOT sterile\./, 'both bullets captured with LF boundaries');
+    assert.doesNotMatch(md, /\r/, 'no stray carriage returns in output');
+    assert.doesNotMatch(md, /## Aesthetic anti-patterns[\s\S]*trailing paragraph/, 'CRLF blank line must still end the block');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('generateBrandContext: a mid-sentence "anti-pattern" mention is NOT promoted to a section', () => {
+  // Guard against over-eager matching: only a line-leading label callout should
+  // become the Aesthetic anti-patterns section. A prose mention keeps the whole
+  // Competitive Context under its own heading.
+  const overview = `# Brand Overview
+
+## Competitive Context
+**Differentiation:** Trust and local roots. There is no anti-pattern callout in this prose.
+`;
+  const dir = mkBrandDir('anti-midsentence', { 'overview.md': overview });
+  try {
+    const md = generateBrandContext(dir, 'Evergy');
+    assert.match(md, /## Competitive context/, 'should render Competitive context, not a spurious anti-patterns section');
+    assert.doesNotMatch(md, /## Aesthetic anti-patterns/, 'mid-sentence mention must not create an anti-patterns section');
+    assert.match(md, /Trust and local roots/, 'full competitive body preserved');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('generateBrandContext: falls back to the extract-prompt stub when overview is empty', () => {
   const dir = mkBrandDir('empty-overview', {
     'overview.md': '# Brand Overview\n\n<!-- placeholder -->\n',

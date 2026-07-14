@@ -44,7 +44,11 @@ export function generateBrandContext(brandDir, brandName = 'Brand') {
 function readBrandFile(brandDir, relPath) {
   const fullPath = join(brandDir, relPath);
   if (!existsSync(fullPath)) return '';
-  let content = readFileSync(fullPath, 'utf-8');
+  // Normalize CRLF → LF at ingest so every downstream line-oriented regex
+  // (frontmatter fences, section pulls, the anti-patterns block) can rely on
+  // `\n` boundaries — a Windows-authored overview.md otherwise defeats blank-
+  // line stop-lookaheads and drags stray `\r` into extracted content.
+  let content = readFileSync(fullPath, 'utf-8').replace(/\r\n/g, '\n');
   // Strip frontmatter (tolerating a leading disclaimer above it)
   const trimmed = stripLeadingNonFrontmatter(content).trimStart();
   if (trimmed.startsWith('---')) {
@@ -105,9 +109,31 @@ function buildAntiPatternsBlock(overview) {
   if (!competitive) return '';
 
   // Try to extract the anti-pattern lines if they're called out specifically.
-  const antiMatch = competitive.match(/(?:Aesthetic anti-patterns?|Anti-patterns?|NOT)[^\n]*\n([\s\S]*?)(?=\n\*\*|$)/i);
-  if (antiMatch) {
-    return `## Aesthetic anti-patterns\n\n${antiMatch[0].trim()}`;
+  // The label is usually a bold inline heading inside Competitive Context, in
+  // one of two shapes:
+  //   **Aesthetic anti-patterns:**            (block form — bullets follow)
+  //   - NOT flashy …
+  //   **Aesthetic anti-patterns:** NOT foo, NOT bar.   (inline form)
+  // Consume the optional `**` wrapper AND the label itself, capturing ONLY the
+  // body in group 1 — returning the whole match (`m[0]`) re-emitted the label
+  // and orphaned the trailing `**` under the `## Aesthetic anti-patterns`
+  // heading.
+  //
+  // Anchor the label to the start of a line via `(?:^|\n)` (NOT the `m` flag —
+  // under `m`, the `$` in the stop-lookahead would match end-of-LINE and
+  // truncate a bulleted block to its first item). This way `$` means end-of-
+  // string, so a mid-sentence mention of "anti-patterns" is not promoted.
+  //
+  // Stop-lookahead: end at the next bold field (`\n**`), end-of-string (`$`),
+  // OR a blank line — but NOT a blank line that is followed by another bullet,
+  // so a "loose" (blank-line-separated) Markdown list is captured whole instead
+  // of truncating to its first item. `readBrandFile` normalizes CRLF→LF, so the
+  // `\n` boundaries here are reliable on Windows-authored files too.
+  const antiMatch = competitive.match(
+    /(?:^|\n)\*{0,2}(?:Aesthetic\s+)?anti-patterns?:?\*{0,2}[ \t]*\n?([\s\S]*?)(?=\n[ \t]*\n(?![ \t]*[-*+] )|\n\*\*|$)/i
+  );
+  if (antiMatch && antiMatch[1].trim()) {
+    return `## Aesthetic anti-patterns\n\n${antiMatch[1].trim()}`;
   }
   return `## Competitive context\n\n${competitive}`;
 }
