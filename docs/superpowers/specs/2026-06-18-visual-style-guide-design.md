@@ -80,6 +80,8 @@ Type ramp. Each typography token renders as:
 
 Reads `.brand/tokens/typography.md` frontmatter `typography:` block. The font family declared in the token is used as-is — no font-loading. If the user's system doesn't have it, the browser falls back to its own default. (Document this in the page footer — see [§2h](#2h-footer).)
 
+> **Amendment (2026-07-14):** "used as-is" refined — the rendered sample now appends a generic CSS fallback (`sans-serif` by default; `serif`/`monospace` for known families of that kind) via `withFontFallback` in `cli/src/utils/style-guide-generator.js`, so an absent font degrades to the correct family class instead of the browser default (serif). Still no network font-loading; the self-contained invariant is unchanged. The `type-row-meta` line shows the declared family unqualified.
+
 ### 2e. Spacing (when present)
 
 Spacing scale rendered as colored bars. Each bar:
@@ -110,6 +112,7 @@ Always renders at bottom:
 - Generator string (e.g. `brand-cli@0.4.0`).
 - Source-file pointers: short text noting "Source: `.brand/` directory; regenerate with `brand-cli refresh-design`."
 - Font-loading caveat: "Typography samples use the brand's declared `fontFamily`. If your system doesn't have the font, your browser falls back to its default."
+  > **Amendment (2026-07-14):** superseded to match the §2d generic-fallback change. Current caveat text: *"Typography samples use the brand's declared `fontFamily` with a generic fallback (sans-serif / serif / monospace). If your system doesn't have the font, the sample renders in that generic family — not the exact brand typeface. The meta line under each sample names the declared family."* This is the string `buildFooter` emits and the SKILL §8 footer mirrors verbatim.
 
 ---
 

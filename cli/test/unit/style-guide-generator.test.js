@@ -140,6 +140,38 @@ test('generateStyleGuide: typography section renders type ramp with inline font 
   }
 });
 
+test('generateStyleGuide: bare fontFamily gets a generic fallback so samples never degrade to serif', () => {
+  // Reported bug: `fontFamily: Roboto` (no fallback) rendered SERIF because the
+  // browser used its default when Roboto was absent. Appending a generic keeps
+  // the sample sans, and picks serif/monospace for known families of that kind.
+  const dir = mkBrandDir('font-fallback', {
+    'tokens/typography.md':
+      '---\ntypography:\n' +
+      '  sans:\n    fontFamily: Roboto\n    fontSize: 16px\n    fontWeight: 400\n    lineHeight: 1.5\n' +
+      '  serif:\n    fontFamily: Playfair Display\n    fontSize: 16px\n    fontWeight: 400\n    lineHeight: 1.5\n' +
+      '  mono:\n    fontFamily: JetBrains Mono\n    fontSize: 16px\n    fontWeight: 400\n    lineHeight: 1.5\n' +
+      '  prewired:\n    fontFamily: "Inter, system-ui, sans-serif"\n    fontSize: 16px\n    fontWeight: 400\n    lineHeight: 1.5\n' +
+      '---\n',
+  });
+  try {
+    const html = generateStyleGuide(dir, 'ACME Corp', FIXED_NOW);
+    // Sans family → sans-serif generic appended.
+    assert.match(html, /font-family: Roboto, sans-serif\b/, 'Roboto must get a sans-serif fallback');
+    // Known serif family → serif generic (not sans).
+    assert.match(html, /font-family: Playfair Display, serif\b/, 'Playfair Display must get a serif fallback');
+    // Known monospace family → monospace generic.
+    assert.match(html, /font-family: JetBrains Mono, monospace\b/, 'JetBrains Mono must get a monospace fallback');
+    // A stack that already carries a generic keyword is left untouched (no double-append).
+    assert.match(html, /font-family: Inter, system-ui, sans-serif;/, 'a pre-wired stack must be emitted unchanged');
+    assert.doesNotMatch(html, /sans-serif, sans-serif/, 'must not double-append a generic');
+    // The meta line still shows the ORIGINAL declared family, not the fallback stack.
+    assert.match(html, /· Roboto</, 'meta line shows the declared family name, unqualified (no fallback stack)');
+    assert.doesNotMatch(html, /Roboto, sans-serif</, 'the fallback stack must not leak into the meta line');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('generateStyleGuide: spacing section silently skipped when frontmatter is empty', () => {
   const dir = mkBrandDir('spacing-empty', {
     'tokens/spacing.md': '---\nspacing:\n  # base: 16px\n  # xs: 4px\n---\n',
